@@ -1,0 +1,99 @@
+{
+  "generatedAgainst": "swisseph 2.10.03",
+  "provider": "astronomy-engine",
+  "precisionClass": "interactive",
+  "unit": "arcsec",
+  "charts": 18,
+  "worstCase": [
+    {
+      "quantity": "Moon",
+      "error": 69.07438861480841,
+      "chart": "future-2099"
+    },
+    {
+      "quantity": "TrueNode",
+      "error": 27.65649387358735,
+      "chart": "arctic-tromso"
+    },
+    {
+      "quantity": "Neptune",
+      "error": 17.44646870276938,
+      "chart": "exact-midnight-ut"
+    },
+    {
+      "quantity": "Saturn",
+      "error": 13.449562474215782,
+      "chart": "v0-reference-chart"
+    },
+    {
+      "quantity": "Pluto",
+      "error": 11.699351279023773,
+      "chart": "nineteenth-century-us"
+    },
+    {
+      "quantity": "Uranus",
+      "error": 10.966555732534289,
+      "chart": "leap-day"
+    },
+    {
+      "quantity": "Mercury",
+      "error": 9.533247938725253,
+      "chart": "southern-hemisphere"
+    },
+    {
+      "quantity": "Jupiter",
+      "error": 5.900142599693936,
+      "chart": "modern-honolulu"
+    },
+    {
+      "quantity": "Venus",
+      "error": 5.618045241510572,
+      "chart": "future-2099"
+    },
+    {
+      "quantity": "Sun",
+      "error": 3.8181437380217176,
+      "chart": "future-2099"
+    },
+    {
+      "quantity": "Mars",
+      "error": 3.712641179959064,
+      "chart": "nineteenth-century-us"
+    },
+    {
+      "quantity": "Midheaven",
+      "error": 2.017757461862857,
+      "chart": "future-2099"
+    },
+    {
+      "quantity": "Ascendant",
+      "error": 1.639046213108486,
+      "chart": "future-2099"
+    },
+    {
+      "quantity": "Rahu",
+      "error": 0.4310650901061308,
+      "chart": "nineteenth-century-us"
+    },
+    {
+      "quantity": "Ketu",
+      "error": 0.4310650899014945,
+      "chart": "nineteenth-century-us"
+    },
+    {
+      "quantity": "~obliquity",
+      "error": 0.062215391750441995,
+      "chart": "future-2099"
+    },
+    {
+      "quantity": "~ayanamsa",
+      "error": 0.005014398713854007,
+      "chart": "total-solar-eclipse-day"
+    },
+    {
+      "quantity": "~dPsi",
+      "error": 0.0048960222809573545,
+      "chart": "total-solar-eclipse-day"
+    }
+  ]
+}

@@ -1,0 +1,19 @@
+node_modules/
+dist/
+.next/
+.turbo/
+coverage/
+*.tsbuildinfo
+
+# secrets — never commit
+.env
+.env.local
+.env.*.local
+
+# ephemeris data files are fetched by scripts/fetch-ephe.ts, never committed (~100MB)
+.ephe/
+*.se1
+
+.DS_Store
+playwright-report/
+test-results/
