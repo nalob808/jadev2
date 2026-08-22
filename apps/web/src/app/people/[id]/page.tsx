@@ -1,9 +1,20 @@
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { getSettingsProfile, getSubject } from '@jade/db';
-import { formatSignPosition, POINT_DISPLAY_ORDER, SIGNS } from '@jade/astro';
+import {
+  buildVargaChart,
+  dashaChainAt,
+  formatSignPosition,
+  jdFromUnixMs,
+  POINT_DISPLAY_ORDER,
+  SIGNS,
+  VARGA_IDS,
+  VARGA_NAMES,
+  vimshottari,
+  type VargaId,
+} from '@jade/astro';
 import { formatOffset, offsetWarning, TIME_ACCURACY_MINUTES } from '@jade/atlas';
-import { GLYPHS } from '@jade/ui';
+import { DashaColumn, GLYPHS, NorthIndianChart, SouthIndianChart, VargaGrid } from '@jade/ui';
 import { getSession } from '@/lib/auth';
 import { getDatabase } from '@/lib/db';
 import { getOrComputeChart } from '@/lib/chart';
@@ -12,14 +23,35 @@ import { Kicker, Panel, Shell } from '@/components/Shell';
 
 export const dynamic = 'force-dynamic';
 
-export default async function PersonPage({ params }: { params: Promise<{ id: string }> }) {
+// East Indian and the Western wheel are deliberately absent — see
+// docs/05-phases.md. Shipping a Bengali layout I could not verify against a
+// reference would undermine the one claim this product rests on.
+type Style = 'north' | 'south';
+const STYLES: ReadonlyArray<{ id: Style; label: string }> = [
+  { id: 'north', label: 'North' },
+  { id: 'south', label: 'South' },
+];
+
+export default async function PersonPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ style?: string; varga?: string; view?: string }>;
+}) {
   const session = await getSession();
   if (!session) redirect('/sign-in');
 
   const { id } = await params;
+  const query = await searchParams;
+  const style: Style = STYLES.some((s) => s.id === query.style) ? (query.style as Style) : 'north';
+  const vargaId: VargaId = (VARGA_IDS as readonly string[]).includes(query.varga ?? '')
+    ? (query.varga as VargaId)
+    : 'D1';
+  const showAllVargas = query.view === 'vargas';
+
   const record = await getSubject(getDatabase(), session.workspaceId, id);
   if (!record) notFound();
-
   const { subject, birthEvent } = record;
   if (!birthEvent) notFound();
 
@@ -31,8 +63,19 @@ export default async function PersonPage({ params }: { params: Promise<{ id: str
   if (!profile) notFound();
 
   const { chart, cacheHit } = await getOrComputeChart(session.workspaceId, birthEvent, profile);
-  const uncertaintyMinutes = TIME_ACCURACY_MINUTES[birthEvent.timeAccuracy];
+  const varga = buildVargaChart(chart, vargaId);
 
+  const birthJd = jdFromUnixMs(
+    birthEvent.utcDatetime instanceof Date
+      ? birthEvent.utcDatetime.getTime()
+      : new Date(birthEvent.utcDatetime).getTime(),
+  );
+  const dashas = vimshottari(chart.points.Moon!.longitude, birthJd, { levels: 3 });
+  // "Now" is passed explicitly rather than read inside the core.
+  const nowJd = jdFromUnixMs(Date.now());
+  const runningChain = dashaChainAt(dashas, nowJd);
+
+  const uncertaintyMinutes = TIME_ACCURACY_MINUTES[birthEvent.timeAccuracy];
   const warning = offsetWarning({
     offsetMinutes: birthEvent.utcOffsetMinutes,
     source: birthEvent.offsetSource,
@@ -41,6 +84,22 @@ export default async function PersonPage({ params }: { params: Promise<{ id: str
     note: (birthEvent.offsetNote ?? undefined) as undefined,
     zoneId: birthEvent.timezoneId,
   });
+
+  const base = `/people/${subject.id}`;
+  const link = (patch: Record<string, string>): string => {
+    const next = new URLSearchParams({
+      style,
+      varga: vargaId,
+      ...(showAllVargas ? { view: 'vargas' } : {}),
+    });
+    for (const [key, value] of Object.entries(patch)) {
+      if (value) next.set(key, value);
+      else next.delete(key);
+    }
+    return `${base}?${next.toString()}`;
+  };
+
+  const ChartComponent = style === 'south' ? SouthIndianChart : NorthIndianChart;
 
   return (
     <Shell email={session.email}>
@@ -72,86 +131,132 @@ export default async function PersonPage({ params }: { params: Promise<{ id: str
         </p>
       ) : null}
 
-      {uncertaintyMinutes > 0 ? (
-        <p className="mb-5 border-l-2 border-[var(--rule)] bg-[var(--surface)] px-4 py-3 text-sm text-[var(--ink-muted)]">
-          The birth time is given as accurate to about {uncertaintyMinutes} minutes, which moves the
-          ascendant by roughly {(uncertaintyMinutes / 4).toFixed(0)}° either way. Everything
-          house-dependent below inherits that uncertainty.
-        </p>
+      <div className="grid gap-5 lg:grid-cols-[auto_1fr]">
+        <Panel className="flex flex-col items-center">
+          <div className="mb-3 flex w-full items-center justify-between gap-3">
+            <Kicker>
+              {vargaId} · {VARGA_NAMES[vargaId]}
+            </Kicker>
+            <nav className="flex gap-1 font-mono text-[10px] uppercase tracking-wider">
+              {STYLES.map((option) => (
+                <Link
+                  key={option.id}
+                  href={link({ style: option.id })}
+                  className={`border px-2 py-0.5 ${
+                    option.id === style
+                      ? 'border-[var(--accent)] text-[var(--accent)]'
+                      : 'border-[var(--rule)] text-[var(--ink-muted)]'
+                  }`}
+                >
+                  {option.label}
+                </Link>
+              ))}
+            </nav>
+          </div>
+
+          <ChartComponent varga={varga} size={300} />
+
+          <nav className="mt-4 flex w-full flex-wrap gap-1 font-mono text-[10px]">
+            {(['D1', 'D9', 'D10', 'D12', 'D30', 'D60'] as const).map((id) => (
+              <Link
+                key={id}
+                href={link({ varga: id })}
+                className={`border px-1.5 py-0.5 ${
+                  id === vargaId
+                    ? 'border-[var(--accent)] text-[var(--accent)]'
+                    : 'border-[var(--rule)] text-[var(--ink-muted)]'
+                }`}
+              >
+                {id}
+              </Link>
+            ))}
+            <Link
+              href={link({ view: showAllVargas ? '' : 'vargas' })}
+              className="ml-auto border border-[var(--rule)] px-1.5 py-0.5 text-[var(--ink-muted)]"
+            >
+              {showAllVargas ? 'hide all 16' : 'all 16'}
+            </Link>
+          </nav>
+        </Panel>
+
+        <Panel>
+          <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
+            <Kicker>Sidereal positions</Kicker>
+            <span className="font-mono text-[10px] text-[var(--ink-muted)]">
+              {chart.meta.ayanamsaMode} {chart.meta.ayanamsaValue.toFixed(4)}° ·{' '}
+              {cacheHit ? 'cached' : 'computed'}
+            </span>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-[13px] sm:text-sm">
+              <thead>
+                <tr className="text-left font-mono text-[10px] uppercase tracking-wider text-[var(--ink-muted)]">
+                  <th className="pb-2">Graha</th>
+                  <th className="pb-2">Position</th>
+                  <th className="hidden pb-2 sm:table-cell">Nakṣatra</th>
+                  <th className="hidden pb-2 sm:table-cell">House</th>
+                </tr>
+              </thead>
+              <tbody className="font-mono">
+                {POINT_DISPLAY_ORDER.map((pointId) => chart.points[pointId])
+                  .filter((point) => point !== undefined)
+                  .map((point) => (
+                    <tr key={point.id} className="border-t border-[var(--rule)] align-top">
+                      <td className="py-1.5 pr-3">
+                        <span className="whitespace-nowrap">
+                          {GLYPHS[point.id as keyof typeof GLYPHS]} {point.id}
+                          {point.retrograde ? ' ℞' : ''}
+                        </span>
+                        <span className="block text-[10px] text-[var(--ink-muted)] sm:hidden">
+                          H{point.house} · {point.nakshatra.name} · {point.nakshatra.pada}
+                        </span>
+                      </td>
+                      <td className="py-1.5 pr-3 whitespace-nowrap">
+                        {formatSignPosition(point.longitude, SIGNS)}
+                      </td>
+                      <td className="hidden py-1.5 pr-3 sm:table-cell">
+                        {point.nakshatra.name}
+                        <span className="text-[var(--ink-muted)]"> · {point.nakshatra.pada}</span>
+                      </td>
+                      <td className="hidden py-1.5 sm:table-cell">{point.house}</td>
+                    </tr>
+                  ))}
+              </tbody>
+            </table>
+          </div>
+          {chart.vargottama.length > 0 ? (
+            <p className="mt-4 text-sm text-[var(--ink-muted)]">
+              Vargottama: {chart.vargottama.join(', ')}
+            </p>
+          ) : null}
+          {uncertaintyMinutes > 0 ? (
+            <p className="mt-3 text-xs text-[var(--ink-muted)]">
+              Birth time given as ±{uncertaintyMinutes} minutes, which moves the ascendant by
+              roughly {(uncertaintyMinutes / 4).toFixed(0)}°. Everything house-dependent inherits
+              that.
+            </p>
+          ) : null}
+        </Panel>
+      </div>
+
+      {showAllVargas ? (
+        <Panel className="mt-5">
+          <Kicker>Ṣoḍaśavarga — all sixteen, each on its own ascendant</Kicker>
+          <div className="mt-4">
+            <VargaGrid chart={chart} style={style === 'south' ? 'south' : 'north'} cellSize={128} />
+          </div>
+        </Panel>
       ) : null}
 
-      <Panel>
-        <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
-          <Kicker>Rāśi — sidereal positions</Kicker>
+      <Panel className="mt-5">
+        <div className="mb-1 flex flex-wrap items-baseline justify-between gap-2">
+          <Kicker>Daśā</Kicker>
           <span className="font-mono text-[10px] text-[var(--ink-muted)]">
-            {chart.meta.ayanamsaMode} {chart.meta.ayanamsaValue.toFixed(4)}° ·{' '}
-            {cacheHit ? 'cached' : 'computed'}
+            running now: {runningChain.map((period) => period.lord).join(' › ')}
           </span>
         </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-[13px] sm:text-sm">
-            <thead>
-              <tr className="text-left font-mono text-[10px] uppercase tracking-wider text-[var(--ink-muted)]">
-                <th className="pb-2">Graha</th>
-                <th className="pb-2">Position</th>
-                <th className="hidden pb-2 sm:table-cell">Nakṣatra</th>
-                {/* Navāṁśa and house fold into the first column on a phone
-                    rather than pushing the table into a sideways scroll. */}
-                <th className="hidden pb-2 sm:table-cell">Navāṁśa</th>
-                <th className="hidden pb-2 sm:table-cell">House</th>
-              </tr>
-            </thead>
-            <tbody className="font-mono">
-              {POINT_DISPLAY_ORDER.map((pointId) => chart.points[pointId])
-                .filter((point) => point !== undefined)
-                .map((point) => (
-                  <tr key={point.id} className="border-t border-[var(--rule)] align-top">
-                    <td className="py-1.5 pr-3">
-                      <span className="whitespace-nowrap">
-                        {GLYPHS[point.id as keyof typeof GLYPHS]} {point.id}
-                        {point.retrograde ? ' ℞' : ''}
-                      </span>
-                      <span className="block text-[10px] text-[var(--ink-muted)] sm:hidden">
-                        D9 {SIGNS[chart.vargas[point.id]!.D9]!.slice(0, 3)} · H{point.house}
-                      </span>
-                    </td>
-                    <td className="py-1.5 pr-3">
-                      <span className="whitespace-nowrap">
-                        {formatSignPosition(point.longitude, SIGNS)}
-                      </span>
-                      {/* Three monospace columns do not fit a 390px phone, so
-                          the nakṣatra rides under the position there. */}
-                      <span className="block text-[10px] text-[var(--ink-muted)] sm:hidden">
-                        {point.nakshatra.name} · {point.nakshatra.pada}
-                      </span>
-                    </td>
-                    <td className="hidden py-1.5 pr-3 sm:table-cell">
-                      {point.nakshatra.name}
-                      <span className="text-[var(--ink-muted)]"> · {point.nakshatra.pada}</span>
-                    </td>
-                    <td className="hidden py-1.5 pr-3 sm:table-cell">
-                      {SIGNS[chart.vargas[point.id]!.D9]}
-                    </td>
-                    <td className="hidden py-1.5 sm:table-cell">{point.house}</td>
-                  </tr>
-                ))}
-            </tbody>
-          </table>
-        </div>
-        {chart.vargottama.length > 0 ? (
-          <p className="mt-4 text-sm text-[var(--ink-muted)]">
-            Vargottama (same sign in D1 and D9): {chart.vargottama.join(', ')}
-          </p>
-        ) : null}
+        <DashaColumn dashas={dashas} atJdUt={nowJd} levels={3} />
       </Panel>
-
-      <p className="mt-6 text-sm text-[var(--ink-muted)]">
-        The wheel, the varga grid, aṣṭakavarga and the daśā column arrive in Phase 3 —{' '}
-        <Link className="underline" href="/people">
-          back to your people
-        </Link>
-        .
-      </p>
     </Shell>
   );
 }

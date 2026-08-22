@@ -4,6 +4,7 @@ export * from './nutation.js';
 export * from './types.js';
 export * from './nakshatra.js';
 export * from './vargas.js';
+export * from './vargaChart.js';
 export * from './houses.js';
 export * from './chart.js';
 export * from './sidereal/ayanamsa.js';

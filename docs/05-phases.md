@@ -106,7 +106,24 @@ Sub-steps, in order:
 
 ---
 
-## Phase 3 — The chart workspace (3–4 weeks)
+## Phase 3 — The chart workspace (3–4 weeks) 🔵 IN PROGRESS
+
+**Shipped so far:** the varga projection in the core (`buildVargaChart` — every
+divisional re-seated on its own ascendant, not the rāśi redrawn sixteen times),
+North Indian and South Indian charts as hand-written SVG, the ṣoḍaśavarga
+contact sheet, and the Vimśottarī column scrolled to the running period.
+
+**Deliberately not shipped: the East Indian (Bengali) chart.** It was built and
+rendered correctly as geometry, but the traditional sign arrangement could not
+be verified against a reference implementation, and a plausible-looking guess
+at a regional convention is exactly the kind of thing a Bengali astrologer
+spots in one glance. Cross-check the layout against Jagannātha Hora or Shri
+Jyoti Star before rebuilding it. Two verified styles beat three where one is
+invented.
+
+**Still to come in this phase:** the Western wheel, the transit ring with a
+time scrubber, bhāva chalit overlay, aṣṭakavarga on the wheel (blocked on the
+Phase 1 aṣṭakavarga work), and notes anchored to chart elements.
 
 **Goal:** rebuild the v0 screens as real components over real data, then go far past them.
 
