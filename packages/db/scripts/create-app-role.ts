@@ -17,8 +17,37 @@
  * Safe to re-run: it updates the password and re-grants rather than failing.
  */
 import { randomBytes } from 'node:crypto';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
 import postgres from 'postgres';
 import { requireDatabaseUrl } from '../src/loadEnv.js';
+
+/**
+ * With --write, DATABASE_URL in the root .env.local is updated in place, so
+ * the new password never has to travel through a clipboard, a chat window or
+ * a terminal scrollback.
+ */
+const WRITE = process.argv.includes('--write');
+
+function updateEnvFile(newUrl: string): string | null {
+  let dir = process.cwd();
+  for (let depth = 0; depth < 5; depth += 1) {
+    if (existsSync(resolve(dir, 'pnpm-workspace.yaml'))) break;
+    const parent = dirname(dir);
+    if (parent === dir) return null;
+    dir = parent;
+  }
+  const path = resolve(dir, '.env.local');
+  if (!existsSync(path)) return null;
+
+  const line = `DATABASE_URL="${newUrl}"`;
+  const contents = readFileSync(path, 'utf8');
+  const updated = /^DATABASE_URL=.*$/m.test(contents)
+    ? contents.replace(/^DATABASE_URL=.*$/m, line)
+    : `${contents.trimEnd()}\n${line}\n`;
+  writeFileSync(path, updated);
+  return path;
+}
 
 const ROLE = process.env.JADE_APP_ROLE ?? 'jade_app';
 
@@ -102,11 +131,25 @@ try {
   appUrl.username = ROLE;
   appUrl.password = password;
 
-  console.log(`\n${ROLE} can neither bypass RLS nor act as superuser.\n`);
-  console.log('Put this in DATABASE_URL (the app), and leave DIRECT_DATABASE_URL as it is');
-  console.log('(migrations need the owner):\n');
-  console.log(`DATABASE_URL="${appUrl.toString()}"\n`);
-  console.log('Then re-run: pnpm db:doctor\n');
+  console.log(`\n${ROLE} can neither bypass RLS nor act as superuser.`);
+
+  if (WRITE) {
+    const written = updateEnvFile(appUrl.toString());
+    if (written) {
+      console.log(`\nDATABASE_URL updated in ${written}.`);
+      console.log('DIRECT_DATABASE_URL is untouched — migrations still run as the owner.\n');
+      console.log('Restart the dev server (Next reads env files only at boot), then:');
+      console.log('  pnpm db:doctor\n');
+    } else {
+      console.log('\nCould not find a .env.local at the repo root. Set this yourself:\n');
+      console.log(`DATABASE_URL="${appUrl.toString()}"\n`);
+    }
+  } else {
+    console.log('\nPut this in DATABASE_URL (the app), and leave DIRECT_DATABASE_URL as it is');
+    console.log('(migrations need the owner):\n');
+    console.log(`DATABASE_URL="${appUrl.toString()}"\n`);
+    console.log('Or re-run with --write and Jade will edit .env.local for you.\n');
+  }
 } finally {
   await sql.end({ timeout: 5 });
 }

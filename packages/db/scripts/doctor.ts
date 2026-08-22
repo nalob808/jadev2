@@ -14,9 +14,17 @@
 import postgres from 'postgres';
 import { requireDatabaseUrl } from '../src/loadEnv.js';
 
+/**
+ * Checks DATABASE_URL — the connection the *app* uses at runtime.
+ *
+ * Not DIRECT_DATABASE_URL: that one is the schema owner and is supposed to be
+ * privileged, since migrations need it. An earlier version of this script
+ * checked the owner, which meant it would have kept reporting failure even
+ * after the fix landed.
+ */
 let url: string;
 try {
-  url = requireDatabaseUrl('direct');
+  url = requireDatabaseUrl('pooled');
 } catch (error) {
   console.error((error as Error).message);
   process.exit(1);
@@ -38,7 +46,8 @@ try {
   const [server] = await sql<{ version: string; db: string; user: string }[]>`
     select version() as version, current_database() as db, current_user as user`;
   console.log(`\n${server!.version.split(' on ')[0]}`);
-  console.log(`database ${server!.db} as ${server!.user}\n`);
+  console.log(`database ${server!.db} as ${server!.user}`);
+  console.log('checking DATABASE_URL — the role the app connects as at runtime\n');
 
   // --- 1. The role must not be able to skip policies -----------------------
   const [role] = await sql<{ rolsuper: boolean; rolbypassrls: boolean }[]>`
