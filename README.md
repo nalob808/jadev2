@@ -24,7 +24,7 @@ deliverables — on the web, on any device.
 corepack enable                 # gives you pnpm
 pnpm install
 pnpm test                       # 115 tests, including 90 accuracy checks
-pnpm --filter @jade/web dev     # http://localhost:3000
+pnpm --filter @jade/web dev     # http://localhost:3100
 ```
 
 The original prototype is preserved at `/legacy` for side-by-side comparison.
