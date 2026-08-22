@@ -23,6 +23,32 @@
 `STRIPE_WEBHOOK_SECRET`, `RESEND_API_KEY`, `SENTRY_DSN`, `EPHE_PATH`, `POSTHOG_KEY`,
 `ENCRYPTION_KEY`.
 
+## The managed-Postgres trap
+
+Neon's `neondb_owner` is a member of `neon_superuser`, which carries the
+**BYPASSRLS** attribute. A role with that attribute skips every row-level
+security policy unconditionally — so an app connecting as the owner has no
+tenant isolation whatsoever, no matter how carefully the policies are written.
+Supabase's `postgres` role is the same story. The policies still exist, the
+tests still pass locally, and production leaks.
+
+Two things that make this survivable:
+
+- `pnpm db:app-role` provisions a second role that owns nothing and cannot
+  bypass anything. The owner keeps running migrations via
+  `DIRECT_DATABASE_URL`; the app connects as the restricted role via
+  `DATABASE_URL`. Verified end to end: the full browser flow passes under the
+  restricted role.
+- `pnpm db:doctor` refuses to take configuration's word for it. It provisions
+  a row, tries to read it from a different workspace, and fails loudly if it
+  can.
+
+Worth knowing precisely: **BYPASSRLS is not inherited through role
+membership** — a member of a BYPASSRLS role still has its inserts refused and
+its reads filtered (verified on Postgres 16). What matters is whether the
+attribute is set directly on the role you connect as, which is exactly what
+the doctor checks.
+
 ## The one thing to buy before you charge anyone
 
 **Swiss Ephemeris professional licence — CHF 700, one time.** Swiss Ephemeris is dual-licensed:

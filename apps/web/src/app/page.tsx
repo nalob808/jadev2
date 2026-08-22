@@ -19,13 +19,18 @@ export default async function Home() {
           </li>
           <li>
             Copy <span className="font-mono">.env.example</span> to{' '}
-            <span className="font-mono">.env.local</span> and paste the connection string into{' '}
-            <span className="font-mono">DATABASE_URL</span> and{' '}
+            <span className="font-mono">.env.local</span> <strong>at the repository root</strong>,
+            not inside <span className="font-mono">apps/web</span>. Paste the pooled connection
+            string into <span className="font-mono">DATABASE_URL</span> and the one without{' '}
+            <span className="font-mono">-pooler</span> into{' '}
             <span className="font-mono">DIRECT_DATABASE_URL</span>.
           </li>
           <li>
-            Run <span className="font-mono">pnpm db:migrate &amp;&amp; pnpm db:seed</span>.
+            Run <span className="font-mono">pnpm db:migrate &amp;&amp; pnpm db:seed</span>, then{' '}
+            <span className="font-mono">pnpm db:doctor</span> to confirm the database isolates
+            workspaces properly.
           </li>
+          <li>Restart the dev server. Next reads env files once, at boot.</li>
         </ol>
         <p className="mt-6 text-sm text-[var(--ink-muted)]">
           The calculation core needs none of this —{' '}

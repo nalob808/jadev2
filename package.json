@@ -17,8 +17,10 @@
     "format:check": "prettier --check \"**/*.{ts,tsx,md,json,css}\"",
     "fixtures": "python3 scripts/generate_fixtures.py",
     "places:import": "tsx scripts/load-places.ts",
-    "db:migrate": "pnpm --filter @jade/db migrate",
-    "db:seed": "pnpm --filter @jade/db seed"
+    "db:migrate": "pnpm --filter @jade/db run migrate",
+    "db:seed": "pnpm --filter @jade/db run seed",
+    "db:doctor": "pnpm --filter @jade/db run doctor",
+    "db:app-role": "pnpm --filter @jade/db run app-role"
   },
   "devDependencies": {
     "@types/node": "^22.7.5",

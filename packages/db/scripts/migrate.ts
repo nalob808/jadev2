@@ -11,15 +11,26 @@ import { migrate } from 'drizzle-orm/postgres-js/migrator';
 import postgres from 'postgres';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
+import { requireDatabaseUrl } from '../src/loadEnv.js';
 
-const url = process.env.DIRECT_DATABASE_URL ?? process.env.DATABASE_URL;
-if (!url) {
-  console.error('Set DIRECT_DATABASE_URL (or DATABASE_URL) first. See .env.example.');
+let url: string;
+try {
+  url = requireDatabaseUrl('direct');
+} catch (error) {
+  console.error((error as Error).message);
   process.exit(1);
 }
 
 const migrationsFolder = join(dirname(fileURLToPath(import.meta.url)), '..', 'migrations');
-const sql = postgres(url, { max: 1 });
+const sql = postgres(url, {
+  max: 1,
+  onnotice: (notice) => {
+    // See the note in src/client.ts — "already exists, skipping" on a re-run
+    // is success, not failure.
+    if (notice.code === '42P06' || notice.code === '42P07') return;
+    console.warn(`[postgres ${notice.severity}] ${notice.message}`);
+  },
+});
 
 try {
   await migrate(drizzle(sql), { migrationsFolder });

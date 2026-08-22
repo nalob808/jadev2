@@ -31,11 +31,19 @@ The original prototype is preserved at `/legacy` for side-by-side comparison.
 
 ## Tests
 
-| Command                                           | What it needs                                                     |
-| ------------------------------------------------- | ----------------------------------------------------------------- |
-| `pnpm test`                                       | nothing — unit tests everywhere, DB tests skip                    |
-| `TEST_DATABASE_URL=… pnpm test`                   | a Postgres; adds tenancy, concurrency and place-search tests      |
-| `TEST_DATABASE_URL=… pnpm --filter @jade/web e2e` | a Postgres; drives a browser through sign-in → add person → chart |
+| Command                                           | What it needs                                                               |
+| ------------------------------------------------- | --------------------------------------------------------------------------- |
+| `pnpm test`                                       | nothing — unit tests everywhere, DB tests skip                              |
+| `TEST_DATABASE_URL=… pnpm test`                   | a Postgres; adds tenancy, concurrency and place-search tests                |
+| `TEST_DATABASE_URL=… pnpm --filter @jade/web e2e` | a Postgres; drives a browser through sign-in → add person → chart           |
+| `pnpm db:doctor`                                  | a configured database; checks that workspace isolation actually holds on it |
+
+`pnpm db:doctor` is the one to run against any database before it holds real
+client data. Row-level security is provider-specific: a role with SUPERUSER or
+BYPASSRLS skips every policy, so the isolation tests can pass locally while
+production has none. The doctor checks the live role, that RLS is enabled
+**and forced** on every workspace-scoped table, and then actually tries to read
+another workspace's rows.
 
 The database role used for tests must **not** be a superuser — superusers
 bypass row-level security, and a passing test that skipped the check is worse

@@ -13,10 +13,29 @@ import { workspaces } from '../src/schema.js';
 const url = process.env.TEST_DATABASE_URL;
 const describeWithDb = url ? describe : describe.skip;
 
+/**
+ * Guard: these tests TRUNCATE every table. Pointing TEST_DATABASE_URL at a
+ * database holding real charts would destroy them, and the variable is one
+ * careless copy-paste away from a production connection string.
+ *
+ * So: the URL must look like a test database, or you must say out loud that
+ * you meant it.
+ */
+function assertSafeToTruncate(connectionString: string): void {
+  const looksLikeTest = /test|localhost|127\.0\.0\.1|_dev\b/i.test(connectionString);
+  if (!looksLikeTest && process.env.ALLOW_DESTRUCTIVE_TESTS !== '1') {
+    throw new Error(
+      'TEST_DATABASE_URL does not look like a test database, and these tests truncate every table. ' +
+        'Point it at a scratch database, or set ALLOW_DESTRUCTIVE_TESTS=1 if you are certain.',
+    );
+  }
+}
+
 let database: Database;
 
 beforeAll(async () => {
   if (!url) return;
+  assertSafeToTruncate(url);
   database = createDatabase(url, { max: 10 });
   await database.transaction(async (tx) => {
     await tx.execute(sql`select set_config('app.bypass_rls','on',true)`);

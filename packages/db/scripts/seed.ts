@@ -10,9 +10,13 @@ import { createDatabase } from '../src/client.js';
 import { places } from '../src/schema.js';
 import { SEED_PLACES } from '../src/seedPlaces.js';
 
-const url = process.env.DIRECT_DATABASE_URL ?? process.env.DATABASE_URL;
-if (!url) {
-  console.error('Set DIRECT_DATABASE_URL (or DATABASE_URL) first. See .env.example.');
+import { requireDatabaseUrl } from '../src/loadEnv.js';
+
+let url: string;
+try {
+  url = requireDatabaseUrl('direct');
+} catch (error) {
+  console.error((error as Error).message);
   process.exit(1);
 }
 

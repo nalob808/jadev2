@@ -19,6 +19,7 @@
 import { sql } from 'drizzle-orm';
 import { createDatabase } from '../packages/db/src/client.js';
 import { places } from '../packages/db/src/schema.js';
+import { requireDatabaseUrl } from '../packages/db/src/loadEnv.js';
 
 interface City {
   cityId: number;
@@ -29,9 +30,11 @@ interface City {
   loc: { coordinates: [number, number] };
 }
 
-const url = process.env.DIRECT_DATABASE_URL ?? process.env.DATABASE_URL;
-if (!url) {
-  console.error('Set DIRECT_DATABASE_URL first. See .env.example.');
+let url: string;
+try {
+  url = requireDatabaseUrl('direct');
+} catch (error) {
+  console.error((error as Error).message);
   process.exit(1);
 }
 
