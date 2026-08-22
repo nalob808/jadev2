@@ -25,10 +25,32 @@
 
 ## Deploying to Vercel — the exact settings
 
-Jade ships a `vercel.json`, so the build settings are in the repo rather than
-in a dashboard nobody remembers configuring. Leave the Vercel project's Root
-Directory at the repository root; the config filters the build to `apps/web`
-and points Vercel at `apps/web/.next`.
+Jade deploys with **no `vercel.json` at all**. That is deliberate: when a
+project's Root Directory is set, Vercel reads `vercel.json` from inside that
+directory, not from the repository root — so a root-level config is silently
+ignored while its settings appear to be in force somewhere. Zero config on the
+documented monorepo path is less surprising than config that might not be read.
+
+In Vercel → Settings → Build & Deployment:
+
+| Setting          | Value                     |
+| ---------------- | ------------------------- |
+| Root Directory   | `apps/web`                |
+| Framework Preset | Next.js (auto-detected)   |
+| Build Command    | **default** — no override |
+| Output Directory | **default** — no override |
+| Install Command  | **default** — no override |
+
+The trap: setting Output Directory to `apps/web/.next` while Root Directory is
+already `apps/web` makes Vercel look in `apps/web/apps/web/.next`. The build
+succeeds and then fails at the output step, which reads like a build failure
+and is not one. Leave both overrides empty and Vercel resolves `.next` inside
+the root directory by itself.
+
+Vercel detects `pnpm-workspace.yaml` and installs from the repository root, so
+`packages/astro`, `packages/ui` and the rest are available even though the root
+directory is `apps/web`. That matters because the web app consumes them as
+TypeScript source via `transpilePackages` rather than as built artifacts.
 
 Environment variables, all three scopes (Production, Preview, Development):
 
@@ -40,7 +62,12 @@ Environment variables, all three scopes (Production, Preview, Development):
 | `DIRECT_DATABASE_URL`           | the owner role, direct endpoint — migrations only            |
 | `NEXT_PUBLIC_SUPABASE_URL`      | Supabase → Settings → API                                    |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase → Settings → API                                    |
-| `ENCRYPTION_KEY`                | `openssl rand -base64 32`                                    |
+
+Both `NEXT_PUBLIC_SUPABASE_*` values are meant to be public — the anon key is
+literally prefixed `sb_publishable_` and ships in every browser bundle. Vercel
+warns about the prefix anyway; that warning is correct in general and wrong
+here. The key that must never carry the prefix is the Supabase **service role**
+key, which Jade does not use.
 
 Then in Supabase → Authentication → URL Configuration, which is where magic
 links quietly fail if you skip it:
