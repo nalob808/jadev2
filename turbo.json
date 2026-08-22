@@ -1,10 +1,25 @@
 {
   "$schema": "https://turbo.build/schema.json",
+  "globalPassThroughEnv": [
+    "DATABASE_URL",
+    "DIRECT_DATABASE_URL",
+    "TEST_DATABASE_URL",
+    "AUTH_MODE",
+    "PLAYWRIGHT_CHROMIUM_PATH",
+    "WRITE_ACCURACY_REPORT"
+  ],
   "tasks": {
-    "build": { "dependsOn": ["^build"], "outputs": ["dist/**", ".next/**", "!.next/cache/**"] },
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**", ".next/**", "!.next/cache/**"]
+    },
     "typecheck": { "dependsOn": ["^build"] },
     "lint": {},
-    "test": { "dependsOn": ["^build"] },
+    "test": {
+      "dependsOn": ["^build"],
+      "env": ["TEST_DATABASE_URL"]
+    },
+    "e2e": { "dependsOn": ["^build"], "cache": false },
     "dev": { "cache": false, "persistent": true }
   }
 }

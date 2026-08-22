@@ -8,16 +8,22 @@
     "start": "next start -p 3100",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src",
-    "test": "vitest run --passWithNoTests"
+    "test": "vitest run",
+    "e2e": "playwright test"
   },
   "dependencies": {
     "@jade/astro": "workspace:*",
+    "@jade/atlas": "workspace:^",
+    "@jade/db": "workspace:^",
     "@jade/ui": "workspace:*",
+    "@supabase/ssr": "^0.12.4",
+    "@supabase/supabase-js": "^2.112.3",
     "next": "^14.2.15",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },
   "devDependencies": {
+    "@playwright/test": "^1.62.1",
     "@types/react": "^18.3.11",
     "@types/react-dom": "^18.3.1",
     "autoprefixer": "^10.4.20",

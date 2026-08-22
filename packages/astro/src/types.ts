@@ -21,6 +21,17 @@ export type Outer = (typeof OUTERS)[number];
 export type Angle = (typeof ANGLES)[number];
 export type PointId = Graha | Outer | Angle;
 
+/**
+ * The order a chart is read in: the nine grahas first, in their classical
+ * sequence, then the modern outers, then the angles.
+ *
+ * Never iterate a chart's `points` object for display. It survives a round
+ * trip through Postgres `jsonb`, which does not preserve key order, so a
+ * cached chart comes back shuffled while a freshly computed one looks fine —
+ * a difference that only appears once caching starts working.
+ */
+export const POINT_DISPLAY_ORDER: readonly PointId[] = [...GRAHAS, ...OUTERS, ...ANGLES];
+
 export type NodeType = 'mean' | 'true';
 
 export type HouseSystem = 'whole_sign' | 'equal' | 'sripati' | 'placidus';

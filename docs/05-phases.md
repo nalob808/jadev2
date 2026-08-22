@@ -77,7 +77,7 @@ Sub-steps, in order:
 
 ---
 
-## Phase 2 — People and persistence (1–2 weeks) ← **the promise you made her**
+## Phase 2 — People and persistence ✅ SHIPPED ← **the promise you made her**
 
 **Goal:** the app remembers people. Deploy this the day it works.
 

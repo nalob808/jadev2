@@ -29,6 +29,18 @@ pnpm --filter @jade/web dev     # http://localhost:3100
 
 The original prototype is preserved at `/legacy` for side-by-side comparison.
 
+## Tests
+
+| Command                                           | What it needs                                                     |
+| ------------------------------------------------- | ----------------------------------------------------------------- |
+| `pnpm test`                                       | nothing — unit tests everywhere, DB tests skip                    |
+| `TEST_DATABASE_URL=… pnpm test`                   | a Postgres; adds tenancy, concurrency and place-search tests      |
+| `TEST_DATABASE_URL=… pnpm --filter @jade/web e2e` | a Postgres; drives a browser through sign-in → add person → chart |
+
+The database role used for tests must **not** be a superuser — superusers
+bypass row-level security, and a passing test that skipped the check is worse
+than no test.
+
 ## Accuracy
 
 Golden fixtures are **generated from Swiss Ephemeris**, not hand-written:
@@ -52,8 +64,8 @@ apps/web        Next.js — app + marketing site + /legacy
 apps/worker     Dockerized Node service for long jobs (Fly.io)
 packages/astro  THE CORE. Pure calculation library, zero I/O
 packages/ui     Design tokens and (from Phase 3) the chart components
-packages/db     Drizzle schema — Phase 2
-packages/atlas  GeoNames + historical timezones — Phase 2
+packages/db     Drizzle schema, migrations, row-level security, queries
+packages/atlas  Place search and historical timezone resolution
 packages/interpret  Grounded interpretation — Phase 8
 scripts/        Fixture generation and ephemeris data fetch
 docs/           The plan. Read docs/05-phases.md before starting work.

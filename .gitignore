@@ -17,3 +17,6 @@ coverage/
 .DS_Store
 playwright-report/
 test-results/
+
+# Scratch drop for files the remote sandbox could not delete
+_to_delete/

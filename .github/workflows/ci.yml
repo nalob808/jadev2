@@ -39,6 +39,51 @@ jobs:
       - name: Unit tests
         run: pnpm test
 
+  database:
+    name: database — schema, tenancy, end to end
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        options: >-
+          --health-cmd pg_isready --health-interval 10s
+          --health-timeout 5s --health-retries 5
+        ports: ['5432:5432']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: { version: 9 }
+      - uses: actions/setup-node@v4
+        with: { node-version: 20, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+
+      # A NON-superuser role, deliberately: superusers bypass row-level
+      # security, and the tenancy tests would pass without proving anything.
+      - name: Create the application role
+        env: { PGPASSWORD: postgres }
+        run: |
+          psql -h localhost -U postgres -c "create role jade_app login password 'jade';"
+          psql -h localhost -U postgres -c "create database jade_test owner jade_app;"
+
+      - name: Migrate and seed
+        env:
+          DIRECT_DATABASE_URL: postgresql://jade_app:jade@localhost:5432/jade_test
+        run: pnpm db:migrate && pnpm db:seed
+
+      - name: Database tests
+        env:
+          TEST_DATABASE_URL: postgresql://jade_app:jade@localhost:5432/jade_test
+        run: pnpm --filter @jade/db test
+
+      - name: End-to-end
+        env:
+          TEST_DATABASE_URL: postgresql://jade_app:jade@localhost:5432/jade_test
+        run: |
+          pnpm --filter @jade/web exec playwright install --with-deps chromium
+          pnpm --filter @jade/web e2e
+
   accuracy:
     name: accuracy — golden fixtures vs Swiss Ephemeris
     runs-on: ubuntu-latest

@@ -141,6 +141,37 @@ type ComputedChart = {
 Nested dashas are computed lazily by level (a full 5-level Vimśottarī tree is ~100k nodes —
 compute mahā and antara eagerly, deeper levels on demand).
 
+## What Phase 2 actually shipped, and what it deliberately did not
+
+Implemented: workspaces, users, memberships, places, settings profiles,
+subjects, birth events and the content-addressed chart cache — with row-level
+security **forced** on every workspace-scoped table, so a query that forgets
+its `WHERE workspace_id` returns nothing rather than another practice's client
+list. Proven by tests, not asserted (`packages/db/test/tenancy.test.ts`).
+
+**Column-level encryption of birth data is not in Phase 2.** Saying so plainly
+rather than quietly skipping it: Neon and Supabase both encrypt at rest at the
+storage layer, and RLS covers the application-bug threat, but neither protects
+against a leaked database dump. Encrypting `local_datetime`, `utc_datetime`,
+`latitude` and `longitude` breaks ordering and range queries, so it needs an
+envelope-encryption design rather than a column type change. It belongs before
+the first paying customer — it is on the checklist in `docs/06-launch.md` under
+"Before you take money", not in this phase.
+
+Three lessons from building it are worth keeping, because each one cost real
+debugging time:
+
+1. **`FORCE ROW LEVEL SECURITY` is not optional.** Without it the table owner —
+   which is the role the app connects as on both Neon and Supabase — bypasses
+   every policy, and RLS looks enabled while protecting nothing.
+2. **Session GUCs leak across pooled connections.** `set_config(..., false)`
+   sets a value for the whole session, and postgres.js reuses connections, so
+   a service-role bypass set that way silently disables isolation for whatever
+   query runs next. Everything in `tenancy.ts` uses transaction-local scope.
+3. **`jsonb` does not preserve key order.** A freshly computed chart renders in
+   the right order and the cached one comes back shuffled. Display order is
+   explicit (`POINT_DISPLAY_ORDER`), never the object's key order.
+
 ## Access rules
 
 - Every query is scoped by `workspace_id`. Enforce with Postgres RLS, not just app code.

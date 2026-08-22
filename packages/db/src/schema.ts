@@ -1,0 +1,300 @@
+import {
+  boolean,
+  doublePrecision,
+  index,
+  integer,
+  jsonb,
+  pgEnum,
+  pgTable,
+  primaryKey,
+  text,
+  timestamp,
+  uniqueIndex,
+  uuid,
+} from 'drizzle-orm/pg-core';
+
+/**
+ * Jade's schema. Two ideas drive it (docs/02-domain-model.md):
+ *
+ *  1. A subject is not a chart. People have several birth events — recorded,
+ *     rectified, relocated. Charts are derived and disposable; subjects and
+ *     their events are precious.
+ *  2. Every row that can belong to a practice carries `workspace_id`, and
+ *     Postgres itself enforces who may read it. Row-level security is in the
+ *     migration, not just in application code.
+ */
+
+// ---------------------------------------------------------------------------
+// Enumerations. Closed sets, validated by the database rather than by hope.
+// ---------------------------------------------------------------------------
+
+export const membershipRole = pgEnum('membership_role', [
+  'owner',
+  'astrologer',
+  'assistant',
+  'viewer',
+]);
+
+export const subjectKind = pgEnum('subject_kind', ['person', 'entity', 'event', 'mundane']);
+
+export const subjectRelationship = pgEnum('subject_relationship', [
+  'self',
+  'partner',
+  'family',
+  'friend',
+  'client',
+  'public_figure',
+  'other',
+]);
+
+export const subjectPrivacy = pgEnum('subject_privacy', ['private', 'workspace', 'shared']);
+
+/** Where a UTC offset came from. Never inferred after the fact. */
+export const offsetSource = pgEnum('offset_source', ['tzdb', 'manual', 'lmt']);
+
+/** How precisely the birth time is known — drives the ascendant confidence band. */
+export const timeAccuracy = pgEnum('time_accuracy', ['exact', 'min5', 'min30', 'hour2', 'unknown']);
+
+export const ayanamsaMode = pgEnum('ayanamsa_mode', [
+  'lahiri',
+  'lahiri_true_chitra',
+  'raman',
+  'krishnamurti',
+  'yukteshwar',
+  'fagan_bradley',
+  'suryasiddhanta',
+  'custom',
+]);
+
+export const nodeType = pgEnum('node_type', ['mean', 'true']);
+
+export const houseSystem = pgEnum('house_system', ['whole_sign', 'equal', 'sripati', 'placidus']);
+
+export const chartStyle = pgEnum('chart_style', ['north', 'south', 'east', 'western_wheel']);
+
+// ---------------------------------------------------------------------------
+// Identity
+// ---------------------------------------------------------------------------
+
+export const users = pgTable(
+  'users',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    email: text('email').notNull(),
+    name: text('name'),
+    avatarUrl: text('avatar_url'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({
+    emailIdx: uniqueIndex('users_email_idx').on(table.email),
+  }),
+);
+
+/** One practice. Owns subjects, sessions, branding and the subscription. */
+export const workspaces = pgTable(
+  'workspaces',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    name: text('name').notNull(),
+    slug: text('slug').notNull(),
+    plan: text('plan').notNull().default('free'),
+    defaultSettingsProfileId: uuid('default_settings_profile_id'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({
+    slugIdx: uniqueIndex('workspaces_slug_idx').on(table.slug),
+  }),
+);
+
+export const memberships = pgTable(
+  'memberships',
+  {
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    workspaceId: uuid('workspace_id')
+      .notNull()
+      .references(() => workspaces.id, { onDelete: 'cascade' }),
+    role: membershipRole('role').notNull().default('owner'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({
+    pk: primaryKey({ columns: [table.userId, table.workspaceId] }),
+    workspaceIdx: index('memberships_workspace_idx').on(table.workspaceId),
+  }),
+);
+
+// ---------------------------------------------------------------------------
+// Places — GeoNames-derived, shared across every workspace
+// ---------------------------------------------------------------------------
+
+export const places = pgTable(
+  'places',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    geonameId: integer('geoname_id'),
+    name: text('name').notNull(),
+    /** Lower-cased, diacritics stripped. What search actually matches against. */
+    searchName: text('search_name').notNull(),
+    admin1: text('admin1'),
+    countryCode: text('country_code').notNull(),
+    latitude: doublePrecision('latitude').notNull(),
+    longitude: doublePrecision('longitude').notNull(),
+    elevationM: integer('elevation_m'),
+    timezoneId: text('timezone_id').notNull(),
+    population: integer('population').notNull().default(0),
+  },
+  (table) => ({
+    geonameIdx: uniqueIndex('places_geoname_idx').on(table.geonameId),
+    searchIdx: index('places_search_idx').on(table.searchName),
+    populationIdx: index('places_population_idx').on(table.population),
+  }),
+);
+
+// ---------------------------------------------------------------------------
+// The astrological lens
+// ---------------------------------------------------------------------------
+
+export const settingsProfiles = pgTable(
+  'settings_profiles',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    workspaceId: uuid('workspace_id')
+      .notNull()
+      .references(() => workspaces.id, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+    ayanamsa: ayanamsaMode('ayanamsa').notNull().default('lahiri'),
+    customAyanamsaAtJ2000: doublePrecision('custom_ayanamsa_at_j2000'),
+    nodeType: nodeType('node_type').notNull().default('mean'),
+    houseSystem: houseSystem('house_system').notNull().default('whole_sign'),
+    chartStyle: chartStyle('chart_style').notNull().default('north'),
+    includeOuters: boolean('include_outers').notNull().default(false),
+    isDefault: boolean('is_default').notNull().default(false),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({
+    workspaceIdx: index('settings_profiles_workspace_idx').on(table.workspaceId),
+  }),
+);
+
+// ---------------------------------------------------------------------------
+// People
+// ---------------------------------------------------------------------------
+
+export const subjects = pgTable(
+  'subjects',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    workspaceId: uuid('workspace_id')
+      .notNull()
+      .references(() => workspaces.id, { onDelete: 'cascade' }),
+    kind: subjectKind('kind').notNull().default('person'),
+    displayName: text('display_name').notNull(),
+    givenNames: text('given_names'),
+    familyName: text('family_name'),
+    pronouns: text('pronouns'),
+    photoUrl: text('photo_url'),
+    relationship: subjectRelationship('relationship').notNull().default('other'),
+    isClient: boolean('is_client').notNull().default(false),
+    tags: text('tags').array().notNull().default([]),
+    notesSummary: text('notes_summary'),
+    privacy: subjectPrivacy('privacy').notNull().default('workspace'),
+    createdBy: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+    /** Soft delete. Hard delete is a separate, explicit action. */
+    deletedAt: timestamp('deleted_at', { withTimezone: true }),
+  },
+  (table) => ({
+    workspaceIdx: index('subjects_workspace_idx').on(table.workspaceId),
+    nameIdx: index('subjects_name_idx').on(table.workspaceId, table.displayName),
+  }),
+);
+
+/**
+ * A dated, timed, located moment belonging to a subject.
+ *
+ * `localDatetime` is TEXT on purpose. It is a wall-clock reading off a birth
+ * certificate, not an instant, and every driver disagrees about how to
+ * round-trip `timestamp without time zone`. Storing the exact characters
+ * removes an entire class of silent one-hour bugs. The instant lives in
+ * `utcDatetime`, and the two are reconciled by `utcOffsetMinutes` — which is
+ * always stored with the record of how it was resolved.
+ */
+export const birthEvents = pgTable(
+  'birth_events',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    subjectId: uuid('subject_id')
+      .notNull()
+      .references(() => subjects.id, { onDelete: 'cascade' }),
+    workspaceId: uuid('workspace_id')
+      .notNull()
+      .references(() => workspaces.id, { onDelete: 'cascade' }),
+    label: text('label').notNull().default('birth'),
+    isPrimary: boolean('is_primary').notNull().default(true),
+
+    localDatetime: text('local_datetime').notNull(),
+    utcDatetime: timestamp('utc_datetime', { withTimezone: true }).notNull(),
+    utcOffsetMinutes: integer('utc_offset_minutes').notNull(),
+    offsetSource: offsetSource('offset_source').notNull(),
+    /** True when the wall time was genuinely undecidable — the UI must say so. */
+    offsetAmbiguous: boolean('offset_ambiguous').notNull().default(false),
+    offsetNote: text('offset_note'),
+    timeAccuracy: timeAccuracy('time_accuracy').notNull().default('exact'),
+
+    placeId: uuid('place_id').references(() => places.id, { onDelete: 'set null' }),
+    placeName: text('place_name').notNull(),
+    latitude: doublePrecision('latitude').notNull(),
+    longitude: doublePrecision('longitude').notNull(),
+    elevationM: integer('elevation_m').notNull().default(0),
+    timezoneId: text('timezone_id').notNull(),
+
+    sourceNote: text('source_note'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({
+    subjectIdx: index('birth_events_subject_idx').on(table.subjectId),
+    workspaceIdx: index('birth_events_workspace_idx').on(table.workspaceId),
+  }),
+);
+
+/**
+ * Computed charts. Derived, never authored.
+ *
+ * The primary key is a hash of (birth event + settings + calculation package
+ * version), so a chart can never be stale: change the maths and every
+ * affected row is simply a cache miss.
+ */
+export const charts = pgTable(
+  'charts',
+  {
+    id: text('id').primaryKey(),
+    workspaceId: uuid('workspace_id')
+      .notNull()
+      .references(() => workspaces.id, { onDelete: 'cascade' }),
+    birthEventId: uuid('birth_event_id')
+      .notNull()
+      .references(() => birthEvents.id, { onDelete: 'cascade' }),
+    settingsProfileId: uuid('settings_profile_id').references(() => settingsProfiles.id, {
+      onDelete: 'set null',
+    }),
+    astroVersion: text('astro_version').notNull(),
+    computed: jsonb('computed').notNull(),
+    computedAt: timestamp('computed_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({
+    birthEventIdx: index('charts_birth_event_idx').on(table.birthEventId),
+    workspaceIdx: index('charts_workspace_idx').on(table.workspaceId),
+  }),
+);
+
+export type User = typeof users.$inferSelect;
+export type Workspace = typeof workspaces.$inferSelect;
+export type Subject = typeof subjects.$inferSelect;
+export type NewSubject = typeof subjects.$inferInsert;
+export type BirthEvent = typeof birthEvents.$inferSelect;
+export type NewBirthEvent = typeof birthEvents.$inferInsert;
+export type Place = typeof places.$inferSelect;
+export type SettingsProfile = typeof settingsProfiles.$inferSelect;
+export type Chart = typeof charts.$inferSelect;

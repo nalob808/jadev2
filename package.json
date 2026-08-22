@@ -15,7 +15,10 @@
     "test:watch": "vitest",
     "format": "prettier --write \"**/*.{ts,tsx,md,json,css}\"",
     "format:check": "prettier --check \"**/*.{ts,tsx,md,json,css}\"",
-    "fixtures": "python3 scripts/generate_fixtures.py"
+    "fixtures": "python3 scripts/generate_fixtures.py",
+    "places:import": "tsx scripts/load-places.ts",
+    "db:migrate": "pnpm --filter @jade/db migrate",
+    "db:seed": "pnpm --filter @jade/db seed"
   },
   "devDependencies": {
     "@types/node": "^22.7.5",
@@ -25,7 +28,8 @@
     "vitest": "^2.1.3",
     "eslint": "^9.12.0",
     "@eslint/js": "^9.12.0",
-    "typescript-eslint": "^8.8.1"
+    "typescript-eslint": "^8.8.1",
+    "tsx": "^4.19.1"
   },
   "type": "module"
 }
