@@ -29,7 +29,9 @@ export async function getSession(): Promise<Session | null> {
   if (env.authMode === 'dev') {
     if (env.isProduction) {
       throw new Error(
-        'AUTH_MODE=dev cannot run in production. Set AUTH_MODE=supabase and configure the Supabase keys.',
+        'AUTH_MODE=dev cannot run in production. Set AUTH_MODE=supabase in your Vercel ' +
+          'environment variables, along with NEXT_PUBLIC_SUPABASE_URL and ' +
+          'NEXT_PUBLIC_SUPABASE_ANON_KEY.',
       );
     }
     const email = (await cookies()).get(DEV_COOKIE)?.value;
@@ -38,10 +40,21 @@ export async function getSession(): Promise<Session | null> {
     return { ...bootstrapped, email };
   }
 
-  const { createSupabaseServerClient } = await import('./supabase.js');
-  const supabase = await createSupabaseServerClient();
-  const { data } = await supabase.auth.getUser();
-  if (!data.user?.email) return null;
+  const { createSupabaseServerClient } = await import('./supabase-server.js');
+  let email: string | undefined;
+  let metadata: Record<string, unknown> = {};
+  try {
+    const supabase = await createSupabaseServerClient();
+    const { data } = await supabase.auth.getUser();
+    email = data.user?.email;
+    metadata = (data.user?.user_metadata ?? {}) as Record<string, unknown>;
+  } catch {
+    // Misconfiguration or an unreachable auth service must render the
+    // sign-in page, not a 500. Nobody can fix a stack trace.
+    return null;
+  }
+  if (!email) return null;
+  const data = { user: { email, user_metadata: metadata } };
   const bootstrapped = await bootstrapUser(getDatabase(), {
     email: data.user.email,
     name: (data.user.user_metadata?.full_name as string | undefined) ?? null,
@@ -68,5 +81,11 @@ export async function signInDev(email: string): Promise<void> {
 }
 
 export async function signOut(): Promise<void> {
+  if (env.authMode === 'supabase') {
+    const { createSupabaseServerClient } = await import('./supabase-server.js');
+    const supabase = await createSupabaseServerClient();
+    await supabase.auth.signOut();
+    return;
+  }
   (await cookies()).delete(DEV_COOKIE);
 }

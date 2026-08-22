@@ -127,9 +127,27 @@ try {
     process.exit(1);
   }
 
-  const appUrl = new URL(ownerUrl);
+  // Build the app URL from the EXISTING DATABASE_URL when there is one, so the
+  // pooled host survives. Deriving it from the owner URL silently moved the
+  // app onto Neon's direct endpoint — no connection pooling, a much lower
+  // connection ceiling, and a failure that only shows up under load.
+  const existingAppUrl = process.env.DATABASE_URL;
+  const appUrl = new URL(existingAppUrl ?? ownerUrl);
   appUrl.username = ROLE;
   appUrl.password = password;
+
+  if (existingAppUrl) {
+    const ownerHost = new URL(ownerUrl).hostname;
+    if (appUrl.hostname !== ownerHost) {
+      console.log(`keeping the pooled host from DATABASE_URL: ${appUrl.hostname}`);
+    }
+  } else {
+    console.log(
+      `\nNote: DATABASE_URL was not set, so this uses the owner's host (${appUrl.hostname}).\n` +
+        '      On Neon that is the DIRECT endpoint. For anything deployed, switch it to the\n' +
+        '      "-pooler" hostname — the direct endpoint has a much lower connection limit.',
+    );
+  }
 
   console.log(`\n${ROLE} can neither bypass RLS nor act as superuser.`);
 

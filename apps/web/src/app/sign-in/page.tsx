@@ -2,11 +2,17 @@ import { redirect } from 'next/navigation';
 import { devSignIn } from '@/app/actions';
 import { getSession } from '@/lib/auth';
 import { env } from '@/lib/env';
+import { MagicLinkForm } from '@/components/MagicLinkForm';
 
 export const dynamic = 'force-dynamic';
 
-export default async function SignIn() {
+export default async function SignIn({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string }>;
+}) {
   if (await getSession()) redirect('/people');
+  const { error } = await searchParams;
 
   return (
     <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-6">
@@ -15,7 +21,15 @@ export default async function SignIn() {
         sidereal practice
       </p>
 
-      {env.authMode === 'dev' ? (
+      {error ? (
+        <p className="mt-6 border-l-2 border-[var(--clay,#9E5B3A)] bg-[var(--surface)] px-3 py-2 text-sm">
+          {error}
+        </p>
+      ) : null}
+
+      {env.authMode === 'supabase' ? (
+        <MagicLinkForm appUrl={env.appUrl} />
+      ) : (
         <form action={devSignIn} className="mt-10 flex flex-col gap-3">
           <label className="text-sm" htmlFor="email">
             Sign in with any email — this is local development mode, and no password is checked.
@@ -30,19 +44,15 @@ export default async function SignIn() {
           />
           <button
             type="submit"
-            className="mt-1 bg-[var(--accent)] px-4 py-2 font-display text-lg tracking-wide text-white"
+            className="mt-1 bg-[var(--accent)] px-4 py-2.5 font-display text-lg tracking-wide text-white"
           >
             Continue
           </button>
           <p className="mt-2 text-xs text-[var(--ink-muted)]">
-            Real sign-in arrives by setting <span className="font-mono">AUTH_MODE=supabase</span>.
-            Development mode refuses to run in production.
+            Development mode refuses to run in production. The deployed site uses emailed sign-in
+            links.
           </p>
         </form>
-      ) : (
-        <p className="mt-10 text-sm text-[var(--ink-muted)]">
-          Supabase sign-in is configured. Wire the provider buttons here.
-        </p>
       )}
     </main>
   );

@@ -23,6 +23,37 @@
 `STRIPE_WEBHOOK_SECRET`, `RESEND_API_KEY`, `SENTRY_DSN`, `EPHE_PATH`, `POSTHOG_KEY`,
 `ENCRYPTION_KEY`.
 
+## Deploying to Vercel — the exact settings
+
+Jade ships a `vercel.json`, so the build settings are in the repo rather than
+in a dashboard nobody remembers configuring. Leave the Vercel project's Root
+Directory at the repository root; the config filters the build to `apps/web`
+and points Vercel at `apps/web/.next`.
+
+Environment variables, all three scopes (Production, Preview, Development):
+
+| Variable                        | Value                                                        |
+| ------------------------------- | ------------------------------------------------------------ |
+| `AUTH_MODE`                     | `supabase` — dev mode throws in production, deliberately     |
+| `NEXT_PUBLIC_APP_URL`           | your real origin, e.g. `https://jadeapp.co`                  |
+| `DATABASE_URL`                  | the **restricted** role, pooled endpoint (see `db:app-role`) |
+| `DIRECT_DATABASE_URL`           | the owner role, direct endpoint — migrations only            |
+| `NEXT_PUBLIC_SUPABASE_URL`      | Supabase → Settings → API                                    |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase → Settings → API                                    |
+| `ENCRYPTION_KEY`                | `openssl rand -base64 32`                                    |
+
+Then in Supabase → Authentication → URL Configuration, which is where magic
+links quietly fail if you skip it:
+
+- **Site URL**: your production origin
+- **Redirect URLs**: `https://yourdomain/auth/callback`,
+  `https://*.vercel.app/auth/callback` for previews, and
+  `http://localhost:3100/auth/callback` for local testing
+
+Supabase's built-in email sender is rate-limited to a handful of messages an
+hour on the free tier — fine for the first two users, and the point at which
+you plug Resend in as custom SMTP under Authentication → Emails.
+
 ## The managed-Postgres trap
 
 Neon's `neondb_owner` is a member of `neon_superuser`, which carries the
