@@ -2,6 +2,7 @@ export * from './angles.js';
 export * from './time.js';
 export * from './nutation.js';
 export * from './types.js';
+export * from './capabilities.js';
 export * from './nakshatra.js';
 export * from './panchanga.js';
 export * from './dignity.js';

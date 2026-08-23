@@ -9,6 +9,7 @@ import {
   exportSubject,
   hardDeleteSubject,
   softDeleteSubject,
+  updateSettingsProfile,
 } from '@jade/db';
 import {
   localMeanTimeOffset,
@@ -17,6 +18,7 @@ import {
   toUtcMillis,
   type LocalDateTime,
 } from '@jade/atlas';
+import { isImplementedChartStyle, isImplementedHouseSystem } from '@jade/astro';
 import { getDatabase } from '@/lib/db';
 import { requireSession, signInDev, signOut } from '@/lib/auth';
 
@@ -137,6 +139,76 @@ export async function removeRelationship(formData: FormData): Promise<void> {
   });
   revalidatePath('/relationships');
   redirect('/relationships');
+}
+
+/**
+ * Save the workspace's astrological lens.
+ *
+ * Two rules are enforced here rather than trusted from the form.
+ *
+ * Every value is validated against what the calculation core can actually
+ * compute. The `house_system` enum in Postgres accepts `sripati` and
+ * `placidus`, and `houseOf` throws on both — so an unvalidated write succeeds,
+ * and the failure surfaces later as a crash on a chart page, for a setting
+ * that appeared to save cleanly. A form is not a boundary; this is.
+ *
+ * And a custom ayanāṁśa must arrive with a number. Falling back to Lahiri when
+ * the field is blank would be a silent default in the one place the project
+ * constitution says there can never be one — the chart would be computed in a
+ * frame nobody chose and the UI would report the frame they did.
+ */
+export async function updateSettings(formData: FormData): Promise<void> {
+  const session = await requireSession();
+  const profileId = String(formData.get('profileId') ?? '');
+  if (!profileId) throw new Error('No settings profile to update.');
+
+  const read = (key: string): string => String(formData.get(key) ?? '').trim();
+  // The annotation is on the *variable*, not just the arrow's return type.
+  // TypeScript only uses a `never` return to narrow control flow when the
+  // signature is declared this way — without it, the compiler does not know
+  // that `fail(...)` ends the branch, and every check below stops narrowing.
+  const fail: (message: string) => never = (message) =>
+    redirect(`/settings?error=${encodeURIComponent(message)}`);
+
+  const houseSystem = read('houseSystem');
+  if (!isImplementedHouseSystem(houseSystem)) {
+    fail(`${houseSystem || 'That house system'} is not implemented yet.`);
+  }
+
+  const chartStyle = read('chartStyle');
+  if (!isImplementedChartStyle(chartStyle)) {
+    fail(`${chartStyle || 'That chart style'} is not implemented yet.`);
+  }
+
+  const ayanamsa = read('ayanamsa');
+  let customAyanamsaAtJ2000: number | null = null;
+  if (ayanamsa === 'custom') {
+    const raw = read('customAyanamsaAtJ2000');
+    const value = Number(raw);
+    if (!raw || Number.isNaN(value)) {
+      fail('A custom ayanāṁśa needs its value at J2000, in degrees.');
+    }
+    if (value < 0 || value > 360) {
+      fail('A custom ayanāṁśa must be between 0 and 360 degrees.');
+    }
+    customAyanamsaAtJ2000 = value;
+  }
+
+  await updateSettingsProfile(getDatabase(), session.workspaceId, profileId, {
+    name: read('name') || 'Default',
+    ayanamsa: ayanamsa as 'lahiri',
+    customAyanamsaAtJ2000,
+    nodeType: read('nodeType') === 'true' ? 'true' : 'mean',
+    houseSystem,
+    positionBasis: read('positionBasis') === 'true' ? 'true' : 'apparent',
+    chartStyle,
+    includeOuters: formData.get('includeOuters') === 'on',
+  });
+
+  // Every chart page reads this profile, so they are all stale now.
+  revalidatePath('/people');
+  revalidatePath('/relationships');
+  redirect('/settings?saved=1');
 }
 
 export async function devSignIn(formData: FormData): Promise<void> {

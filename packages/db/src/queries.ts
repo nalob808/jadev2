@@ -391,6 +391,63 @@ export async function getSettingsProfile(
   });
 }
 
+/**
+ * The workspace's settings profiles, default first.
+ *
+ * A practice may keep several lenses — one for its own tradition, one to match
+ * a teacher's software, one for a client who insists on Raman. The default is
+ * the one a chart uses when nothing else is chosen.
+ */
+export async function listSettingsProfiles(
+  database: Database,
+  workspaceId: string,
+): Promise<Array<typeof settingsProfiles.$inferSelect>> {
+  return withWorkspace(database, workspaceId, async (tx) =>
+    tx
+      .select()
+      .from(settingsProfiles)
+      .where(eq(settingsProfiles.workspaceId, workspaceId))
+      .orderBy(desc(settingsProfiles.isDefault), settingsProfiles.name),
+  );
+}
+
+/**
+ * Change the lens.
+ *
+ * Nothing is invalidated here on purpose. Chart cache keys hash the settings
+ * along with the moment and the astro version, so a changed profile is simply
+ * a different key: the old charts stay valid for anyone still using the old
+ * profile, and the new ones compute on demand. Deleting the cache on a
+ * settings change would throw away work that is still correct.
+ */
+export async function updateSettingsProfile(
+  database: Database,
+  workspaceId: string,
+  profileId: string,
+  patch: Partial<
+    Pick<
+      typeof settingsProfiles.$inferInsert,
+      | 'name'
+      | 'ayanamsa'
+      | 'customAyanamsaAtJ2000'
+      | 'nodeType'
+      | 'houseSystem'
+      | 'positionBasis'
+      | 'chartStyle'
+      | 'includeOuters'
+    >
+  >,
+): Promise<typeof settingsProfiles.$inferSelect | null> {
+  return withWorkspace(database, workspaceId, async (tx) => {
+    const rows = await tx
+      .update(settingsProfiles)
+      .set(patch)
+      .where(and(eq(settingsProfiles.id, profileId), eq(settingsProfiles.workspaceId, workspaceId)))
+      .returning();
+    return rows[0] ?? null;
+  });
+}
+
 // ---------------------------------------------------------------------------
 // Relationships
 
