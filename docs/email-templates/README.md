@@ -52,7 +52,16 @@ python3 scripts/check-email-dns.py
 ```
 
 It asks a public resolver what the world can actually see, which is a different
-question from what a dashboard says it saved. Propagation is usually minutes.
+question from what a dashboard says it saved, and it names the host each record
+was found on.
+
+**Resend splits the records across two hosts**, which is the part that catches
+people: the DKIM `TXT` goes on the apex (`resend._domainkey.jadeapp.co`) while
+the `MX` and the SPF `TXT` both go on the `send.` subdomain. Adding the SPF to
+the apex instead looks right, verifies nothing, and leaves a stray record at the
+root that can interfere with any other mail you ever send from the domain.
+
+Propagation is usually minutes.
 
 ### 2. Turn on custom SMTP in Supabase
 

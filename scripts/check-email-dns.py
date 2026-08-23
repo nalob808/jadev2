@@ -91,31 +91,59 @@ def report(domain: str, lookup) -> tuple[bool, list[str]]:
             lines.append(f"  -> managed by {host}. Add the records there, not at the registrar.")
     lines.append("")
 
-    spf = [t for t in safe(domain, "TXT") if t.lower().startswith("v=spf1")]
+    # SPF has to be checked on both hosts. Resend's usual layout puts the MX and
+    # the SPF on a `send.` subdomain while the DKIM sits on the apex, so looking
+    # only at the apex reports a correctly-configured domain as missing SPF —
+    # and sends someone off adding a second, wrong record at the root.
+    spf_host = None
+    spf: list[str] = []
+    for candidate in (f"send.{domain}", domain):
+        found = [t for t in safe(candidate, "TXT") if t.lower().startswith("v=spf1")]
+        if found:
+            spf_host, spf = candidate, found
+            break
+
     if spf:
-        lines.append("SPF   found:")
+        lines.append(f"SPF   found on {spf_host}:")
         for record in spf:
             lines.append(f"  {record}")
             if "resend" not in record and "amazonses" not in record:
                 lines.append("  ! does not authorise Resend — sending will still be refused")
                 ok = False
     else:
-        lines.append("SPF   MISSING — no v=spf1 TXT record on the domain")
+        lines.append(f"SPF   MISSING — no v=spf1 TXT on {domain} or send.{domain}")
         ok = False
 
     for selector_host in (f"resend._domainkey.{domain}", f"resend._domainkey.send.{domain}"):
         if safe(selector_host, "TXT"):
-            lines.append(f"DKIM  found at {selector_host}")
+            lines.append(f"DKIM  found on {selector_host}")
             break
     else:
         lines.append(f"DKIM  MISSING — nothing at resend._domainkey.{domain}")
         ok = False
 
-    mx = safe(f"send.{domain}", "MX") or safe(domain, "MX")
+    # Say *which* host, because that is what tells you where the rest of the
+    # records belong.
+    mx_host = None
+    mx: list[str] = []
+    for candidate in (f"send.{domain}", domain):
+        found = safe(candidate, "MX")
+        if found:
+            mx_host, mx = candidate, found
+            break
+
     if mx:
-        lines.append("MX    found:")
+        lines.append(f"MX    found on {mx_host}:")
         for record in mx:
             lines.append(f"  {record}")
+        if mx_host != spf_host and spf:
+            lines.append(
+                f"  ! the MX is on {mx_host} but the SPF is on {spf_host} — "
+                "Resend expects them on the same host"
+            )
+            ok = False
+        elif mx_host and not spf:
+            lines.append(f"  -> so the missing SPF record belongs on {mx_host}, not the apex")
     else:
         lines.append("MX    none — only needed if Resend asked for one on a send subdomain")
 
@@ -132,15 +160,18 @@ RECORDED = {
     "unverified": {
         ("example.test", "NS"): ["ns1.vercel-dns.com.", "ns2.vercel-dns.com."],
         ("example.test", "TXT"): [],
+        ("send.example.test", "TXT"): [],
         ("resend._domainkey.example.test", "TXT"): [],
         ("resend._domainkey.send.example.test", "TXT"): [],
         ("send.example.test", "MX"): [],
         ("example.test", "MX"): [],
         ("_dmarc.example.test", "TXT"): [],
     },
+    # Resend's real layout: MX and SPF on the send subdomain, DKIM on the apex.
     "verified": {
         ("example.test", "NS"): ["ns1.vercel-dns.com."],
-        ("example.test", "TXT"): ["v=spf1 include:amazonses.com ~all", "some-other-record"],
+        ("example.test", "TXT"): [],
+        ("send.example.test", "TXT"): ["v=spf1 include:amazonses.com ~all"],
         ("resend._domainkey.example.test", "TXT"): ["p=MIGfMA0GCSq..."],
         ("send.example.test", "MX"): ["10 feedback-smtp.us-east-1.amazonses.com."],
         ("example.test", "MX"): [],
@@ -149,9 +180,20 @@ RECORDED = {
     "spf-without-resend": {
         ("example.test", "NS"): ["ns1.domaincontrol.com."],
         ("example.test", "TXT"): ["v=spf1 include:_spf.google.com ~all"],
+        ("send.example.test", "TXT"): [],
         ("resend._domainkey.example.test", "TXT"): ["p=abc"],
         ("resend._domainkey.send.example.test", "TXT"): [],
         ("send.example.test", "MX"): [],
+        ("example.test", "MX"): [],
+        ("_dmarc.example.test", "TXT"): [],
+    },
+    # Exactly the state jadeapp.co was in: DKIM and MX present, SPF absent.
+    "dkim-and-mx-but-no-spf": {
+        ("example.test", "NS"): ["ns1.vercel-dns.com."],
+        ("example.test", "TXT"): [],
+        ("send.example.test", "TXT"): [],
+        ("resend._domainkey.example.test", "TXT"): ["p=abc"],
+        ("send.example.test", "MX"): ["10 feedback-smtp.us-east-1.amazonses.com."],
         ("example.test", "MX"): [],
         ("_dmarc.example.test", "TXT"): [],
     },
@@ -184,6 +226,15 @@ def self_test() -> int:
         failures.append("an SPF that does not authorise Resend was accepted")
     if "GoDaddy" not in text:
         failures.append("did not identify the GoDaddy nameservers")
+
+    ok, lines = report("example.test", lambda n, t: RECORDED["dkim-and-mx-but-no-spf"][(n, t)])
+    text = "\n".join(lines)
+    if ok:
+        failures.append("a domain with no SPF anywhere was reported as sendable")
+    if "belongs on send.example.test" not in text:
+        failures.append("did not say which host the missing SPF belongs on")
+    if "MX    found on send.example.test" not in text:
+        failures.append("did not name the host the MX was found on")
 
     # An unreachable resolver must never look like a missing record.
     def unreachable(_name: str, _type: str) -> list[str]:
