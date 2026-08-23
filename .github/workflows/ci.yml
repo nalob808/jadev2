@@ -46,7 +46,9 @@ jobs:
       # a package.json edited without regenerating pnpm-lock.yaml. Both of
       # those reached Vercel once. Neither should again.
       - name: Auth email templates
-        run: python3 scripts/preview-emails.py --check
+        run: |
+          python3 scripts/preview-emails.py --check
+          python3 scripts/check-email-dns.py --self-test
 
       - name: Production build
         run: pnpm build
