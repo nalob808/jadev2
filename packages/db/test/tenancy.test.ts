@@ -3,6 +3,7 @@ import { sql } from 'drizzle-orm';
 import { createDatabase, type Database } from '../src/client.js';
 import { withWorkspace } from '../src/tenancy.js';
 import { subjects } from '../src/schema.js';
+import { EXPECTED_MIGRATIONS, LATEST_MIGRATION, schemaStatus } from '../src/schemaStatus.js';
 import {
   bootstrapUser,
   createRelationship,
@@ -297,5 +298,43 @@ describeWithDb('relationships', () => {
     const [only] = await listRelationships(database, { workspaceId: alice.workspaceId });
     await deleteRelationship(database, { workspaceId: alice.workspaceId, id: only!.id });
     expect(await listRelationships(database, { workspaceId: alice.workspaceId })).toHaveLength(0);
+  });
+});
+
+describeWithDb('schema drift check', () => {
+  // A Vercel deploy never touches the database. The build compiles, the deploy
+  // succeeds, and every signed-in page then throws because a migration was
+  // never run. This check is what turns that into a 503 on /api/health instead
+  // of a support message.
+  it('reports current against a freshly migrated database', async () => {
+    const status = await schemaStatus(database);
+    expect(status.expected).toBe(EXPECTED_MIGRATIONS);
+    expect(status.latestExpected).toBe(LATEST_MIGRATION);
+    expect(status.applied).toBe(EXPECTED_MIGRATIONS);
+    expect(status.state).toBe('current');
+  });
+
+  it('goes red when the database is behind, and says what to run', async () => {
+    // A green tick that cannot go red is worse than no tick at all — it is the
+    // exact mistake db:doctor's isolation probe made before it provisioned its
+    // own row. So this removes a migration record, checks the alarm sounds,
+    // and puts it back.
+    const [row] = await database.execute<{ id: number; hash: string; created_at: string }>(
+      sql`select id, hash, created_at from drizzle.__drizzle_migrations order by created_at desc limit 1`,
+    );
+    expect(row).toBeDefined();
+    await database.execute(sql`delete from drizzle.__drizzle_migrations where id = ${row!.id}`);
+    try {
+      const behind = await schemaStatus(database);
+      expect(behind.state).toBe('behind');
+      expect(behind.applied).toBe(EXPECTED_MIGRATIONS - 1);
+      expect(behind.detail).toContain('pnpm db:migrate');
+    } finally {
+      await database.execute(
+        sql`insert into drizzle.__drizzle_migrations (id, hash, created_at)
+            values (${row!.id}, ${row!.hash}, ${row!.created_at})`,
+      );
+    }
+    expect((await schemaStatus(database)).state).toBe('current');
   });
 });

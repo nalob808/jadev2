@@ -3,3 +3,4 @@ export * from './client.js';
 export * from './tenancy.js';
 export * from './queries.js';
 export * from './loadEnv.js';
+export * from './schemaStatus.js';
