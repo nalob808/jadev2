@@ -7,3 +7,5 @@ export { DashaColumn } from './DashaColumn.js';
 export { PanchangaCard } from './PanchangaCard.js';
 export { KutaTable, MangalaCard } from './KutaTable.js';
 export { OverlayGrid } from './OverlayGrid.js';
+export { OverlayWheel } from './OverlayWheel.js';
+export { ConvergenceTimeline } from './ConvergenceTimeline.js';

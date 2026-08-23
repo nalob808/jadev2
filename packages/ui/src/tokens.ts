@@ -69,17 +69,26 @@ export const GLYPHS = {
   Midheaven: 'MC',
 } as const;
 
+/**
+ * Zodiac glyphs, each followed by U+FE0E — VARIATION SELECTOR-15.
+ *
+ * Without it browsers pick the *emoji* presentation of these codepoints and
+ * render twelve coloured cartoon badges in the middle of a monochrome chart.
+ * The selector asks for the text presentation, which is the typographic form
+ * that belongs here. The graha glyphs above do not need it: they have no emoji
+ * variant to fall back to.
+ */
 export const SIGN_GLYPHS = [
-  '♈',
-  '♉',
-  '♊',
-  '♋',
-  '♌',
-  '♍',
-  '♎',
-  '♏',
-  '♐',
-  '♑',
-  '♒',
-  '♓',
+  '♈\uFE0E',
+  '♉\uFE0E',
+  '♊\uFE0E',
+  '♋\uFE0E',
+  '♌\uFE0E',
+  '♍\uFE0E',
+  '♎\uFE0E',
+  '♏\uFE0E',
+  '♐\uFE0E',
+  '♑\uFE0E',
+  '♒\uFE0E',
+  '♓\uFE0E',
 ] as const;

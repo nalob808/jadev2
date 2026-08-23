@@ -4,13 +4,17 @@ import { getRelationship, getSettingsProfile, getSubject } from '@jade/db';
 import {
   ashtakuta,
   compareMangala,
+  convergences,
+  jdFromUnixMs,
   POINT_DISPLAY_ORDER,
+  sharedTimeline,
   synastry,
+  vimshottari,
   type ComputedChart,
   type Graha,
   type MatchSubject,
 } from '@jade/astro';
-import { KutaTable, MangalaCard, OverlayGrid } from '@jade/ui';
+import { ConvergenceTimeline, KutaTable, MangalaCard, OverlayGrid, OverlayWheel } from '@jade/ui';
 import { getSession } from '@/lib/auth';
 import { getDatabase } from '@/lib/db';
 import { getOrComputeChart } from '@/lib/chart';
@@ -23,6 +27,24 @@ export const dynamic = 'force-dynamic';
 function matchSubjectOf(chart: ComputedChart): MatchSubject {
   const moon = chart.points.Moon!;
   return { nakshatra: moon.nakshatra.index, pada: moon.nakshatra.pada };
+}
+
+/** The classical grahas, as the wheel wants them: sign plus degree in sign. */
+function wheelPlacements(
+  chart: ComputedChart,
+): { id: string; signIndex: number; degreesInSign: number }[] {
+  const out: { id: string; signIndex: number; degreesInSign: number }[] = [];
+  for (const id of POINT_DISPLAY_ORDER) {
+    if (id === 'Ascendant' || id === 'Midheaven') continue;
+    const p = chart.points[id];
+    if (p) out.push({ id, signIndex: p.signIndex, degreesInSign: p.degreesInSign });
+  }
+  return out;
+}
+
+/** Julian Day to a year, for the timeline axis. The core never reads a clock. */
+function yearOf(jdUt: number): string {
+  return String(new Date((jdUt - 2440587.5) * 86400000).getUTCFullYear());
 }
 
 function signMapOf(chart: ComputedChart): Record<Graha, number> {
@@ -71,6 +93,30 @@ export default async function RelationshipPage({ params }: { params: Promise<{ i
   const mangala = compareMangala(mangalaA, mangalaB);
   const overlays = synastry(mangalaA, mangalaB);
 
+  // Both Vimśottarī trees on one axis, and the windows where a named rule fires.
+  const birthJd = (event: { utcDatetime: Date | string }): number =>
+    jdFromUnixMs(
+      event.utcDatetime instanceof Date
+        ? event.utcDatetime.getTime()
+        : new Date(event.utcDatetime).getTime(),
+    );
+  const dashaA = vimshottari(chartA.chart.points.Moon!.longitude, birthJd(recordA.birthEvent), {
+    levels: 2,
+  });
+  const dashaB = vimshottari(chartB.chart.points.Moon!.longitude, birthJd(recordB.birthEvent), {
+    levels: 2,
+  });
+  const nowJd = jdFromUnixMs(Date.now());
+  // A reading looks at the years around now, not the whole hundred-year
+  // overlap. The core will return all of it; the page asks for the part a
+  // consultation actually uses.
+  const segments = sharedTimeline(dashaA, dashaB, {
+    level: 2,
+    fromJd: nowJd - 5 * 365.25,
+    toJd: nowJd + 20 * 365.25,
+  });
+  const meetings = convergences(segments, mangalaA, mangalaB, { a: nameA, b: nameB });
+
   return (
     <Shell email={session.email}>
       <Kicker>Relationship</Kicker>
@@ -107,6 +153,39 @@ export default async function RelationshipPage({ params }: { params: Promise<{ i
           <MangalaCard comparison={mangala} nameA={nameA} nameB={nameB} />
         </Panel>
       </div>
+
+      <Panel className="mt-8">
+        <p className="font-display text-2xl">The overlay</p>
+        <p className="mb-4 mt-1 text-sm text-[var(--ink-muted)]">
+          Both charts on one round, laid on {nameA}&rsquo;s houses.
+        </p>
+        <div className="flex justify-center">
+          <OverlayWheel
+            ascendantSign={chartA.chart.houses.ascendantSign}
+            a={wheelPlacements(chartA.chart)}
+            b={wheelPlacements(chartB.chart)}
+            labelA={nameA}
+            labelB={nameB}
+          />
+        </div>
+      </Panel>
+
+      <Panel className="mt-8">
+        <p className="font-display text-2xl">Shared timeline</p>
+        <p className="mb-4 mt-1 text-sm text-[var(--ink-muted)]">
+          Both Vimśottarī daśās on one axis, from five years back to twenty ahead. Every band below
+          names the rule that flagged it — nothing is highlighted for a reason the page will not
+          tell you.
+        </p>
+        <ConvergenceTimeline
+          segments={segments}
+          convergences={meetings}
+          labelA={nameA}
+          labelB={nameB}
+          formatJd={yearOf}
+          nowJd={nowJd}
+        />
+      </Panel>
 
       <div className="mt-8 grid gap-8 lg:grid-cols-2">
         <Panel>

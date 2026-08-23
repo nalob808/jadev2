@@ -173,18 +173,26 @@ Phase 1 aṣṭakavarga work), and notes anchored to chart elements.
 
 ---
 
-## Phase 4 — Relationships (2 weeks) ✅ CALCULATION CORE AND PAGES SHIPPED
+## Phase 4 — Relationships ✅ COMPLETE
 
 **Shipped:** aṣṭakūṭa verified against every one of the 11,664 possible pairings
 (the technique reads only two nakṣatras and two pādas, so the whole input space
 is enumerable); maṅgala doṣa with its cancellations computed alongside it and
-returned together; synastry as house overlays both ways plus whole-sign dṛṣṭi
-between charts; the `relationships` table with RLS; and `/relationships`.
+returned together; synastry as house overlays both ways plus whole-sign dṛṣṭi;
+the two-ring **overlay wheel**; the **shared daśā timeline** with named
+convergences; the `relationships` table with RLS; and `/relationships`.
 
-**Still to come in this phase:** the synastry overlay _wheel_ — the numbers and
-the overlays are shipped, the two-ring SVG is not — and the shared daśā/transit
-timeline with auto-flagged convergences, which wants the transit work from
-Phase 3 first.
+**The convergence rules are four, and they are named**: both running the same
+graha, the two running lords in mutual dṛṣṭi, one person's running lord sitting
+in the other's seventh, and either running the lord of their own seventh. Each
+band carries the rule that flagged it and the placements that produced it. There
+is no intensity, no score and no colour scale from good to bad — a highlighted
+band is a claim, and a claim has to be decomposable.
+
+**Deferred to Phase 5, where it belongs:** the _transit_ half of the timeline.
+Convergences today are daśā-to-daśā and chart-to-chart. Adding transiting Saturn
+and Jupiter over both charts needs the scanning machinery Phase 5 builds for
+watches, and a second, weaker version of it here would be waste.
 
 **Deliberately not shipped: a compatibility score.** Aṣṭakūṭa's total is
 displayed as a footnote to its eight components, never as a headline, and

@@ -91,6 +91,35 @@ test('pair two people and read the two charts together', async ({ page }) => {
   await expect(body).toContainText('Maṅgala doṣa');
   await expect(body).toContainText('Read from');
 
+  // The overlay wheel, drawn once, with an accessible name.
+  const wheel = page.getByRole('img', { name: /Synastry overlay/ });
+  await expect(wheel).toBeVisible();
+
+  // The shared timeline, and its promise that nothing is highlighted mutely.
+  await expect(body).toContainText('Shared timeline');
+  await expect(body).toContainText('Where the two meet');
+
+  // Every convergence band names its rule and lists its factors beneath it.
+  // A band with a heading and no reasons is the failure this guards against.
+  const bands = page.locator('[data-convergence]');
+  const bandCount = await bands.count();
+  expect(bandCount).toBeGreaterThan(0);
+  for (let i = 0; i < Math.min(bandCount, 5); i += 1) {
+    // Each band carries at least one factor line beneath its heading.
+    await expect(bands.nth(i).locator('li').first()).toBeVisible();
+  }
+
+  // Only the four named rules may appear. This is what stops a fifth,
+  // unexplained highlight being added later without a rule behind it.
+  const rules = await bands.evaluateAll((els) =>
+    els.map((el) => el.getAttribute('data-convergence')),
+  );
+  for (const rule of rules) {
+    expect(['sameLord', 'mutualDrishti', 'lordInPartnersSeventh', 'seventhLordPeriod']).toContain(
+      rule,
+    );
+  }
+
   // Unpairing removes the relationship and neither person.
   await page.getByRole('button', { name: /unpair/ }).click();
   await expect(page).toHaveURL(/\/relationships$/, { timeout: 30_000 });
