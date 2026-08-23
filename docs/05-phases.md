@@ -234,9 +234,21 @@ date must come from the reference provider**. See `docs/07-accuracy.md`.
 
 The retrograde triple pass works and is the reason the module exists.
 
-**Still to come in this phase:** watches as stored rules with nightly
-evaluation, the worker service, the daśā × transit heat timeline, event search,
-and email digests.
+**Shipped: watches.** Four rule kinds — a transit reaching a natal point, an
+ingress, a station, and a daśā beginning — each producing hits that carry the
+exact moment, the rule, and the placements. Nothing interprets and nothing says
+whether an event is good or bad; a test asserts no hit ever contains that
+vocabulary.
+
+Stored in `watches` and `watch_hits` with RLS forced on both. `pnpm watches:run`
+is the body of the nightly job, and it is **idempotent**: hit keys are derived
+from the event rather than from when the job ran, so a second pass over an
+overlapping window finds the same ten events and records none of them. Verified
+against a real Postgres — three runs, ten rows.
+
+**Still to come in this phase:** the long-running worker on Fly.io, the daśā ×
+transit heat timeline, event search, and email digests. The digests need Resend
+wired to a verified domain, which is a deploy-side step rather than a code one.
 
 **Done when:** the worker service runs scheduled scans; watches evaluate nightly; the daśā ×
 transit heat timeline renders across decades; event search compiles a query and returns ranked

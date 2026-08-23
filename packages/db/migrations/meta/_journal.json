@@ -36,6 +36,13 @@
       "when": 1787393244363,
       "tag": "0004_relationships",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1787393245363,
+      "tag": "0005_watches",
+      "breakpoints": true
     }
   ]
 }

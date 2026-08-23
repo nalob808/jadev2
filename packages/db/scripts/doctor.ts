@@ -95,6 +95,8 @@ try {
     'settings_profiles',
     'memberships',
     'relationships',
+    'watches',
+    'watch_hits',
   ];
   const tables = await sql<{ relname: string; enabled: boolean; forced: boolean }[]>`
     select relname, relrowsecurity as enabled, relforcerowsecurity as forced

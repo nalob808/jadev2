@@ -93,6 +93,9 @@ importers:
       '@jade/astro':
         specifier: workspace:*
         version: link:../../packages/astro
+      '@jade/db':
+        specifier: workspace:*
+        version: link:../../packages/db
     devDependencies:
       tsx:
         specifier: ^4.19.1

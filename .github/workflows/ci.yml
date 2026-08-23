@@ -45,6 +45,9 @@ jobs:
       # and fails `next build`. And `--frozen-lockfile` above is what catches
       # a package.json edited without regenerating pnpm-lock.yaml. Both of
       # those reached Vercel once. Neither should again.
+      - name: Auth email templates
+        run: python3 scripts/preview-emails.py --check
+
       - name: Production build
         run: pnpm build
 

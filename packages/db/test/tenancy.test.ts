@@ -7,6 +7,11 @@ import { EXPECTED_MIGRATIONS, LATEST_MIGRATION, schemaStatus } from '../src/sche
 import {
   bootstrapUser,
   createRelationship,
+  createWatch,
+  deleteWatch,
+  listUpcomingHits,
+  listWatches,
+  recordWatchHits,
   createSubjectWithBirthEvent,
   deleteRelationship,
   exportSubject,
@@ -336,5 +341,132 @@ describeWithDb('schema drift check', () => {
       );
     }
     expect((await schemaStatus(database)).state).toBe('current');
+  });
+});
+
+describeWithDb('watches', () => {
+  let watchId = '';
+
+  it('stores a rule as jsonb and reads it back unchanged', async () => {
+    const [first] = await listSubjects(database, alice.workspaceId);
+    const rule = { kind: 'transitCrossing', transiting: 'Saturn', natalPoint: 'Moon' };
+    const created = await createWatch(database, {
+      workspaceId: alice.workspaceId,
+      subjectId: first!.subject.id,
+      rule,
+      label: 'Saturn on her Moon',
+      createdBy: alice.userId,
+    });
+    watchId = created.id;
+    expect(created.rule).toEqual(rule);
+    expect(created.enabled).toBe(true);
+    expect(created.horizonDays).toBe(120);
+
+    const listed = await listWatches(database, { workspaceId: alice.workspaceId });
+    expect(listed).toHaveLength(1);
+    expect(listed[0]!.subject.id).toBe(first!.subject.id);
+  });
+
+  it('refuses a horizon outside the allowed range', async () => {
+    const [first] = await listSubjects(database, alice.workspaceId);
+    await expect(
+      createWatch(database, {
+        workspaceId: alice.workspaceId,
+        subjectId: first!.subject.id,
+        rule: { kind: 'ingress', transiting: 'Jupiter' },
+        horizonDays: 0,
+      }),
+    ).rejects.toThrow();
+  });
+
+  it('records hits once, however many times the job runs', async () => {
+    // The anti-duplicate mechanism, which is the whole reason hit keys are
+    // derived from the event rather than from when the job ran. Without it a
+    // practitioner is told the same thing every morning for four months.
+    const hits = [
+      {
+        key: 'crossing:Saturn:Moon:2461000',
+        occursAt: new Date('2026-01-01T00:00:00Z'),
+        title: 'Saturn reaches natal Moon',
+        factors: ['first contact'],
+      },
+      {
+        key: 'crossing:Saturn:Moon:2461200',
+        occursAt: new Date('2026-07-01T00:00:00Z'),
+        title: 'Saturn reaches natal Moon',
+        factors: ['pass 2 of the retrograde loop over the same degree'],
+      },
+    ];
+
+    const first = await recordWatchHits(database, {
+      workspaceId: alice.workspaceId,
+      watchId,
+      hits,
+    });
+    expect(first).toHaveLength(2);
+
+    const second = await recordWatchHits(database, {
+      workspaceId: alice.workspaceId,
+      watchId,
+      hits,
+    });
+    expect(second).toHaveLength(0);
+
+    // And a genuinely new event still gets through.
+    const third = await recordWatchHits(database, {
+      workspaceId: alice.workspaceId,
+      watchId,
+      hits: [
+        ...hits,
+        {
+          key: 'crossing:Saturn:Moon:2461400',
+          occursAt: new Date('2027-01-01T00:00:00Z'),
+          title: 'Saturn reaches natal Moon',
+          factors: ['pass 3 of the retrograde loop over the same degree'],
+        },
+      ],
+    });
+    expect(third).toHaveLength(1);
+  });
+
+  it('stamps the watch with when it was last evaluated', async () => {
+    const [watch] = await listWatches(database, { workspaceId: alice.workspaceId });
+    expect(watch!.lastEvaluatedAt).not.toBeNull();
+  });
+
+  it('lists upcoming hits in time order, with their subject', async () => {
+    const upcoming = await listUpcomingHits(database, {
+      workspaceId: alice.workspaceId,
+      fromDate: new Date('2020-01-01T00:00:00Z'),
+    });
+    expect(upcoming.length).toBe(3);
+    for (let i = 0; i < upcoming.length - 1; i += 1) {
+      expect(upcoming[i + 1]!.occursAt.getTime()).toBeGreaterThanOrEqual(
+        upcoming[i]!.occursAt.getTime(),
+      );
+    }
+    expect(upcoming[0]!.subject.displayName).toBeTruthy();
+    expect(upcoming[0]!.factors.length).toBeGreaterThan(0);
+  });
+
+  it('does not leak watches or hits across workspaces', async () => {
+    expect(await listWatches(database, { workspaceId: bob.workspaceId })).toHaveLength(0);
+    expect(
+      await listUpcomingHits(database, {
+        workspaceId: bob.workspaceId,
+        fromDate: new Date('2020-01-01T00:00:00Z'),
+      }),
+    ).toHaveLength(0);
+  });
+
+  it('takes its hits with it when deleted', async () => {
+    await deleteWatch(database, { workspaceId: alice.workspaceId, id: watchId });
+    expect(await listWatches(database, { workspaceId: alice.workspaceId })).toHaveLength(0);
+    expect(
+      await listUpcomingHits(database, {
+        workspaceId: alice.workspaceId,
+        fromDate: new Date('2020-01-01T00:00:00Z'),
+      }),
+    ).toHaveLength(0);
   });
 });

@@ -25,3 +25,4 @@ _to_delete/
 /*.png
 /apps/*/*.png
 /packages/*/*.png
+docs/email-templates/*.preview.html

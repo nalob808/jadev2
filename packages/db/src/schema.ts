@@ -344,6 +344,72 @@ export const relationships = pgTable(
   }),
 );
 
+/**
+ * A standing rule that fires when the sky does something to one subject.
+ *
+ * `rule` is the discriminated union from `@jade/astro` stored as jsonb. It is
+ * deliberately not spread into columns: the shape differs per kind, the set of
+ * kinds will grow, and a migration per new rule kind is a tax with no benefit.
+ * The application validates it on the way in.
+ */
+export const watches = pgTable(
+  'watches',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    workspaceId: uuid('workspace_id')
+      .notNull()
+      .references(() => workspaces.id, { onDelete: 'cascade' }),
+    subjectId: uuid('subject_id')
+      .notNull()
+      .references(() => subjects.id, { onDelete: 'cascade' }),
+    label: text('label'),
+    rule: jsonb('rule').notNull(),
+    enabled: boolean('enabled').notNull().default(true),
+    /** How far ahead each evaluation looks. */
+    horizonDays: integer('horizon_days').notNull().default(120),
+    lastEvaluatedAt: timestamp('last_evaluated_at', { withTimezone: true }),
+    createdBy: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({
+    workspaceIdx: index('watches_workspace_idx').on(table.workspaceId),
+    subjectIdx: index('watches_subject_idx').on(table.subjectId),
+  }),
+);
+
+/**
+ * One event a watch has already found.
+ *
+ * `hitKey` is derived from the rule and the event, never from the time the
+ * evaluation ran, so re-running a nightly job over an overlapping window finds
+ * the same keys and the unique index quietly refuses the duplicates. That is
+ * what stops a practitioner being told the same thing every morning for four
+ * months.
+ */
+export const watchHits = pgTable(
+  'watch_hits',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    workspaceId: uuid('workspace_id')
+      .notNull()
+      .references(() => workspaces.id, { onDelete: 'cascade' }),
+    watchId: uuid('watch_id')
+      .notNull()
+      .references(() => watches.id, { onDelete: 'cascade' }),
+    hitKey: text('hit_key').notNull(),
+    occursAt: timestamp('occurs_at', { withTimezone: true }).notNull(),
+    title: text('title').notNull(),
+    factors: text('factors').array().notNull().default([]),
+    notifiedAt: timestamp('notified_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({
+    workspaceIdx: index('watch_hits_workspace_idx').on(table.workspaceId),
+    occursIdx: index('watch_hits_occurs_idx').on(table.workspaceId, table.occursAt),
+    uniqueHit: uniqueIndex('watch_hits_key_idx').on(table.watchId, table.hitKey),
+  }),
+);
+
 export type User = typeof users.$inferSelect;
 export type Workspace = typeof workspaces.$inferSelect;
 export type Subject = typeof subjects.$inferSelect;
@@ -353,5 +419,8 @@ export type NewBirthEvent = typeof birthEvents.$inferInsert;
 export type Place = typeof places.$inferSelect;
 export type SettingsProfile = typeof settingsProfiles.$inferSelect;
 export type Chart = typeof charts.$inferSelect;
+export type Watch = typeof watches.$inferSelect;
+export type NewWatch = typeof watches.$inferInsert;
+export type WatchHit = typeof watchHits.$inferSelect;
 export type Relationship = typeof relationships.$inferSelect;
 export type NewRelationship = typeof relationships.$inferInsert;

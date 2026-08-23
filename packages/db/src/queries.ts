@@ -1,4 +1,4 @@
-import { aliasedTable, and, desc, eq, isNull, sql } from 'drizzle-orm';
+import { aliasedTable, and, desc, eq, gte, isNull, sql } from 'drizzle-orm';
 import type { Database } from './client.js';
 import { withWorkspace } from './tenancy.js';
 import {
@@ -10,11 +10,15 @@ import {
   subjects,
   relationships,
   users,
+  watches,
+  watchHits,
   workspaces,
   type NewBirthEvent,
   type NewSubject,
   type Relationship,
   type Subject,
+  type Watch,
+  type WatchHit as WatchHitRow,
 } from './schema.js';
 
 // A relationship joins the subjects table twice. Aliasing once here keeps the
@@ -357,17 +361,32 @@ export async function putCachedChart(
   });
 }
 
+/**
+ * A settings profile by id, or the workspace's default when no id is given.
+ *
+ * A background job has no session to take a profile id from, and falling back
+ * to `DEFAULT_SETTINGS` in the caller would be a silent astrology default —
+ * exactly what CLAUDE.md forbids. The workspace's own default is the honest
+ * answer, and it is stored and visible.
+ */
 export async function getSettingsProfile(
   database: Database,
   workspaceId: string,
-  profileId: string,
+  profileId: string | null,
 ): Promise<typeof settingsProfiles.$inferSelect | null> {
   return withWorkspace(database, workspaceId, async (tx) => {
-    const rows = await tx
-      .select()
-      .from(settingsProfiles)
-      .where(eq(settingsProfiles.id, profileId))
-      .limit(1);
+    const rows = profileId
+      ? await tx.select().from(settingsProfiles).where(eq(settingsProfiles.id, profileId)).limit(1)
+      : await tx
+          .select()
+          .from(settingsProfiles)
+          .where(
+            and(
+              eq(settingsProfiles.workspaceId, workspaceId),
+              eq(settingsProfiles.isDefault, true),
+            ),
+          )
+          .limit(1);
     return rows[0] ?? null;
   });
 }
@@ -459,5 +478,127 @@ export async function deleteRelationship(
     await tx
       .delete(relationships)
       .where(and(eq(relationships.workspaceId, input.workspaceId), eq(relationships.id, input.id)));
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Watches
+
+export async function listWatches(
+  db: Database,
+  input: { workspaceId: string; subjectId?: string },
+): Promise<(Watch & { subject: Subject })[]> {
+  return withWorkspace(db, input.workspaceId, async (tx) => {
+    const rows = await tx
+      .select({ watch: watches, subject: subjects })
+      .from(watches)
+      .innerJoin(subjects, eq(watches.subjectId, subjects.id))
+      .where(
+        input.subjectId
+          ? and(eq(watches.workspaceId, input.workspaceId), eq(watches.subjectId, input.subjectId))
+          : eq(watches.workspaceId, input.workspaceId),
+      )
+      .orderBy(desc(watches.createdAt));
+    return rows.map((row) => ({ ...row.watch, subject: row.subject }));
+  });
+}
+
+export async function createWatch(
+  db: Database,
+  input: {
+    workspaceId: string;
+    subjectId: string;
+    rule: unknown;
+    label?: string | null;
+    horizonDays?: number;
+    createdBy?: string | null;
+  },
+): Promise<Watch> {
+  return withWorkspace(db, input.workspaceId, async (tx) => {
+    const [row] = await tx
+      .insert(watches)
+      .values({
+        workspaceId: input.workspaceId,
+        subjectId: input.subjectId,
+        rule: input.rule,
+        label: input.label ?? null,
+        horizonDays: input.horizonDays ?? 120,
+        createdBy: input.createdBy ?? null,
+      })
+      .returning();
+    return row!;
+  });
+}
+
+export async function deleteWatch(
+  db: Database,
+  input: { workspaceId: string; id: string },
+): Promise<void> {
+  await withWorkspace(db, input.workspaceId, async (tx) => {
+    await tx
+      .delete(watches)
+      .where(and(eq(watches.workspaceId, input.workspaceId), eq(watches.id, input.id)));
+  });
+}
+
+/**
+ * Record what an evaluation found.
+ *
+ * `onConflictDoNothing` on (watch_id, hit_key) is the anti-duplicate mechanism.
+ * A nightly job re-runs over an overlapping window and finds the same events
+ * again; the keys are derived from the event rather than from when the job ran,
+ * so the repeats land on the unique index and are dropped. Returns only the
+ * rows that were genuinely new, which is exactly the set worth notifying about.
+ */
+export async function recordWatchHits(
+  db: Database,
+  input: {
+    workspaceId: string;
+    watchId: string;
+    hits: readonly { key: string; occursAt: Date; title: string; factors: readonly string[] }[];
+  },
+): Promise<WatchHitRow[]> {
+  if (input.hits.length === 0) return [];
+  return withWorkspace(db, input.workspaceId, async (tx) => {
+    const inserted = await tx
+      .insert(watchHits)
+      .values(
+        input.hits.map((h) => ({
+          workspaceId: input.workspaceId,
+          watchId: input.watchId,
+          hitKey: h.key,
+          occursAt: h.occursAt,
+          title: h.title,
+          factors: [...h.factors],
+        })),
+      )
+      .onConflictDoNothing({ target: [watchHits.watchId, watchHits.hitKey] })
+      .returning();
+
+    await tx
+      .update(watches)
+      .set({ lastEvaluatedAt: new Date() })
+      .where(eq(watches.id, input.watchId));
+
+    return inserted;
+  });
+}
+
+export async function listUpcomingHits(
+  db: Database,
+  input: { workspaceId: string; fromDate: Date; limit?: number },
+): Promise<(WatchHitRow & { subject: Subject; watch: Watch })[]> {
+  return withWorkspace(db, input.workspaceId, async (tx) => {
+    const rows = await tx
+      .select({ hit: watchHits, watch: watches, subject: subjects })
+      .from(watchHits)
+      .innerJoin(watches, eq(watchHits.watchId, watches.id))
+      .innerJoin(subjects, eq(watches.subjectId, subjects.id))
+      .where(
+        and(eq(watchHits.workspaceId, input.workspaceId), gte(watchHits.occursAt, input.fromDate)),
+      )
+      .orderBy(watchHits.occursAt)
+      .limit(input.limit ?? 100);
+    return rows.map((row) => ({ ...row.hit, watch: row.watch, subject: row.subject }));
   });
 }
