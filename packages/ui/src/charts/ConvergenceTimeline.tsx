@@ -1,4 +1,4 @@
-import type { Convergence, TimelineSegment } from '@jade/astro';
+import type { Convergence, TimelineSegment, TransitContact } from '@jade/astro';
 
 const RULE = 'var(--rule, #D8DEE3)';
 const MUTED = 'var(--ink-muted, #4A5C6B)';
@@ -18,6 +18,7 @@ const SURFACE = 'var(--surface, #F4F1EA)';
 export function ConvergenceTimeline({
   segments,
   convergences,
+  contacts = [],
   labelA,
   labelB,
   formatJd,
@@ -25,6 +26,8 @@ export function ConvergenceTimeline({
 }: {
   readonly segments: readonly TimelineSegment[];
   readonly convergences: readonly Convergence[];
+  /** Slow transits arriving on a point that matters to the pair. */
+  readonly contacts?: readonly TransitContact[];
   readonly labelA: string;
   readonly labelB: string;
   /** How to render a Julian Day as a year. Supplied by the caller — the core has no clock. */
@@ -120,6 +123,38 @@ export function ConvergenceTimeline({
         {nowJd !== undefined && nowJd > start && nowJd < end ? <span>now</span> : null}
         <span>{formatJd(end)}</span>
       </div>
+
+      {contacts.length > 0 ? (
+        <>
+          <p style={{ margin: '16px 0 6px', fontWeight: 600, fontSize: '14px' }}>
+            When the sky arrives
+          </p>
+          <ul style={{ margin: '0 0 4px', padding: 0, listStyle: 'none', fontSize: '13px' }}>
+            {contacts.map((c) => (
+              <li
+                key={`${c.transiting}-${c.subject}-${c.point}-${c.jdUt}`}
+                data-contact={c.transiting}
+                style={{ borderTop: `1px solid ${RULE}`, padding: '7px 0' }}
+              >
+                <span style={{ fontWeight: 600 }}>
+                  {c.transiting} on {c.subjectName}&rsquo;s{' '}
+                  {c.point === 'moon' ? 'Moon' : c.point === 'venus' ? 'Venus' : 'seventh lord'}
+                </span>
+                <span style={{ color: MUTED }}>
+                  {' '}
+                  · {formatJd(c.jdUt)}
+                  {c.pass > 1 ? ` · pass ${c.pass}` : ''}
+                </span>
+                <ul style={{ margin: '3px 0 0', paddingLeft: '18px', color: MUTED }}>
+                  {c.factors.map((f) => (
+                    <li key={f}>{f}</li>
+                  ))}
+                </ul>
+              </li>
+            ))}
+          </ul>
+        </>
+      ) : null}
 
       <p style={{ margin: '16px 0 6px', fontWeight: 600, fontSize: '14px' }}>Where the two meet</p>
       {convergences.length === 0 ? (

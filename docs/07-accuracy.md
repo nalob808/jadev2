@@ -346,6 +346,53 @@ So the split, when this is built:
 Deliberately not started before the yogas: a practitioner opens a chart to read
 its yogas, not its rūpas, and the yoga core is unambiguous where this is not.
 
+## Transit scanning — how close the times are
+
+Ingresses, stations and crossings are found by stepping until something changes
+sign and then bisecting. The bisection converges to under a second, so the
+timing error in the table below is **not** the scanner's: it is the interactive
+provider's position error expressed as a time.
+
+That is why it scales with how slowly a body moves. A fixed error in degrees is
+a couple of minutes for the Moon and over an hour for Saturn near a station,
+where it is barely moving at all.
+
+Measured against Swiss Ephemeris over two five-year windows a century apart —
+2020–2025 and 1890–1895 — with an independent bisection on the reference side,
+so a mismatch is a bug in the scanner rather than in the positions:
+
+| Body    | Ingress worst | Station worst |
+| ------- | ------------- | ------------- |
+| Moon    | 0.15 min      | —             |
+| Sun     | 0.74 min      | —             |
+| Venus   | 4.23 min      | 4.09 min      |
+| Mercury | 9.46 min      | 11.19 min     |
+| Mars    | 13.84 min     | 10.79 min     |
+| Jupiter | 27.75 min     | 31.33 min     |
+| Saturn  | 22.95 min     | 64.78 min     |
+
+Crossings of a fixed degree: worst 12.37 minutes.
+
+**Every event count matched exactly** — 802 Moon ingresses, 73 Mercury
+ingresses, 32 Mercury stations, and so on, in both windows. A missed or invented
+event is a different and much worse failure than a slightly-off time, so the
+counts are the strong assertion in the tests and the times are the soft one.
+
+**Consequence for the product: a stored or printed transit date must come from
+the reference provider.** The interactive provider is for scrubbing a timeline,
+where an hour on a Saturn station is invisible. It is not for a report that
+tells a client which week to expect something.
+
+### The bug this found
+
+The first version of the scanner read the provider's longitudes directly. The
+provider returns **tropical** positions in the ecliptic of date; every sign
+boundary and every natal degree in Jade is **sidereal**. Scanning the raw output
+put every Saturn ingress nearly two years from where it belonged — and produced
+a completely plausible-looking list of dates while doing it. Nothing downstream
+would have caught it, because a list of transit dates has no internal
+consistency check to fail. Only a reference did.
+
 ## Regression discipline
 
 - The `astro` package version is stored on every computed chart. Bumping it invalidates the

@@ -3,12 +3,14 @@ import { notFound, redirect } from 'next/navigation';
 import { getRelationship, getSettingsProfile, getSubject } from '@jade/db';
 import {
   ashtakuta,
+  AstronomyEngineProvider,
   compareMangala,
   convergences,
   jdFromUnixMs,
   POINT_DISPLAY_ORDER,
   sharedTimeline,
   synastry,
+  transitContacts,
   vimshottari,
   type ComputedChart,
   type Graha,
@@ -117,6 +119,37 @@ export default async function RelationshipPage({ params }: { params: Promise<{ i
   });
   const meetings = convergences(segments, mangalaA, mangalaB, { a: nameA, b: nameB });
 
+  // The transit half: Jupiter and Saturn arriving on the points a pair is read
+  // by. Scanned over the next four years — far enough to plan around, near
+  // enough that the dates still mean something.
+  const longitudeMapOf = (chart: ComputedChart): Record<Graha, number> => {
+    const out: Record<string, number> = {};
+    for (const id of POINT_DISPLAY_ORDER) {
+      const p = chart.points[id];
+      if (p) out[id] = p.longitude;
+    }
+    return out as Record<Graha, number>;
+  };
+  const contacts = transitContacts(
+    new AstronomyEngineProvider({ nodeType: profile.nodeType }),
+    {
+      ayanamsa: profile.ayanamsa,
+      customAyanamsaAtJ2000: profile.customAyanamsaAtJ2000 ?? undefined,
+    },
+    { fromJd: nowJd, toJd: nowJd + 4 * 365.25 },
+    {
+      a: {
+        ascendantSign: chartA.chart.houses.ascendantSign,
+        longitudeOf: longitudeMapOf(chartA.chart),
+      },
+      b: {
+        ascendantSign: chartB.chart.houses.ascendantSign,
+        longitudeOf: longitudeMapOf(chartB.chart),
+      },
+    },
+    { a: nameA, b: nameB },
+  );
+
   return (
     <Shell email={session.email}>
       <Kicker>Relationship</Kicker>
@@ -173,13 +206,14 @@ export default async function RelationshipPage({ params }: { params: Promise<{ i
       <Panel className="mt-8">
         <p className="font-display text-2xl">Shared timeline</p>
         <p className="mb-4 mt-1 text-sm text-[var(--ink-muted)]">
-          Both Vimśottarī daśās on one axis, from five years back to twenty ahead. Every band below
-          names the rule that flagged it — nothing is highlighted for a reason the page will not
-          tell you.
+          Both Vimśottarī daśās on one axis, from five years back to twenty ahead, then the slow
+          transits arriving over the next four. Every entry below names the rule or the contact that
+          produced it — nothing is highlighted for a reason the page will not tell you.
         </p>
         <ConvergenceTimeline
           segments={segments}
           convergences={meetings}
+          contacts={contacts}
           labelA={nameA}
           labelB={nameB}
           formatJd={yearOf}

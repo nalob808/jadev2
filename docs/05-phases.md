@@ -189,10 +189,12 @@ band carries the rule that flagged it and the placements that produced it. There
 is no intensity, no score and no colour scale from good to bad — a highlighted
 band is a claim, and a claim has to be decomposable.
 
-**Deferred to Phase 5, where it belongs:** the _transit_ half of the timeline.
-Convergences today are daśā-to-daśā and chart-to-chart. Adding transiting Saturn
-and Jupiter over both charts needs the scanning machinery Phase 5 builds for
-watches, and a second, weaker version of it here would be waste.
+**The transit half landed with Phase 5's scanner**, as planned. Jupiter and
+Saturn are scanned over each person's natal Moon, natal Venus and the lord of
+their seventh, and every contact carries which pass of the retrograde loop it
+is — a slow graha crosses a degree up to three times and all three are real
+dates. Only the two slow grahas are watched: Mars is over a point in days and
+the Moon in hours, and a timeline that flags everything flags nothing.
 
 **Deliberately not shipped: a compatibility score.** Aṣṭakūṭa's total is
 displayed as a footnote to its eight components, never as a headline, and
@@ -217,9 +219,24 @@ private couple's page with its own share link.
 
 ---
 
-## Phase 5 — Predictive engine and alerts (2–3 weeks)
+## Phase 5 — Predictive engine and alerts (2–3 weeks) 🔵 IN PROGRESS
 
 **Goal:** Jade tells you things before you ask.
+
+**Shipped so far: the transit scanner.** Ingresses, stations and crossings, each
+returned as a bisected root rather than a sample. Verified against Swiss
+Ephemeris over two five-year windows a century apart, with an independent
+bisection on the reference side — every event count matched exactly, and the
+timing spread runs from 0.15 minutes for the Moon to 64.78 for Saturn near a
+station. That spread is the interactive provider's position error expressed as
+a time, not the scanner's precision, which is why **a stored or printed transit
+date must come from the reference provider**. See `docs/07-accuracy.md`.
+
+The retrograde triple pass works and is the reason the module exists.
+
+**Still to come in this phase:** watches as stored rules with nightly
+evaluation, the worker service, the daśā × transit heat timeline, event search,
+and email digests.
 
 **Done when:** the worker service runs scheduled scans; watches evaluate nightly; the daśā ×
 transit heat timeline renders across decades; event search compiles a query and returns ranked

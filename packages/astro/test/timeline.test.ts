@@ -208,3 +208,134 @@ describe('the seventh-lord rule', () => {
     expect(seventh[0]!.factors.join(' ')).toContain('Libra');
   });
 });
+
+describe('transit contacts', () => {
+  it('finds Jupiter and Saturn arriving on the points that matter to a pair', async () => {
+    const { transitContacts } = await import('../src/relations/transitContacts.js');
+    const { AstronomyEngineProvider } = await import('../src/ephemeris/astronomyEngine.js');
+    const provider = new AstronomyEngineProvider({ nodeType: 'mean' });
+
+    const chartFor = (c: GoldenCase) => {
+      const longitudeOf: Record<string, number> = {};
+      for (const [id, p] of Object.entries(c.points)) longitudeOf[id] = p.siderealLongitude;
+      return {
+        ascendantSign: Math.floor(c.ascendantSidereal / 30),
+        longitudeOf: longitudeOf as Record<Graha, number>,
+      };
+    };
+
+    const contacts = transitContacts(
+      provider,
+      { ayanamsa: 'lahiri' },
+      { fromJd: 2458849.5, toJd: 2460676.5 }, // 2020–2025
+      { a: chartFor(caseA), b: chartFor(caseB) },
+      { a: 'Alice', b: 'Bob' },
+    );
+
+    expect(contacts.length).toBeGreaterThan(0);
+    for (const c of contacts) {
+      expect(['Jupiter', 'Saturn']).toContain(c.transiting);
+      expect(['a', 'b']).toContain(c.subject);
+      expect(['moon', 'venus', 'seventhLord']).toContain(c.point);
+      expect(c.factors.length).toBeGreaterThan(0);
+      expect(c.pass).toBeGreaterThanOrEqual(1);
+      expect(c.pass).toBeLessThanOrEqual(3);
+      expect(c.jdUt).toBeGreaterThan(2458849.5);
+      expect(c.jdUt).toBeLessThan(2460676.5);
+    }
+  });
+
+  it('returns them in time order, and reports every pass of a loop', async () => {
+    const { transitContacts } = await import('../src/relations/transitContacts.js');
+    const { AstronomyEngineProvider } = await import('../src/ephemeris/astronomyEngine.js');
+    const provider = new AstronomyEngineProvider({ nodeType: 'mean' });
+    const chartFor = (c: GoldenCase) => {
+      const longitudeOf: Record<string, number> = {};
+      for (const [id, p] of Object.entries(c.points)) longitudeOf[id] = p.siderealLongitude;
+      return {
+        ascendantSign: Math.floor(c.ascendantSidereal / 30),
+        longitudeOf: longitudeOf as Record<Graha, number>,
+      };
+    };
+    const contacts = transitContacts(
+      provider,
+      { ayanamsa: 'lahiri' },
+      { fromJd: 2458849.5, toJd: 2462501.5 }, // ten years, so loops complete
+      { a: chartFor(caseA), b: chartFor(caseB) },
+    );
+
+    for (let i = 0; i < contacts.length - 1; i += 1) {
+      expect(contacts[i + 1]!.jdUt).toBeGreaterThanOrEqual(contacts[i]!.jdUt);
+    }
+
+    // Over ten years at least one slow graha must complete a triple pass over
+    // one of the six watched points, or the pass numbering is not working.
+    const multi = contacts.filter((c) => c.pass > 1);
+    expect(multi.length).toBeGreaterThan(0);
+    for (const c of multi) {
+      expect(c.factors.join(' ')).toContain('pass');
+    }
+  });
+
+  it('watches only the slow grahas — a timeline that flags everything flags nothing', async () => {
+    const { transitContacts } = await import('../src/relations/transitContacts.js');
+    const { AstronomyEngineProvider } = await import('../src/ephemeris/astronomyEngine.js');
+    const provider = new AstronomyEngineProvider({ nodeType: 'mean' });
+    const chartFor = (c: GoldenCase) => {
+      const longitudeOf: Record<string, number> = {};
+      for (const [id, p] of Object.entries(c.points)) longitudeOf[id] = p.siderealLongitude;
+      return {
+        ascendantSign: Math.floor(c.ascendantSidereal / 30),
+        longitudeOf: longitudeOf as Record<Graha, number>,
+      };
+    };
+    const contacts = transitContacts(
+      provider,
+      { ayanamsa: 'lahiri' },
+      { fromJd: 2458849.5, toJd: 2460676.5 },
+      { a: chartFor(caseA), b: chartFor(caseB) },
+    );
+    const bodies = new Set(contacts.map((c) => c.transiting));
+    expect([...bodies].sort()).toEqual(
+      bodies.size === 2 ? ['Jupiter', 'Saturn'] : [...bodies].sort(),
+    );
+    expect(bodies.has('Mars' as never)).toBe(false);
+  });
+});
+
+describe('transit contact wording', () => {
+  it('never prints "undefined" in a factor', async () => {
+    // The bug: a sign was looked up with a *longitude* divided by 30 and not
+    // floored, so SIGNS[7.4] came back undefined and the page said "Venus in
+    // undefined". A type checker cannot see it — the index is a number either
+    // way — and only reading the rendered page did.
+    const { transitContacts } = await import('../src/relations/transitContacts.js');
+    const { AstronomyEngineProvider } = await import('../src/ephemeris/astronomyEngine.js');
+    const provider = new AstronomyEngineProvider({ nodeType: 'mean' });
+    const chartFor = (c: GoldenCase) => {
+      const longitudeOf: Record<string, number> = {};
+      for (const [id, p] of Object.entries(c.points)) longitudeOf[id] = p.siderealLongitude;
+      return {
+        ascendantSign: Math.floor(c.ascendantSidereal / 30),
+        longitudeOf: longitudeOf as Record<Graha, number>,
+      };
+    };
+    const contacts = transitContacts(
+      provider,
+      { ayanamsa: 'lahiri' },
+      { fromJd: 2458849.5, toJd: 2462501.5 },
+      { a: chartFor(caseA), b: chartFor(caseB) },
+      { a: 'Alice', b: 'Bob' },
+    );
+    expect(contacts.length).toBeGreaterThan(0);
+    for (const c of contacts) {
+      const text = c.factors.join(' ');
+      expect(text).not.toContain('undefined');
+      expect(text).not.toContain('NaN');
+      expect(text).toMatch(/Alice|Bob/);
+      // Every factor is printed after a possessive, so no leading article:
+      // "Jade's seventh is Taurus", never "Jade's the seventh is Taurus".
+      expect(text).not.toMatch(/'s the /);
+    }
+  });
+});
