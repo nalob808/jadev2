@@ -173,7 +173,24 @@ Phase 1 aṣṭakavarga work), and notes anchored to chart elements.
 
 ---
 
-## Phase 4 — Relationships (2 weeks)
+## Phase 4 — Relationships (2 weeks) ✅ CALCULATION CORE AND PAGES SHIPPED
+
+**Shipped:** aṣṭakūṭa verified against every one of the 11,664 possible pairings
+(the technique reads only two nakṣatras and two pādas, so the whole input space
+is enumerable); maṅgala doṣa with its cancellations computed alongside it and
+returned together; synastry as house overlays both ways plus whole-sign dṛṣṭi
+between charts; the `relationships` table with RLS; and `/relationships`.
+
+**Still to come in this phase:** the synastry overlay _wheel_ — the numbers and
+the overlays are shipped, the two-ring SVG is not — and the shared daśā/transit
+timeline with auto-flagged convergences, which wants the transit work from
+Phase 3 first.
+
+**Deliberately not shipped: a compatibility score.** Aṣṭakūṭa's total is
+displayed as a footnote to its eight components, never as a headline, and
+nothing in `packages/astro/src/relations` returns a verdict. An e2e test asserts
+that no verdict language appears on the page, which is there to catch the
+well-meaning future addition of a "compatibility: 62%" badge.
 
 **Goal:** the module that makes the product personal and sells the most consultations.
 

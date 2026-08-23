@@ -19,7 +19,18 @@
         "Mercury": 6,
         "Jupiter": 2,
         "Venus": 6,
-        "Saturn": 1
+        "Saturn": 1,
+        "Rahu": 2,
+        "Ketu": 8
+      },
+      "degreesInSign": {
+        "Sun": 21.411497111,
+        "Moon": 10.150061648,
+        "Mars": 13.69172773,
+        "Mercury": 5.846925008,
+        "Jupiter": 21.772230114,
+        "Venus": 4.978337377,
+        "Saturn": 19.598628338
       },
       "bhinnashtakavarga": {
         "Sun": [
@@ -148,7 +159,26 @@
         27,
         30,
         31
-      ]
+      ],
+      "yogas": {
+        "ruchaka": false,
+        "bhadra": false,
+        "hamsa": false,
+        "malavya": false,
+        "sasa": false,
+        "gaja_kesari": false,
+        "budha_aditya": true,
+        "chandra_mangala": false,
+        "adhi": false,
+        "sunapha": false,
+        "anapha": true,
+        "durudhura": false,
+        "kemadruma": false,
+        "vesi": true,
+        "vasi": false,
+        "ubhayachari": false
+      },
+      "manglikFromLagna": false
     },
     "modern-mumbai": {
       "ascendantSignIndex": 4,
@@ -159,7 +189,18 @@
         "Mercury": 2,
         "Jupiter": 0,
         "Venus": 1,
-        "Saturn": 7
+        "Saturn": 7,
+        "Rahu": 11,
+        "Ketu": 5
+      },
+      "degreesInSign": {
+        "Sun": 5.622196162,
+        "Moon": 8.708652623,
+        "Mars": 26.391947824,
+        "Mercury": 23.129466687,
+        "Jupiter": 0.754616543,
+        "Venus": 18.460176066,
+        "Saturn": 23.312821653
       },
       "bhinnashtakavarga": {
         "Sun": [
@@ -288,7 +329,26 @@
         32,
         33,
         32
-      ]
+      ],
+      "yogas": {
+        "ruchaka": false,
+        "bhadra": false,
+        "hamsa": false,
+        "malavya": true,
+        "sasa": false,
+        "gaja_kesari": true,
+        "budha_aditya": true,
+        "chandra_mangala": false,
+        "adhi": false,
+        "sunapha": true,
+        "anapha": true,
+        "durudhura": true,
+        "kemadruma": false,
+        "vesi": false,
+        "vasi": true,
+        "ubhayachari": false
+      },
+      "manglikFromLagna": false
     },
     "modern-honolulu": {
       "ascendantSignIndex": 1,
@@ -299,7 +359,18 @@
         "Mercury": 10,
         "Jupiter": 7,
         "Venus": 9,
-        "Saturn": 10
+        "Saturn": 10,
+        "Rahu": 6,
+        "Ketu": 0
+      },
+      "degreesInSign": {
+        "Sun": 29.990058642,
+        "Moon": 1.951429366,
+        "Mars": 19.985339631,
+        "Mercury": 6.127712749,
+        "Jupiter": 21.105440227,
+        "Venus": 20.272379967,
+        "Saturn": 22.294584147
       },
       "bhinnashtakavarga": {
         "Sun": [
@@ -428,7 +499,26 @@
         20,
         26,
         24
-      ]
+      ],
+      "yogas": {
+        "ruchaka": false,
+        "bhadra": false,
+        "hamsa": false,
+        "malavya": false,
+        "sasa": true,
+        "gaja_kesari": true,
+        "budha_aditya": true,
+        "chandra_mangala": false,
+        "adhi": false,
+        "sunapha": false,
+        "anapha": true,
+        "durudhura": false,
+        "kemadruma": false,
+        "vesi": false,
+        "vasi": true,
+        "ubhayachari": false
+      },
+      "manglikFromLagna": false
     },
     "southern-hemisphere": {
       "ascendantSignIndex": 2,
@@ -439,7 +529,18 @@
         "Mercury": 7,
         "Jupiter": 3,
         "Venus": 6,
-        "Saturn": 4
+        "Saturn": 4,
+        "Rahu": 4,
+        "Ketu": 10
+      },
+      "degreesInSign": {
+        "Sun": 16.349476276,
+        "Moon": 15.219809392,
+        "Mars": 28.714687009,
+        "Mercury": 24.304067875,
+        "Jupiter": 15.425552132,
+        "Venus": 14.077501943,
+        "Saturn": 19.915704688
       },
       "bhinnashtakavarga": {
         "Sun": [
@@ -568,7 +669,26 @@
         24,
         28,
         28
-      ]
+      ],
+      "yogas": {
+        "ruchaka": false,
+        "bhadra": false,
+        "hamsa": false,
+        "malavya": false,
+        "sasa": false,
+        "gaja_kesari": false,
+        "budha_aditya": true,
+        "chandra_mangala": false,
+        "adhi": false,
+        "sunapha": false,
+        "anapha": false,
+        "durudhura": false,
+        "kemadruma": false,
+        "vesi": false,
+        "vasi": true,
+        "ubhayachari": false
+      },
+      "manglikFromLagna": false
     },
     "equatorial": {
       "ascendantSignIndex": 8,
@@ -579,7 +699,18 @@
         "Mercury": 4,
         "Jupiter": 4,
         "Venus": 4,
-        "Saturn": 2
+        "Saturn": 2,
+        "Rahu": 0,
+        "Ketu": 6
+      },
+      "degreesInSign": {
+        "Sun": 22.254150391,
+        "Moon": 4.937774162,
+        "Mars": 8.267786247,
+        "Mercury": 25.869670351,
+        "Jupiter": 8.881409968,
+        "Venus": 28.127775758,
+        "Saturn": 17.40194288
       },
       "bhinnashtakavarga": {
         "Sun": [
@@ -708,7 +839,26 @@
         27,
         24,
         31
-      ]
+      ],
+      "yogas": {
+        "ruchaka": false,
+        "bhadra": false,
+        "hamsa": false,
+        "malavya": false,
+        "sasa": false,
+        "gaja_kesari": false,
+        "budha_aditya": true,
+        "chandra_mangala": true,
+        "adhi": true,
+        "sunapha": false,
+        "anapha": false,
+        "durudhura": false,
+        "kemadruma": false,
+        "vesi": false,
+        "vasi": false,
+        "ubhayachari": false
+      },
+      "manglikFromLagna": false
     },
     "high-latitude-reykjavik": {
       "ascendantSignIndex": 5,
@@ -719,7 +869,18 @@
         "Mercury": 8,
         "Jupiter": 1,
         "Venus": 9,
-        "Saturn": 10
+        "Saturn": 10,
+        "Rahu": 1,
+        "Ketu": 7
+      },
+      "degreesInSign": {
+        "Sun": 1.112110981,
+        "Moon": 16.729140278,
+        "Mars": 24.621354716,
+        "Mercury": 17.557494023,
+        "Jupiter": 29.459015212,
+        "Venus": 18.608510675,
+        "Saturn": 20.264906405
       },
       "bhinnashtakavarga": {
         "Sun": [
@@ -848,7 +1009,26 @@
         17,
         31,
         26
-      ]
+      ],
+      "yogas": {
+        "ruchaka": false,
+        "bhadra": false,
+        "hamsa": false,
+        "malavya": false,
+        "sasa": false,
+        "gaja_kesari": false,
+        "budha_aditya": false,
+        "chandra_mangala": false,
+        "adhi": false,
+        "sunapha": true,
+        "anapha": false,
+        "durudhura": false,
+        "kemadruma": false,
+        "vesi": true,
+        "vasi": true,
+        "ubhayachari": true
+      },
+      "manglikFromLagna": false
     },
     "pre-1900-london": {
       "ascendantSignIndex": 3,
@@ -859,7 +1039,18 @@
         "Mercury": 10,
         "Jupiter": 0,
         "Venus": 0,
-        "Saturn": 0
+        "Saturn": 0,
+        "Rahu": 7,
+        "Ketu": 1
+      },
+      "degreesInSign": {
+        "Sun": 21.709300328,
+        "Moon": 17.369630839,
+        "Mars": 7.854223901,
+        "Mercury": 24.537232862,
+        "Jupiter": 5.805136459,
+        "Venus": 27.74388615,
+        "Saturn": 7.499431485
       },
       "bhinnashtakavarga": {
         "Sun": [
@@ -988,7 +1179,26 @@
         27,
         33,
         25
-      ]
+      ],
+      "yogas": {
+        "ruchaka": false,
+        "bhadra": false,
+        "hamsa": false,
+        "malavya": false,
+        "sasa": false,
+        "gaja_kesari": false,
+        "budha_aditya": false,
+        "chandra_mangala": false,
+        "adhi": false,
+        "sunapha": false,
+        "anapha": true,
+        "durudhura": false,
+        "kemadruma": false,
+        "vesi": true,
+        "vasi": true,
+        "ubhayachari": true
+      },
+      "manglikFromLagna": true
     },
     "nineteenth-century-us": {
       "ascendantSignIndex": 2,
@@ -999,7 +1209,18 @@
         "Mercury": 3,
         "Jupiter": 2,
         "Venus": 4,
-        "Saturn": 10
+        "Saturn": 10,
+        "Rahu": 5,
+        "Ketu": 11
+      },
+      "degreesInSign": {
+        "Sun": 4.285520472,
+        "Moon": 21.613444587,
+        "Mars": 28.977170231,
+        "Mercury": 28.872339771,
+        "Jupiter": 13.4536769,
+        "Venus": 19.806402868,
+        "Saturn": 20.680378353
       },
       "bhinnashtakavarga": {
         "Sun": [
@@ -1128,7 +1349,26 @@
         25,
         23,
         29
-      ]
+      ],
+      "yogas": {
+        "ruchaka": false,
+        "bhadra": false,
+        "hamsa": false,
+        "malavya": false,
+        "sasa": false,
+        "gaja_kesari": false,
+        "budha_aditya": true,
+        "chandra_mangala": false,
+        "adhi": false,
+        "sunapha": false,
+        "anapha": true,
+        "durudhura": false,
+        "kemadruma": false,
+        "vesi": true,
+        "vasi": true,
+        "ubhayachari": true
+      },
+      "manglikFromLagna": false
     },
     "leap-day": {
       "ascendantSignIndex": 2,
@@ -1139,7 +1379,18 @@
         "Mercury": 10,
         "Jupiter": 0,
         "Venus": 9,
-        "Saturn": 0
+        "Saturn": 0,
+        "Rahu": 3,
+        "Ketu": 9
+      },
+      "degreesInSign": {
+        "Sun": 16.350315264,
+        "Moon": 11.680618643,
+        "Mars": 19.366057943,
+        "Mercury": 18.650986567,
+        "Jupiter": 8.721538722,
+        "Venus": 20.101052045,
+        "Saturn": 18.510267227
       },
       "bhinnashtakavarga": {
         "Sun": [
@@ -1268,7 +1519,26 @@
         27,
         31,
         23
-      ]
+      ],
+      "yogas": {
+        "ruchaka": false,
+        "bhadra": false,
+        "hamsa": false,
+        "malavya": false,
+        "sasa": false,
+        "gaja_kesari": false,
+        "budha_aditya": true,
+        "chandra_mangala": false,
+        "adhi": false,
+        "sunapha": true,
+        "anapha": false,
+        "durudhura": false,
+        "kemadruma": false,
+        "vesi": true,
+        "vasi": true,
+        "ubhayachari": true
+      },
+      "manglikFromLagna": false
     },
     "exact-midnight-ut": {
       "ascendantSignIndex": 7,
@@ -1279,7 +1549,18 @@
         "Mercury": 8,
         "Jupiter": 10,
         "Venus": 8,
-        "Saturn": 5
+        "Saturn": 5,
+        "Rahu": 8,
+        "Ketu": 2
+      },
+      "degreesInSign": {
+        "Sun": 16.449812606,
+        "Moon": 19.242783733,
+        "Mars": 24.816212372,
+        "Mercury": 24.994524216,
+        "Jupiter": 2.357450516,
+        "Venus": 13.848618945,
+        "Saturn": 10.505189292
       },
       "bhinnashtakavarga": {
         "Sun": [
@@ -1408,7 +1689,26 @@
         25,
         28,
         21
-      ]
+      ],
+      "yogas": {
+        "ruchaka": false,
+        "bhadra": false,
+        "hamsa": false,
+        "malavya": false,
+        "sasa": false,
+        "gaja_kesari": false,
+        "budha_aditya": true,
+        "chandra_mangala": false,
+        "adhi": false,
+        "sunapha": true,
+        "anapha": false,
+        "durudhura": false,
+        "kemadruma": false,
+        "vesi": false,
+        "vasi": true,
+        "ubhayachari": false
+      },
+      "manglikFromLagna": false
     },
     "exact-noon-ut": {
       "ascendantSignIndex": 2,
@@ -1419,7 +1719,18 @@
         "Mercury": 8,
         "Jupiter": 10,
         "Venus": 8,
-        "Saturn": 5
+        "Saturn": 5,
+        "Rahu": 8,
+        "Ketu": 2
+      },
+      "degreesInSign": {
+        "Sun": 16.95918863,
+        "Moon": 26.772151345,
+        "Mars": 24.737286168,
+        "Mercury": 24.467524241,
+        "Jupiter": 2.458727623,
+        "Venus": 14.477709489,
+        "Saturn": 10.51641819
       },
       "bhinnashtakavarga": {
         "Sun": [
@@ -1548,7 +1859,26 @@
         22,
         25,
         25
-      ]
+      ],
+      "yogas": {
+        "ruchaka": false,
+        "bhadra": false,
+        "hamsa": false,
+        "malavya": false,
+        "sasa": false,
+        "gaja_kesari": false,
+        "budha_aditya": true,
+        "chandra_mangala": false,
+        "adhi": false,
+        "sunapha": true,
+        "anapha": false,
+        "durudhura": false,
+        "kemadruma": false,
+        "vesi": false,
+        "vasi": false,
+        "ubhayachari": false
+      },
+      "manglikFromLagna": true
     },
     "total-solar-eclipse-day": {
       "ascendantSignIndex": 6,
@@ -1559,7 +1889,18 @@
         "Mercury": 4,
         "Jupiter": 5,
         "Venus": 3,
-        "Saturn": 7
+        "Saturn": 7,
+        "Rahu": 4,
+        "Ketu": 10
+      },
+      "degreesInSign": {
+        "Sun": 4.761059772,
+        "Moon": 4.486802049,
+        "Mars": 26.574188839,
+        "Mercury": 14.10564973,
+        "Jupiter": 26.080308826,
+        "Venus": 0.624148309,
+        "Saturn": 27.092753557
       },
       "bhinnashtakavarga": {
         "Sun": [
@@ -1688,7 +2029,26 @@
         32,
         24,
         28
-      ]
+      ],
+      "yogas": {
+        "ruchaka": false,
+        "bhadra": false,
+        "hamsa": false,
+        "malavya": false,
+        "sasa": false,
+        "gaja_kesari": false,
+        "budha_aditya": true,
+        "chandra_mangala": false,
+        "adhi": false,
+        "sunapha": true,
+        "anapha": true,
+        "durudhura": true,
+        "kemadruma": false,
+        "vesi": true,
+        "vasi": true,
+        "ubhayachari": true
+      },
+      "manglikFromLagna": false
     },
     "mercury-retrograde": {
       "ascendantSignIndex": 10,
@@ -1699,7 +2059,18 @@
         "Mercury": 10,
         "Jupiter": 2,
         "Venus": 11,
-        "Saturn": 11
+        "Saturn": 11,
+        "Rahu": 10,
+        "Ketu": 4
+      },
+      "degreesInSign": {
+        "Sun": 0.600172113,
+        "Moon": 15.624029409,
+        "Mars": 15.874881578,
+        "Mercury": 15.769679983,
+        "Jupiter": 20.892058496,
+        "Venus": 16.917417774,
+        "Saturn": 9.256029359
       },
       "bhinnashtakavarga": {
         "Sun": [
@@ -1828,7 +2199,26 @@
         31,
         23,
         26
-      ]
+      ],
+      "yogas": {
+        "ruchaka": false,
+        "bhadra": false,
+        "hamsa": false,
+        "malavya": false,
+        "sasa": false,
+        "gaja_kesari": false,
+        "budha_aditya": false,
+        "chandra_mangala": false,
+        "adhi": false,
+        "sunapha": true,
+        "anapha": false,
+        "durudhura": false,
+        "kemadruma": false,
+        "vesi": false,
+        "vasi": true,
+        "ubhayachari": false
+      },
+      "manglikFromLagna": true
     },
     "mars-retrograde": {
       "ascendantSignIndex": 0,
@@ -1839,7 +2229,18 @@
         "Mercury": 8,
         "Jupiter": 1,
         "Venus": 10,
-        "Saturn": 10
+        "Saturn": 10,
+        "Rahu": 11,
+        "Ketu": 5
+      },
+      "degreesInSign": {
+        "Sun": 26.120201053,
+        "Moon": 9.847299418,
+        "Mars": 4.302977953,
+        "Mercury": 8.511036095,
+        "Jupiter": 18.1257212,
+        "Venus": 13.285401718,
+        "Saturn": 21.079017358
       },
       "bhinnashtakavarga": {
         "Sun": [
@@ -1968,7 +2369,26 @@
         23,
         31,
         28
-      ]
+      ],
+      "yogas": {
+        "ruchaka": false,
+        "bhadra": false,
+        "hamsa": false,
+        "malavya": false,
+        "sasa": false,
+        "gaja_kesari": false,
+        "budha_aditya": true,
+        "chandra_mangala": false,
+        "adhi": false,
+        "sunapha": false,
+        "anapha": false,
+        "durudhura": false,
+        "kemadruma": false,
+        "vesi": false,
+        "vasi": false,
+        "ubhayachari": false
+      },
+      "manglikFromLagna": true
     },
     "saturn-station": {
       "ascendantSignIndex": 11,
@@ -1979,7 +2399,18 @@
         "Mercury": 3,
         "Jupiter": 1,
         "Venus": 2,
-        "Saturn": 10
+        "Saturn": 10,
+        "Rahu": 11,
+        "Ketu": 5
+      },
+      "degreesInSign": {
+        "Sun": 14.31076052,
+        "Moon": 25.862466736,
+        "Mars": 20.892501896,
+        "Mercury": 0.924691792,
+        "Jupiter": 13.755949697,
+        "Venus": 21.192020871,
+        "Saturn": 25.229666544
       },
       "bhinnashtakavarga": {
         "Sun": [
@@ -2108,7 +2539,26 @@
         32,
         25,
         31
-      ]
+      ],
+      "yogas": {
+        "ruchaka": false,
+        "bhadra": false,
+        "hamsa": false,
+        "malavya": false,
+        "sasa": false,
+        "gaja_kesari": false,
+        "budha_aditya": false,
+        "chandra_mangala": false,
+        "adhi": false,
+        "sunapha": true,
+        "anapha": true,
+        "durudhura": true,
+        "kemadruma": false,
+        "vesi": true,
+        "vasi": true,
+        "ubhayachari": true
+      },
+      "manglikFromLagna": true
     },
     "future-2099": {
       "ascendantSignIndex": 2,
@@ -2119,7 +2569,18 @@
         "Mercury": 6,
         "Jupiter": 5,
         "Venus": 7,
-        "Saturn": 5
+        "Saturn": 5,
+        "Rahu": 11,
+        "Ketu": 5
+      },
+      "degreesInSign": {
+        "Sun": 24.109747101,
+        "Moon": 9.958272264,
+        "Mars": 24.425579806,
+        "Mercury": 5.296122364,
+        "Jupiter": 18.050535762,
+        "Venus": 23.058079669,
+        "Saturn": 25.863200315
       },
       "bhinnashtakavarga": {
         "Sun": [
@@ -2248,7 +2709,26 @@
         26,
         24,
         33
-      ]
+      ],
+      "yogas": {
+        "ruchaka": false,
+        "bhadra": false,
+        "hamsa": false,
+        "malavya": false,
+        "sasa": false,
+        "gaja_kesari": false,
+        "budha_aditya": true,
+        "chandra_mangala": false,
+        "adhi": false,
+        "sunapha": true,
+        "anapha": true,
+        "durudhura": true,
+        "kemadruma": false,
+        "vesi": true,
+        "vasi": true,
+        "ubhayachari": true
+      },
+      "manglikFromLagna": false
     },
     "today-honolulu": {
       "ascendantSignIndex": 5,
@@ -2259,7 +2739,18 @@
         "Mercury": 4,
         "Jupiter": 3,
         "Venus": 5,
-        "Saturn": 11
+        "Saturn": 11,
+        "Rahu": 10,
+        "Ketu": 4
+      },
+      "degreesInSign": {
+        "Sun": 5.51467191,
+        "Moon": 5.280598894,
+        "Mars": 13.288022028,
+        "Mercury": 0.500635193,
+        "Jupiter": 17.516585154,
+        "Venus": 21.14315833,
+        "Saturn": 19.909373595
       },
       "bhinnashtakavarga": {
         "Sun": [
@@ -2388,7 +2879,26 @@
         30,
         28,
         23
-      ]
+      ],
+      "yogas": {
+        "ruchaka": false,
+        "bhadra": false,
+        "hamsa": false,
+        "malavya": false,
+        "sasa": false,
+        "gaja_kesari": false,
+        "budha_aditya": true,
+        "chandra_mangala": false,
+        "adhi": false,
+        "sunapha": false,
+        "anapha": false,
+        "durudhura": false,
+        "kemadruma": false,
+        "vesi": true,
+        "vasi": true,
+        "ubhayachari": true
+      },
+      "manglikFromLagna": false
     }
   }
 }

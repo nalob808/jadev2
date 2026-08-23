@@ -118,7 +118,9 @@ jobs:
       # changes a number fails CI instead of silently rewriting the reference.
       - run: pip install PyJHora pytz geocoder timezonefinder geopy
       - name: Check the oracle fixtures are current
-        run: python3 scripts/oracle_jhora.py --check
+        run: |
+          python3 scripts/oracle_jhora.py --check
+          python3 scripts/oracle_ashtakuta.py --check
 
       - name: Run accuracy suite
         run: pnpm --filter @jade/astro test

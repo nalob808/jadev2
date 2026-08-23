@@ -50,6 +50,33 @@ OUT = REPO / "packages/astro/test/fixtures/jhora-oracle.json"
 # take no part in ashtakavarga.
 JHORA_ORDER = ["Sun", "Moon", "Mars", "Mercury", "Jupiter", "Venus", "Saturn"]
 
+# The nodes sit at jhora indices 7 and 8. They take no part in ashtakavarga,
+# but they do count as grahas for jhora's lunar and solar yogas, so the yoga
+# comparison needs their signs.
+NODE_INDEX = {"Rahu": 7, "Ketu": 8}
+
+# Jade's yoga ids -> the oracle's detector name. Only the yogas Jade implements
+# are pulled; the oracle carries roughly 260, and most of those are cited
+# without their cancellation rules.
+YOGA_DETECTORS = {
+    "ruchaka": "ruchaka_yoga_from_planet_positions",
+    "bhadra": "bhadra_yoga_from_planet_positions",
+    "hamsa": "hamsa_yoga_from_planet_positions",
+    "malavya": "maalavya_yoga_from_planet_positions",
+    "sasa": "sasa_yoga_from_planet_positions",
+    "gaja_kesari": "gaja_kesari_yoga_from_planet_positions",
+    "budha_aditya": "budha_aaditya_yoga_from_planet_positions",
+    "chandra_mangala": "chandra_mangala_yoga_from_planet_positions",
+    "adhi": "adhi_yoga_from_planet_positions",
+    "sunapha": "sunaphaa_yoga_from_planet_positions",
+    "anapha": "anaphaa_yoga_from_planet_positions",
+    "durudhura": "duradhara_yoga_from_planet_positions",
+    "kemadruma": "kemadruma_yoga_from_planet_positions",
+    "vesi": "vesi_yoga_from_planet_positions",
+    "vasi": "vosi_yoga_from_planet_positions",
+    "ubhayachari": "ubhayachara_yoga_from_planet_positions",
+}
+
 
 def configure():
     """
@@ -75,6 +102,8 @@ def build() -> dict:
     from jhora import utils
     from jhora.horoscope.chart import ashtakavarga as av
     from jhora.horoscope.chart import charts
+    from jhora.horoscope.chart import dosha as dosha_mod
+    from jhora.horoscope.chart import yoga as yoga_mod
 
     golden = json.loads(GOLDEN.read_text())
     cases = {}
@@ -102,13 +131,47 @@ def build() -> dict:
         bhinna = {name: bhinna_rows[i] for i, name in enumerate(JHORA_ORDER)}
         bhinna["Ascendant"] = bhinna_rows[7]
 
+        yogas = {}
+        for key, fn in YOGA_DETECTORS.items():
+            try:
+                yogas[key] = bool(getattr(yoga_mod, fn)(positions))
+            except Exception:  # noqa: BLE001
+                # A detector that raises is recorded as null rather than false.
+                # "The oracle could not answer" and "the yoga is absent" are
+                # different facts, and collapsing them hides a broken check.
+                yogas[key] = None
+
+        by_key = {key: value for key, value in positions}
+
+        # Maṅgala doṣa, geometry only: the 1st house included (PyJHora omits it
+        # by default, which is not the classical reading) and its own exception
+        # handling switched off, so this compares the house test and nothing else.
+        manglik = bool(
+            dosha_mod.manglik(
+                positions,
+                manglik_reference_planet="L",
+                include_lagna_house=True,
+                include_2nd_house=True,
+                apply_exceptions=False,
+            )[0]
+        )
+
         cases[label] = {
             "ascendantSignIndex": positions[0][1][0],
             "signIndexes": {
-                name: positions[i + 1][1][0] for i, name in enumerate(JHORA_ORDER)
+                **{name: positions[i + 1][1][0] for i, name in enumerate(JHORA_ORDER)},
+                **{name: by_key[i][0] for name, i in NODE_INDEX.items() if i in by_key},
+            },
+            # Degrees within the sign. Needed for mulatrikona and debilitation,
+            # which are degree-bounded and not sign-bounded.
+            "degreesInSign": {
+                name: round(positions[i + 1][1][1], 9)
+                for i, name in enumerate(JHORA_ORDER)
             },
             "bhinnashtakavarga": bhinna,
             "sarvashtakavarga": sarva,
+            "yogas": yogas,
+            "manglikFromLagna": manglik,
         }
 
     return {

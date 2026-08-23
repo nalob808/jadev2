@@ -1,4 +1,4 @@
-import { and, desc, eq, isNull, sql } from 'drizzle-orm';
+import { aliasedTable, and, desc, eq, isNull, sql } from 'drizzle-orm';
 import type { Database } from './client.js';
 import { withWorkspace } from './tenancy.js';
 import {
@@ -8,11 +8,19 @@ import {
   places,
   settingsProfiles,
   subjects,
+  relationships,
   users,
   workspaces,
   type NewBirthEvent,
   type NewSubject,
+  type Relationship,
+  type Subject,
 } from './schema.js';
+
+// A relationship joins the subjects table twice. Aliasing once here keeps the
+// two joins apart and gives the result rows stable, readable keys.
+const subjectA = aliasedTable(subjects, 'subject_a');
+const subjectB = aliasedTable(subjects, 'subject_b');
 
 /**
  * Every query in here is workspace-scoped in the application layer AND runs
@@ -361,5 +369,95 @@ export async function getSettingsProfile(
       .where(eq(settingsProfiles.id, profileId))
       .limit(1);
     return rows[0] ?? null;
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Relationships
+
+/**
+ * The canonical order for a pair.
+ *
+ * A relationship has no direction — "Nalu and Jade" is the same fact as "Jade
+ * and Nalu" — so the pair is always stored with the lower uuid first. Without
+ * this the same couple can be recorded twice, the two rows drift, and the one
+ * nobody is looking at is the stale one. The database enforces it with a check
+ * constraint; this is the same rule on the way in.
+ */
+export function orderPair(a: string, b: string): { subjectAId: string; subjectBId: string } {
+  return a < b ? { subjectAId: a, subjectBId: b } : { subjectAId: b, subjectBId: a };
+}
+
+export async function listRelationships(
+  db: Database,
+  input: { workspaceId: string },
+): Promise<(Relationship & { a: Subject; b: Subject })[]> {
+  return withWorkspace(db, input.workspaceId, async (tx) => {
+    // Selected explicitly rather than with a bare select(): a two-way self
+    // join returns keys named after the base table, not the aliases, and the
+    // two subjects come back indistinguishable.
+    const rows = await tx
+      .select({ relationship: relationships, a: subjectA, b: subjectB })
+      .from(relationships)
+      .innerJoin(subjectA, eq(relationships.subjectAId, subjectA.id))
+      .innerJoin(subjectB, eq(relationships.subjectBId, subjectB.id))
+      .where(eq(relationships.workspaceId, input.workspaceId))
+      .orderBy(desc(relationships.updatedAt));
+    return rows.map((row) => ({ ...row.relationship, a: row.a, b: row.b }));
+  });
+}
+
+export async function getRelationship(
+  db: Database,
+  input: { workspaceId: string; id: string },
+): Promise<(Relationship & { a: Subject; b: Subject }) | null> {
+  const all = await listRelationships(db, input);
+  return all.find((r) => r.id === input.id) ?? null;
+}
+
+export async function createRelationship(
+  db: Database,
+  input: {
+    workspaceId: string;
+    subjectAId: string;
+    subjectBId: string;
+    kind?: Relationship['kind'];
+    label?: string | null;
+    createdBy?: string | null;
+  },
+): Promise<Relationship> {
+  if (input.subjectAId === input.subjectBId) {
+    throw new Error('A subject cannot be in a relationship with themselves.');
+  }
+  const pair = orderPair(input.subjectAId, input.subjectBId);
+  return withWorkspace(db, input.workspaceId, async (tx) => {
+    const [row] = await tx
+      .insert(relationships)
+      .values({
+        workspaceId: input.workspaceId,
+        ...pair,
+        kind: input.kind ?? 'partner',
+        label: input.label ?? null,
+        createdBy: input.createdBy ?? null,
+      })
+      // Adding the same couple twice is a double-click, not an error worth
+      // showing anyone. Return the row that already exists.
+      .onConflictDoUpdate({
+        target: [relationships.workspaceId, relationships.subjectAId, relationships.subjectBId],
+        set: { updatedAt: new Date() },
+      })
+      .returning();
+    return row!;
+  });
+}
+
+export async function deleteRelationship(
+  db: Database,
+  input: { workspaceId: string; id: string },
+): Promise<void> {
+  await withWorkspace(db, input.workspaceId, async (tx) => {
+    await tx
+      .delete(relationships)
+      .where(and(eq(relationships.workspaceId, input.workspaceId), eq(relationships.id, input.id)));
   });
 }

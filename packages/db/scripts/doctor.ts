@@ -88,7 +88,14 @@ try {
   }
 
   // --- 2. RLS enabled AND forced on every workspace-scoped table -----------
-  const expected = ['subjects', 'birth_events', 'charts', 'settings_profiles', 'memberships'];
+  const expected = [
+    'subjects',
+    'birth_events',
+    'charts',
+    'settings_profiles',
+    'memberships',
+    'relationships',
+  ];
   const tables = await sql<{ relname: string; enabled: boolean; forced: boolean }[]>`
     select relname, relrowsecurity as enabled, relforcerowsecurity as forced
     from pg_class where relname = any(${expected}) and relkind = 'r'`;

@@ -5,11 +5,15 @@ import { withWorkspace } from '../src/tenancy.js';
 import { subjects } from '../src/schema.js';
 import {
   bootstrapUser,
+  createRelationship,
   createSubjectWithBirthEvent,
+  deleteRelationship,
   exportSubject,
   getSubject,
   hardDeleteSubject,
+  listRelationships,
   listSubjects,
+  orderPair,
   searchPlaces,
   softDeleteSubject,
 } from '../src/queries.js';
@@ -224,5 +228,74 @@ describeWithDb('place search', () => {
 
   it('says nothing rather than guessing on a one-letter query', async () => {
     expect(await searchPlaces(database, 'a')).toEqual([]);
+  });
+});
+
+describe('relationship pair ordering', () => {
+  // Pure, so it runs without a database.
+  it('is the same pair whichever way round it is given', () => {
+    expect(orderPair('b', 'a')).toEqual(orderPair('a', 'b'));
+    expect(orderPair('a', 'b')).toEqual({ subjectAId: 'a', subjectBId: 'b' });
+  });
+});
+
+describeWithDb('relationships', () => {
+  it('records a couple once, whichever way round they are added', async () => {
+    const jade = await createSubjectWithBirthEvent(database, alice.workspaceId, {
+      subject: { displayName: 'Jade Two', createdBy: alice.userId },
+      birthEvent: birthEventFixture,
+    });
+    const nalu = await createSubjectWithBirthEvent(database, alice.workspaceId, {
+      subject: { displayName: 'Nalu', createdBy: alice.userId },
+      birthEvent: birthEventFixture,
+    });
+
+    const first = await createRelationship(database, {
+      workspaceId: alice.workspaceId,
+      subjectAId: jade.subject.id,
+      subjectBId: nalu.subject.id,
+      createdBy: alice.userId,
+    });
+    // The same couple, entered the other way round. This must not make a
+    // second row — two rows for one couple drift, and the stale one is the
+    // one nobody is looking at.
+    const second = await createRelationship(database, {
+      workspaceId: alice.workspaceId,
+      subjectAId: nalu.subject.id,
+      subjectBId: jade.subject.id,
+      createdBy: alice.userId,
+    });
+    expect(second.id).toBe(first.id);
+
+    const listed = await listRelationships(database, { workspaceId: alice.workspaceId });
+    expect(listed).toHaveLength(1);
+    expect([listed[0]!.a.displayName, listed[0]!.b.displayName].sort()).toEqual([
+      'Jade Two',
+      'Nalu',
+    ]);
+  });
+
+  it('refuses to relate a subject to themselves', async () => {
+    const [first] = await listSubjects(database, alice.workspaceId);
+    await expect(
+      createRelationship(database, {
+        workspaceId: alice.workspaceId,
+        subjectAId: first!.subject.id,
+        subjectBId: first!.subject.id,
+      }),
+    ).rejects.toThrow(/themselves/);
+  });
+
+  it('does not leak across workspaces', async () => {
+    const mine = await listRelationships(database, { workspaceId: alice.workspaceId });
+    const theirs = await listRelationships(database, { workspaceId: bob.workspaceId });
+    expect(mine.length).toBeGreaterThan(0);
+    expect(theirs).toHaveLength(0);
+  });
+
+  it('deletes cleanly', async () => {
+    const [only] = await listRelationships(database, { workspaceId: alice.workspaceId });
+    await deleteRelationship(database, { workspaceId: alice.workspaceId, id: only!.id });
+    expect(await listRelationships(database, { workspaceId: alice.workspaceId })).toHaveLength(0);
   });
 });

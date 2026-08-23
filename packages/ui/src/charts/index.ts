@@ -5,3 +5,5 @@ export { SouthIndianChart } from './SouthIndianChart.js';
 export { VargaGrid } from './VargaGrid.js';
 export { DashaColumn } from './DashaColumn.js';
 export { PanchangaCard } from './PanchangaCard.js';
+export { KutaTable, MangalaCard } from './KutaTable.js';
+export { OverlayGrid } from './OverlayGrid.js';

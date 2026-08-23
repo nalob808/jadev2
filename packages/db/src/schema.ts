@@ -298,6 +298,52 @@ export const charts = pgTable(
   }),
 );
 
+/**
+ * A relationship between two subjects in the same workspace.
+ *
+ * Stored as a pair with a canonical order — `subjectAId < subjectBId` by uuid —
+ * so a couple can only be recorded once regardless of who was added first.
+ * The unique index enforces it; the check constraint keeps the ordering honest
+ * and stops a subject being related to itself.
+ */
+export const relationshipKind = pgEnum('relationship_kind', [
+  'partner',
+  'family',
+  'friend',
+  'professional',
+  'other',
+]);
+
+export const relationships = pgTable(
+  'relationships',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    workspaceId: uuid('workspace_id')
+      .notNull()
+      .references(() => workspaces.id, { onDelete: 'cascade' }),
+    subjectAId: uuid('subject_a_id')
+      .notNull()
+      .references(() => subjects.id, { onDelete: 'cascade' }),
+    subjectBId: uuid('subject_b_id')
+      .notNull()
+      .references(() => subjects.id, { onDelete: 'cascade' }),
+    kind: relationshipKind('kind').notNull().default('partner'),
+    label: text('label'),
+    notes: text('notes'),
+    createdBy: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({
+    workspaceIdx: index('relationships_workspace_idx').on(table.workspaceId),
+    pairIdx: uniqueIndex('relationships_pair_idx').on(
+      table.workspaceId,
+      table.subjectAId,
+      table.subjectBId,
+    ),
+  }),
+);
+
 export type User = typeof users.$inferSelect;
 export type Workspace = typeof workspaces.$inferSelect;
 export type Subject = typeof subjects.$inferSelect;
@@ -307,3 +353,5 @@ export type NewBirthEvent = typeof birthEvents.$inferInsert;
 export type Place = typeof places.$inferSelect;
 export type SettingsProfile = typeof settingsProfiles.$inferSelect;
 export type Chart = typeof charts.$inferSelect;
+export type Relationship = typeof relationships.$inferSelect;
+export type NewRelationship = typeof relationships.$inferInsert;

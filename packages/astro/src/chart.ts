@@ -13,6 +13,7 @@ import {
   type AshtakavargaResult,
   type SignPlacement,
 } from './ashtakavarga.js';
+import { detectYogas, type YogaChart, type YogaHit, type YogaOptions } from './yogas.js';
 import {
   DEFAULT_SETTINGS,
   GRAHAS,
@@ -52,10 +53,12 @@ export interface ComputedChart {
   readonly vargottama: string[];
   /** Bhinnāṣṭakavarga per graha plus the ascendant, and the sarva totals. */
   readonly ashtakavarga: AshtakavargaResult;
+  /** Named combinations, each carrying the placements that produced it. */
+  readonly yogas: readonly YogaHit[];
 }
 
 /** Bumped whenever any calculation changes. Stored on every cached chart. */
-export const ASTRO_VERSION = '0.4.0';
+export const ASTRO_VERSION = '0.5.0';
 
 /**
  * Compute a full sidereal chart.
@@ -67,6 +70,7 @@ export function computeChart(
   provider: EphemerisProvider,
   moment: BirthMoment,
   settings: ChartSettings = DEFAULT_SETTINGS,
+  yogaOptions: YogaOptions = {},
 ): ComputedChart {
   const { jdUt, location } = moment;
   const jdTt = jdTtFromJdUt(jdUt);
@@ -140,6 +144,16 @@ export function computeChart(
     AV_CONTRIBUTORS.map((c) => [c, points[c]!.signIndex]),
   ) as SignPlacement;
 
+  const yogaChart: YogaChart = {
+    ascendantSign: Math.floor(siderealAscendant / 30),
+    signOf: Object.fromEntries(
+      Object.entries(points).map(([id, p]) => [id, p.signIndex]),
+    ) as YogaChart['signOf'],
+    degreeOf: Object.fromEntries(
+      Object.entries(points).map(([id, p]) => [id, p.degreesInSign]),
+    ) as YogaChart['degreeOf'],
+  };
+
   return {
     meta: {
       astroVersion: ASTRO_VERSION,
@@ -165,5 +179,6 @@ export function computeChart(
     vargas,
     vargottama,
     ashtakavarga: computeAshtakavarga(placement),
+    yogas: detectYogas(yogaChart, yogaOptions),
   };
 }

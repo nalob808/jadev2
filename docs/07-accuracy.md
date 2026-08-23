@@ -72,11 +72,10 @@ Two pieces of the calculation spec are deliberately unbuilt because they
 could not be checked against an authority. Each is listed with the check that
 would let it ship.
 
-| Missing               | Why it is not guessed                                                                                                 | How to verify before writing it                                                                                                                                        |
-| --------------------- | --------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Ṣaḍbala**           | Six sources with sub-components, and authorities differ on several.                                                   | Diff rūpa values per graha against Jagannātha Hora on the golden fixture set; agree a convention per sub-component and record it in the spec.                          |
-| **Yogas**             | A yoga list without cancellation rules is astrologically dishonest, and cancellations are where schools diverge most. | Start with Pañca Mahāpuruṣa, which is unambiguous (graha in own or exaltation sign AND in a kendra), each with its BPHS citation. Expand only where a citation exists. |
-| **East Indian chart** | The Bengali sign arrangement could not be confirmed.                                                                  | Render the same chart in Jagannātha Hora's Bengali style and match cell by cell.                                                                                       |
+| Missing               | Why it is not guessed                                                                                          | How to verify before writing it                                                                                                                             |
+| --------------------- | -------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Ṣaḍbala**           | Six sources with twenty sub-components, and authorities differ on at least half. See the reconnaissance below. | Verify **per sub-component**, not per bala. `jhora.horoscope.chart.strength` exposes every one as a callable, so a disagreement localises to a single rule. |
+| **East Indian chart** | The Bengali sign arrangement could not be confirmed.                                                           | Render the same chart in Jagannātha Hora's Bengali style and match cell by cell.                                                                            |
 
 ### The oracle, and the line around it
 
@@ -192,6 +191,102 @@ reading before being accepted.
 Both modes are guarded in CI: the fixtures are regenerated and diffed, so a
 PyJHora upgrade that changes a number fails the build rather than quietly
 rewriting the reference.
+
+## Yogas — twelve of sixteen agree exactly, and the other four are explained
+
+A curated set: the five Pañca Mahāpuruṣa, gajakesarī, budhāditya, candra-maṅgala,
+adhi, the lunar quartet (sunaphā / anaphā / durudhurā / kemadruma), the solar
+trio (veśi / vāsi / ubhayacharī), the three viparīta rāja yogas under their own
+names — harṣa, sarala, vimala — and nīcabhaṅga. Not the ~260 in circulation:
+most are cited without their cancellation rules, and a yoga list without
+cancellations is astrologically dishonest.
+
+Three differences from Jagannātha Hora turned out to be **definitional, not
+arithmetical**, and each is now a named option rather than a silent choice:
+
+| Option                | Parāśara (Jade's default)       | Jagannātha Hora                     |
+| --------------------- | ------------------------------- | ----------------------------------- |
+| `nodesCountAsGrahas`  | seven grahas only               | Rāhu and Ketu count too             |
+| `sunSpoilsLunarYogas` | the Sun is simply not counted   | the Sun's presence spoils the house |
+| `lunarSolarReporting` | both sides occupied ⇒ durudhurā | reports all three at once           |
+
+`JHORA_COMPATIBLE` turns all three on, and is worth surfacing as a "match
+Jagannātha Hora" toggle for a practitioner reconciling Jade against the tool
+they already use. Under it, **twelve of the sixteen yogas agree on every one of
+the seventeen charts** — including all five Pañca Mahāpuruṣa and the entire
+lunar set.
+
+Finding those three took the oracle used as a hypothesis test. Four candidate
+readings were scored against sunaphā and anaphā over seventeen charts:
+
+    +nodes, Sun spoils      34/34      7 grahas, Sun spoils    32/34
+    +nodes                  33/34      7 grahas, excl. Sun     31/34
+
+That is a definition recovered by measurement rather than guessed at.
+
+The comparison also found a real bug in Jade. Under the strict reading the
+Sun's presence stops the _named yoga_ forming — but the grahas standing there
+are still standing there, and kemadruma asks whether the Moon is **alone**, not
+whether anaphā formed. Conflating the two reported a solitary Moon flanked by
+Mars and Mercury.
+
+### The four that do not reconcile
+
+Pinned as tests with their explanations, so a change in either implementation
+resurfaces them:
+
+- **kemadruma** (3 charts) — the Moon really is unattended _and_ a classical
+  cancellation applies. JHora folds the cancellation into the boolean and
+  answers "no". Jade reports the yoga **and** its cancellations, which is
+  strictly more information: the practitioner sees the condition and the relief.
+- **gajakesarī** (3 charts) — BPHS gives it as Jupiter in a kendra from the
+  Moon, which is what Jade implements. Jupiter _is_ in a kendra on all three and
+  JHora still declines, so it applies further conditions its API does not
+  expose. Jade will not guess at them.
+- **veśi and vāsi** (1 chart each) — the house is empty of every body including
+  the nodes, and JHora reports the yoga anyway. Whatever produces that is not
+  the rule in the text, so Jade does not copy it.
+
+## Ṣaḍbala — the reconnaissance, before the build
+
+`strength.shad_bala` returns only six aggregates plus totals, and matching an
+aggregate means guessing conventions for every sub-component inside it until
+the number agrees. That is fitting to a tool, not implementing from a text, and
+it is how a plausible-but-wrong ṣaḍbala gets shipped.
+
+The module exposes each sub-component separately, which changes the problem
+entirely — a disagreement localises to one rule:
+
+    _uchcha_bala  _sapthavargaja_bala  _ojayugama_bala  _kendra_bala
+    _drekkana_bala  _dig_bala  _nathonnath_bala  _paksha_bala
+    _tribhaga_bala  _abda_bala  _masa_bala  _vaara_bala  _hora_bala
+    _ayana_bala  _yuddha_bala  _cheshta_bala  _naisargika_bala  _drik_bala
+
+Two findings worth having before writing a line:
+
+**The disputes are visible in the API itself.** There is `_dig_bala(method=1)`
+and `method=2`; `_cheshta_bala` and `_cheshta_bala_new`; three separate
+`_sapthavargaja_bala` variants. Where an implementation ships alternatives the
+sources disagree, and Jade must name the option rather than pick one silently
+(CLAUDE.md, working rules).
+
+**Two components do not behave classically.** On the reference chart,
+`_dig_bala(method=1)` returns 63.40 for Saturn — dig bala is bounded at 60, and
+`method=2` returns 56.60 for the same graha. `_nathonnath_bala` returns −8.92
+for four grahas, where the classical range is 0 to 60. Whatever those encode,
+matching them would import a convention Jade cannot defend from the text.
+
+So the split, when this is built:
+
+| Clean — implement and verify                        | Disputed — implement behind a named option         |
+| --------------------------------------------------- | -------------------------------------------------- |
+| uccha, kendrādi, oja-yugma, drekkāṇa                | sapta-vargaja (three variants in the wild)         |
+| dig bala, in the classical bounded form             | nathonnata, ayana, ceṣṭā                           |
+| abda, māsa, vāra, hora, tribhāga — calendrical      | pakṣa (doubling the Moon's value is not universal) |
+| naisargika — a fixed table, already confirmed exact | dṛk (depends on the aspect-strength convention)    |
+
+Deliberately not started before the yogas: a practitioner opens a chart to read
+its yogas, not its rūpas, and the yoga core is unambiguous where this is not.
 
 ## Regression discipline
 

@@ -3,7 +3,9 @@
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import {
+  createRelationship,
   createSubjectWithBirthEvent,
+  deleteRelationship,
   exportSubject,
   hardDeleteSubject,
   softDeleteSubject,
@@ -107,6 +109,34 @@ export async function downloadPerson(formData: FormData): Promise<void> {
   const id = String(formData.get('id'));
   await exportSubject(getDatabase(), session.workspaceId, id);
   redirect(`/api/people/${id}/export`);
+}
+
+export async function addRelationship(formData: FormData): Promise<void> {
+  const session = await requireSession();
+  const a = String(formData.get('subjectAId') ?? '');
+  const b = String(formData.get('subjectBId') ?? '');
+  if (!a || !b) throw new Error('Choose two people.');
+  if (a === b) throw new Error('Choose two different people.');
+
+  const relationship = await createRelationship(getDatabase(), {
+    workspaceId: session.workspaceId,
+    subjectAId: a,
+    subjectBId: b,
+    kind: (formData.get('kind') as 'partner' | undefined) ?? 'partner',
+    createdBy: session.userId,
+  });
+  revalidatePath('/relationships');
+  redirect(`/relationships/${relationship.id}`);
+}
+
+export async function removeRelationship(formData: FormData): Promise<void> {
+  const session = await requireSession();
+  await deleteRelationship(getDatabase(), {
+    workspaceId: session.workspaceId,
+    id: String(formData.get('id')),
+  });
+  revalidatePath('/relationships');
+  redirect('/relationships');
 }
 
 export async function devSignIn(formData: FormData): Promise<void> {

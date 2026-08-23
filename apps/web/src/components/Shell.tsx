@@ -21,6 +21,9 @@ export function Shell({
           <Link href="/people" className="hover:underline">
             People
           </Link>
+          <Link href="/relationships" className="hover:underline">
+            Relationships
+          </Link>
           <Link href="/people/new" className="hover:underline">
             Add
           </Link>
