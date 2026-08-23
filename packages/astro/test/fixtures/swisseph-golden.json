@@ -24,6 +24,16 @@
       "wholeSignCuspsSidereal": [
         210.0, 240.0, 270.0, 300.0, 330.0, 0.0, 30.0, 60.0, 90.0, 120.0, 150.0, 180.0
       ],
+      "panchanga": {
+        "elongation": 258.7385645373689,
+        "tithiIndex": 22,
+        "paksha": "krishna",
+        "karanaIndex": 44,
+        "yogaIndex": 23,
+        "nakshatraIndex": 8
+      },
+      "sunrise": 2452221.010801729,
+      "sunset": 2452221.43146231,
       "points": {
         "Sun": {
           "siderealLongitude": 201.4114971105027,
@@ -126,6 +136,16 @@
       "wholeSignCuspsSidereal": [
         120.0, 150.0, 180.0, 210.0, 240.0, 270.0, 300.0, 330.0, 0.0, 30.0, 60.0, 90.0
       ],
+      "panchanga": {
+        "elongation": 303.0864564605774,
+        "tithiIndex": 26,
+        "paksha": "krishna",
+        "karanaIndex": 51,
+        "yogaIndex": 6,
+        "nakshatraIndex": 1
+      },
+      "sunrise": 2446967.5218358547,
+      "sunset": 2446968.0754894484,
       "points": {
         "Sun": {
           "siderealLongitude": 65.62219616197346,
@@ -228,6 +248,16 @@
       "wholeSignCuspsSidereal": [
         30.0, 60.0, 90.0, 120.0, 150.0, 180.0, 210.0, 240.0, 270.0, 300.0, 330.0, 0.0
       ],
+      "panchanga": {
+        "elongation": 151.96137072398167,
+        "tithiIndex": 13,
+        "paksha": "shukla",
+        "karanaIndex": 26,
+        "yogaIndex": 7,
+        "nakshatraIndex": 10
+      },
+      "sunrise": 2449791.195076613,
+      "sunset": 2449791.6949537247,
       "points": {
         "Sun": {
           "siderealLongitude": 329.99005864248886,
@@ -330,6 +360,16 @@
       "wholeSignCuspsSidereal": [
         60.0, 90.0, 120.0, 150.0, 180.0, 210.0, 240.0, 270.0, 300.0, 330.0, 0.0, 30.0
       ],
+      "panchanga": {
+        "elongation": 28.870333115936177,
+        "tithiIndex": 3,
+        "paksha": "shukla",
+        "karanaIndex": 5,
+        "yogaIndex": 10,
+        "nakshatraIndex": 20
+      },
+      "sunrise": 2443844.2757523665,
+      "sunset": 2443844.8693806943,
       "points": {
         "Sun": {
           "siderealLongitude": 226.34947627606553,
@@ -432,6 +472,16 @@
       "wholeSignCuspsSidereal": [
         240.0, 270.0, 300.0, 330.0, 0.0, 30.0, 60.0, 90.0, 120.0, 150.0, 180.0, 210.0
       ],
+      "panchanga": {
+        "elongation": 162.68362377152553,
+        "tithiIndex": 14,
+        "paksha": "shukla",
+        "karanaIndex": 28,
+        "yogaIndex": 7,
+        "nakshatraIndex": 23
+      },
+      "sunrise": 2452891.457164702,
+      "sunset": 2452891.962645375,
       "points": {
         "Sun": {
           "siderealLongitude": 142.25415039075986,
@@ -534,6 +584,16 @@
       "wholeSignCuspsSidereal": [
         150.0, 180.0, 210.0, 240.0, 270.0, 300.0, 330.0, 0.0, 30.0, 60.0, 90.0, 120.0
       ],
+      "panchanga": {
+        "elongation": 285.61702929766426,
+        "tithiIndex": 24,
+        "paksha": "krishna",
+        "karanaIndex": 48,
+        "yogaIndex": 9,
+        "nakshatraIndex": 15
+      },
+      "sunrise": 2439140.955132174,
+      "sunset": 2439141.180246744,
       "points": {
         "Sun": {
           "siderealLongitude": 271.1121109806787,
@@ -636,6 +696,16 @@
       "wholeSignCuspsSidereal": [
         270.0, 300.0, 330.0, 0.0, 30.0, 60.0, 90.0, 120.0, 150.0, 180.0, 210.0, 240.0
       ],
+      "panchanga": {
+        "elongation": 334.85445635453186,
+        "tithiIndex": 28,
+        "paksha": "krishna",
+        "karanaIndex": 56,
+        "yogaIndex": 8,
+        "nakshatraIndex": 4
+      },
+      "sunrise": null,
+      "sunset": null,
       "points": {
         "Sun": {
           "siderealLongitude": 65.65404301589709,
@@ -738,6 +808,16 @@
       "wholeSignCuspsSidereal": [
         90.0, 120.0, 150.0, 180.0, 210.0, 240.0, 270.0, 300.0, 330.0, 0.0, 30.0, 60.0
       ],
+      "panchanga": {
+        "elongation": 55.66033051173514,
+        "tithiIndex": 5,
+        "paksha": "shukla",
+        "karanaIndex": 10,
+        "yogaIndex": 3,
+        "nakshatraIndex": 4
+      },
+      "sunrise": 2408173.729836322,
+      "sunset": 2408174.2761240965,
       "points": {
         "Sun": {
           "siderealLongitude": 351.70930032754364,
@@ -840,6 +920,16 @@
       "wholeSignCuspsSidereal": [
         60.0, 90.0, 120.0, 150.0, 180.0, 210.0, 240.0, 270.0, 300.0, 330.0, 0.0, 30.0
       ],
+      "panchanga": {
+        "elongation": 77.32792411489567,
+        "tithiIndex": 7,
+        "paksha": "shukla",
+        "karanaIndex": 13,
+        "yogaIndex": 20,
+        "nakshatraIndex": 13
+      },
+      "sunrise": 2395861.9073329843,
+      "sunset": 2395862.5181736,
       "points": {
         "Sun": {
           "siderealLongitude": 94.28552047204147,
@@ -942,6 +1032,16 @@
       "wholeSignCuspsSidereal": [
         60.0, 90.0, 120.0, 150.0, 180.0, 210.0, 240.0, 270.0, 300.0, 330.0, 0.0, 30.0
       ],
+      "panchanga": {
+        "elongation": 295.33030337841996,
+        "tithiIndex": 25,
+        "paksha": "krishna",
+        "karanaIndex": 50,
+        "yogaIndex": 16,
+        "nakshatraIndex": 19
+      },
+      "sunrise": 2451603.773510072,
+      "sunset": 2451604.23129695,
       "points": {
         "Sun": {
           "siderealLongitude": 316.3503152641081,
@@ -1044,6 +1144,16 @@
       "wholeSignCuspsSidereal": [
         210.0, 240.0, 270.0, 300.0, 330.0, 0.0, 30.0, 60.0, 90.0, 120.0, 150.0, 180.0
       ],
+      "panchanga": {
+        "elongation": 182.7929711270732,
+        "tithiIndex": 16,
+        "paksha": "krishna",
+        "karanaIndex": 31,
+        "yogaIndex": 26,
+        "nakshatraIndex": 6
+      },
+      "sunrise": 2455197.571973428,
+      "sunset": 2455198.0039275656,
       "points": {
         "Sun": {
           "siderealLongitude": 256.44981260555056,
@@ -1146,6 +1256,16 @@
       "wholeSignCuspsSidereal": [
         60.0, 90.0, 120.0, 150.0, 180.0, 210.0, 240.0, 270.0, 300.0, 330.0, 0.0, 30.0
       ],
+      "panchanga": {
+        "elongation": 189.81296271482015,
+        "tithiIndex": 16,
+        "paksha": "krishna",
+        "karanaIndex": 32,
+        "yogaIndex": 26,
+        "nakshatraIndex": 7
+      },
+      "sunrise": 2455197.571973428,
+      "sunset": 2455198.0039275656,
       "points": {
         "Sun": {
           "siderealLongitude": 256.959188630388,
@@ -1248,6 +1368,16 @@
       "wholeSignCuspsSidereal": [
         180.0, 210.0, 240.0, 270.0, 300.0, 330.0, 0.0, 30.0, 60.0, 90.0, 120.0, 150.0
       ],
+      "panchanga": {
+        "elongation": 359.72574227612665,
+        "tithiIndex": 30,
+        "paksha": "krishna",
+        "karanaIndex": 60,
+        "yogaIndex": 19,
+        "nakshatraIndex": 10
+      },
+      "sunrise": 2457986.9629058507,
+      "sunset": 2457987.5196895474,
       "points": {
         "Sun": {
           "siderealLongitude": 124.7610597724855,
@@ -1350,6 +1480,16 @@
       "wholeSignCuspsSidereal": [
         300.0, 330.0, 0.0, 30.0, 60.0, 90.0, 120.0, 150.0, 180.0, 210.0, 240.0, 270.0
       ],
+      "panchanga": {
+        "elongation": 315.0238572960337,
+        "tithiIndex": 27,
+        "paksha": "krishna",
+        "karanaIndex": 53,
+        "yogaIndex": 20,
+        "nakshatraIndex": 22
+      },
+      "sunrise": 2461114.963396186,
+      "sunset": 2461115.460461882,
       "points": {
         "Sun": {
           "siderealLongitude": 330.6001721125505,
@@ -1452,6 +1592,16 @@
       "wholeSignCuspsSidereal": [
         0.0, 30.0, 60.0, 90.0, 120.0, 150.0, 180.0, 210.0, 240.0, 270.0, 300.0, 330.0
       ],
+      "panchanga": {
+        "elongation": 133.72709836510492,
+        "tithiIndex": 12,
+        "paksha": "shukla",
+        "karanaIndex": 23,
+        "yogaIndex": 23,
+        "nakshatraIndex": 3
+      },
+      "sunrise": 2460685.5443942742,
+      "sunset": 2460686.02017005,
       "points": {
         "Sun": {
           "siderealLongitude": 266.1202010528344,
@@ -1554,6 +1704,16 @@
       "wholeSignCuspsSidereal": [
         330.0, 0.0, 30.0, 60.0, 90.0, 120.0, 150.0, 180.0, 210.0, 240.0, 270.0, 300.0
       ],
+      "panchanga": {
+        "elongation": 281.5517062159747,
+        "tithiIndex": 24,
+        "paksha": "krishna",
+        "karanaIndex": 47,
+        "yogaIndex": 6,
+        "nakshatraIndex": 27
+      },
+      "sunrise": 2460491.5186061035,
+      "sunset": 2460492.0554934167,
       "points": {
         "Sun": {
           "siderealLongitude": 74.31076052029982,
@@ -1656,6 +1816,16 @@
       "wholeSignCuspsSidereal": [
         60.0, 90.0, 120.0, 150.0, 180.0, 210.0, 240.0, 270.0, 300.0, 330.0, 0.0, 30.0
       ],
+      "panchanga": {
+        "elongation": 345.8485251633565,
+        "tithiIndex": 29,
+        "paksha": "krishna",
+        "karanaIndex": 58,
+        "yogaIndex": 3,
+        "nakshatraIndex": 15
+      },
+      "sunrise": 2488018.383801851,
+      "sunset": 2488018.817771342,
       "points": {
         "Sun": {
           "siderealLongitude": 204.1097471011255,
@@ -1758,6 +1928,16 @@
       "wholeSignCuspsSidereal": [
         150.0, 180.0, 210.0, 240.0, 270.0, 300.0, 330.0, 0.0, 30.0, 60.0, 90.0, 120.0
       ],
+      "panchanga": {
+        "elongation": 119.76592698398572,
+        "tithiIndex": 10,
+        "paksha": "shukla",
+        "karanaIndex": 20,
+        "yogaIndex": 1,
+        "nakshatraIndex": 19
+      },
+      "sunrise": 2461275.1750459843,
+      "sunset": 2461275.705625807,
       "points": {
         "Sun": {
           "siderealLongitude": 125.51467191047907,

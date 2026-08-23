@@ -3,6 +3,7 @@ import { northIndianLines, northIndianRegions } from './geometry.js';
 import {
   CHART_CSS,
   SIGN_ABBREVIATIONS,
+  describeChart,
   glyphFor,
   layoutGlyphs,
   type ChartProps,
@@ -40,7 +41,7 @@ export function NorthIndianChart({
       }
     >
       <style>{CHART_CSS}</style>
-      <desc>{describe(varga)}</desc>
+      <desc>{describeChart(varga)}</desc>
 
       {/* House 1 tinted, so the lagna is findable at a glance. */}
       <polygon className="lagna-fill" points={toPoints(regions[0]!.polygon)} />
@@ -99,20 +100,4 @@ function glyphClass(
   ]
     .filter(Boolean)
     .join(' ');
-}
-
-/** Screen-reader text. An SVG chart is otherwise silent. */
-export function describe(varga: {
-  name: string;
-  ascendantSign: number;
-  byHouse: ReadonlyArray<readonly PointId[]>;
-}): string {
-  const houses = varga.byHouse
-    .map((points, index) =>
-      points.length
-        ? `house ${index + 1} (${SIGN_ABBREVIATIONS[(varga.ascendantSign + index) % 12]}): ${points.join(', ')}`
-        : null,
-    )
-    .filter(Boolean);
-  return `${varga.name}. ${houses.join('. ')}.`;
 }

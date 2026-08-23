@@ -112,34 +112,42 @@ audit_log
 
 ## The computed chart blob
 
-`charts.computed` is one JSON document, versioned by `astro_version`. Shape:
+`charts.computed` is one JSON document, versioned by `astro_version`. What the
+core actually produces today:
 
 ```ts
 type ComputedChart = {
-  meta: { astroVersion: string; provider: string; jdUT: number; ayanamsaValue: number };
-  points: Record<PointId, {           // Su Mo Ma Me Ju Ve Sa Ra Ke Ur Ne Pl Asc MC + upagrahas
-    lonSidereal: number; lonTropical: number; lat: number; speed: number;
-    retrograde: boolean; combust: boolean | null; sign: number; degInSign: number;
-    nakshatra: { index: number; pada: number; lord: PointId };
-    house: number; navamsaSign: number;
-    dignity: 'exalted'|'moolatrikona'|'own'|'friend'|'neutral'|'enemy'|'debilitated';
-    avastha: { baladi: string; jagradadi: string; deeptadi: string };
+  meta: { astroVersion; provider; precisionClass; jdUt; jdTt; ayanamsaMode; ayanamsaValue; settings };
+  points: Record<PointId, {
+    longitude; tropicalLongitude; latitude; speed; retrograde;
+    signIndex; sign; degreesInSign; nakshatra { index; name; pada; lord; degreesInto }; house;
   }>;
-  houses: { system: HouseSystem; cusps: number[]; bhavaMadhya: number[] };
-  vargas: Record<VargaId, Record<PointId, { sign: number; lord: PointId; house: number }>>;
-  aspects: { grahaDrishti: Drishti[]; rasiDrishti: Drishti[] };
-  strength: { ashtakavarga: { bav: Record<PointId, number[]>; sav: number[] };
-              shadbala: Record<PointId, ShadbalaBreakdown> };
-  yogas: Array<{ id: string; name: string; strength: number; participants: PointId[];
-                 cancelledBy?: string[]; classicalSource: string }>;
-  dashas: Record<DashaSystem, DashaNode[]>;   // nested to 5 levels, lazily expanded
-  panchang: { tithi; nakshatra; yoga; karana; vara; sunrise; sunset; rahuKala; ... };
-  jaimini: { charaKarakas: Record<Karaka, PointId>; arudhas: Record<string, number> };
+  dignity: Record<PointId, Dignity | null>;        // null for the nodes and the angles
+  combustion: Record<PointId, Combustion | null>;
+  panchanga: { tithi; nakshatra; yoga; karana; vara | null; elongation };
+  sunrise: number | null;                           // null in polar day/night
+  sunset: number | null;
+  houses: { system; cusps; ascendantSign };
+  vargas: Record<PointId, Record<VargaId, number>>; // all sixteen
+  vargottama: PointId[];
 };
 ```
 
-Nested dashas are computed lazily by level (a full 5-level Vimśottarī tree is ~100k nodes —
-compute mahā and antara eagerly, deeper levels on demand).
+Vimśottarī and the varga projections are computed on demand rather than stored
+in the blob, because both are cheap and neither is needed by every consumer.
+
+### Not in the blob yet, and why
+
+`aspects` (graha dṛṣṭi) is implemented in `packages/astro/src/drishti.ts` but
+is derived per-view rather than baked in — it depends on which points the
+caller cares about.
+
+**`strength` (aṣṭakavarga, ṣaḍbala) and `yogas` are not implemented.** Both
+need reference tables that could not be verified against an authority from
+this machine, and inventing them would produce output that looks right and
+is not. The verification route is written down in `docs/07-accuracy.md`:
+cross-check against Jagannātha Hora or VedAstro's Docker API before writing
+either. Everything already shipped is checked against Swiss Ephemeris.
 
 ## What Phase 2 actually shipped, and what it deliberately did not
 

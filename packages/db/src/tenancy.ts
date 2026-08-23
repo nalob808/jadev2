@@ -23,17 +23,3 @@ export async function withWorkspace<T>(
     return work(tx);
   });
 }
-
-/**
- * Escape hatch for migrations, the places table, and background jobs that
- * legitimately span workspaces. Named so it is obvious in a diff.
- */
-export async function asServiceRole<T>(
-  database: Database,
-  work: (tx: Parameters<Parameters<Database['transaction']>[0]>[0]) => Promise<T>,
-): Promise<T> {
-  return database.transaction(async (tx) => {
-    await tx.execute(sql`select set_config('app.bypass_rls', 'on', true)`);
-    return work(tx);
-  });
-}

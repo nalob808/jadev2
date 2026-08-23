@@ -6,17 +6,20 @@ deliverables — on the web, on any device.
 
 ## Status
 
-| Phase |                        |                                                                                        |
-| ----- | ---------------------- | -------------------------------------------------------------------------------------- |
-| 0     | Rails                  | ✅ done — monorepo, CI, Sentry scrubber, legacy route                                  |
-| 1     | Calculation core       | 🔵 in progress — sub-steps 1–5 + Vimśottarī landed and passing against Swiss Ephemeris |
-| 2     | People and persistence | ⬜ next                                                                                |
-| 3     | Chart workspace        | ⬜                                                                                     |
-| 4     | Relationships          | ⬜                                                                                     |
-| 5     | Predictive engine      | ⬜                                                                                     |
-| 6     | Practice layer         | ⬜                                                                                     |
-| 7     | Billing and launch     | ⬜                                                                                     |
-| 8     | Beyond                 | ⬜                                                                                     |
+| Phase |                        |                                                                                                                                                                                                                         |
+| ----- | ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 0     | Rails                  | ✅ monorepo, CI, Sentry scrubber, legacy route                                                                                                                                                                          |
+| 1     | Calculation core       | 🔵 sidereal points incl. nodes, all 16 vargas, whole-sign houses, nakṣatras, Vimśottarī, pañcāṅga, dignity, combustion, dṛṣṭi. **Missing: aṣṭakavarga, ṣaḍbala, yogas, upagrahas, further daśās, transits, varṣaphala** |
+| 2     | People and persistence | ✅ schema with forced row-level security, place search, historical timezones, add-a-person, chart caching                                                                                                               |
+| 3     | Chart workspace        | 🔵 North and South Indian charts, ṣoḍaśavarga contact sheet, Vimśottarī column, pañcāṅga card. **Missing: Western wheel, transit scrubber, bhāva chalit**                                                               |
+| 4     | Relationships          | ⬜                                                                                                                                                                                                                      |
+| 5     | Predictive engine      | ⬜                                                                                                                                                                                                                      |
+| 6     | Practice layer         | ⬜                                                                                                                                                                                                                      |
+| 7     | Billing and launch     | 🔵 deployed at jadeapp.co with Supabase sign-in. **Missing: Stripe, tiers, marketing site**                                                                                                                             |
+| 8     | Beyond                 | ⬜                                                                                                                                                                                                                      |
+
+Nothing above is marked done that is not tested. Where a phase is partial, the
+gap is named rather than left to be discovered.
 
 ## Quick start
 

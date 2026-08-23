@@ -4,6 +4,8 @@ import { nakshatraOf } from './nakshatra.js';
 import { ayanamsa } from './sidereal/ayanamsa.js';
 import { jdTtFromJdUt } from './time.js';
 import { allVargas, isVargottama, type VargaId } from './vargas.js';
+import { combustionOf, dignityOf, type Combustion, type Dignity } from './dignity.js';
+import { panchangaOf, type Panchanga } from './panchanga.js';
 import { norm360 } from './angles.js';
 import {
   DEFAULT_SETTINGS,
@@ -28,6 +30,13 @@ export interface ComputedChart {
     readonly settings: ChartSettings;
   };
   readonly points: Record<string, PointPosition>;
+  /** Dignity and combustion per graha. Absent for the angles and the nodes. */
+  readonly dignity: Record<string, Dignity | null>;
+  readonly combustion: Record<string, Combustion | null>;
+  /** The five limbs. `vara` is null above the Arctic Circle, where there is no sunrise. */
+  readonly panchanga: Panchanga;
+  readonly sunrise: number | null;
+  readonly sunset: number | null;
   readonly houses: {
     readonly system: string;
     readonly cusps: number[];
@@ -38,7 +47,7 @@ export interface ComputedChart {
 }
 
 /** Bumped whenever any calculation changes. Stored on every cached chart. */
-export const ASTRO_VERSION = '0.1.0';
+export const ASTRO_VERSION = '0.2.0';
 
 /**
  * Compute a full sidereal chart.
@@ -92,6 +101,24 @@ export function computeChart(
   place('Ascendant', angles.ascendantTropical, 0, 0);
   place('Midheaven', angles.midheavenTropical, 0, 0);
 
+  // Dignity and combustion, both measured against the Sun's final position.
+  const sunLongitude = points.Sun!.longitude;
+  const dignity: Record<string, Dignity | null> = {};
+  const combustion: Record<string, Combustion | null> = {};
+  for (const [id, position] of Object.entries(points)) {
+    if (id === 'Ascendant' || id === 'Midheaven') continue;
+    dignity[id] = dignityOf(id as (typeof GRAHAS)[number], position.longitude);
+    combustion[id] = combustionOf(
+      id as (typeof GRAHAS)[number],
+      position.longitude,
+      sunLongitude,
+      position.retrograde,
+    );
+  }
+
+  const { sunrise, sunset } = provider.sunriseSunset(jdUt, location.latitude, location.longitude);
+  const panchanga = panchangaOf(sunLongitude, points.Moon!.longitude, jdUt, sunrise);
+
   const vargas: Record<string, Record<VargaId, number>> = {};
   const vargottama: string[] = [];
   for (const [id, position] of Object.entries(points)) {
@@ -111,6 +138,11 @@ export function computeChart(
       settings,
     },
     points,
+    dignity,
+    combustion,
+    panchanga,
+    sunrise,
+    sunset,
     houses: {
       system: settings.houseSystem,
       cusps: wholeSignCusps(siderealAscendant),

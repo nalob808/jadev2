@@ -20,7 +20,7 @@ export function normalizePlaceQuery(input: string): string {
  * substring; population breaks ties, because someone typing "Springfield"
  * almost always means the big one.
  */
-export function scorePlace(place: Place, normalizedQuery: string): number {
+function scorePlace(place: Place, normalizedQuery: string): number {
   const name = normalizePlaceQuery(place.name);
   if (!normalizedQuery) return 0;
 
@@ -44,11 +44,6 @@ export function rankPlaces(places: readonly Place[], query: string, limit = 10):
     .sort((a, b) => b.score - a.score)
     .slice(0, limit)
     .map((entry) => entry.place);
-}
-
-/** "Mumbai, Maharashtra, IN" — how a place is shown once chosen. */
-export function formatPlace(place: Place): string {
-  return [place.name, place.admin1, place.countryCode].filter(Boolean).join(', ');
 }
 
 /**

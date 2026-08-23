@@ -19,8 +19,8 @@ const DEV_COOKIE = 'jade_dev_user';
  *
  *  - `dev`      a local cookie naming an email address. No external service,
  *               so Jade runs on a database alone. Hard-refuses in production.
- *  - `supabase` real sign-in. Phase 2 wires the session read; the provider
- *               config lives in Supabase's dashboard.
+ *  - `supabase` emailed sign-in links, refreshed by middleware. The provider
+ *               URL allow-list lives in Supabase's dashboard.
  *
  * Either way the app only ever sees a Session, so swapping providers later
  * touches this file and nothing else.

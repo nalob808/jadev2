@@ -40,4 +40,22 @@ export interface EphemerisProvider {
 
   /** True obliquity of the ecliptic, degrees. */
   trueObliquity(jdUt: number): number;
+
+  /**
+   * Sunrise and sunset for the civil day containing `jdUt`, at this place.
+   *
+   * Returns null inside the polar day and polar night, where neither happens —
+   * a real case for a birth above the Arctic Circle, and one that must be
+   * reported rather than faked, because the vāra genuinely has no sunrise to
+   * start from.
+   *
+   * Convention: upper limb with standard refraction, which is what Indian
+   * pañcāṅgas use. Disc-centre would shift these by roughly three minutes and
+   * change the vāra for anyone born in that window.
+   */
+  sunriseSunset(
+    jdUt: number,
+    latitude: number,
+    longitude: number,
+  ): { sunrise: number | null; sunset: number | null };
 }

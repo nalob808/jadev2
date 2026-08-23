@@ -71,3 +71,19 @@ export const CHART_CSS = `
   .jade-chart .graha.is-retrograde { font-style: italic; }
   .jade-chart .lagna-mark { fill: none; stroke: var(--chart-accent); stroke-width: 1.1; }
 `;
+
+/** Screen-reader text. An SVG chart is otherwise silent. */
+export function describeChart(varga: {
+  name: string;
+  ascendantSign: number;
+  byHouse: ReadonlyArray<readonly PointId[]>;
+}): string {
+  const houses = varga.byHouse
+    .map((points, index) =>
+      points.length
+        ? `house ${index + 1} (${SIGN_ABBREVIATIONS[(varga.ascendantSign + index) % 12]}): ${points.join(', ')}`
+        : null,
+    )
+    .filter(Boolean);
+  return `${varga.name}. ${houses.join('. ')}.`;
+}

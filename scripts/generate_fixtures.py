@@ -26,6 +26,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import os
 import sys
 
@@ -114,6 +115,41 @@ def sidereal_chart(y, m, d, hour, lat, lon, node_type="mean"):
 
     ecl_nut = swe.calc_ut(jd, swe.ECL_NUT, swe.FLG_SWIEPH)[0]
 
+    # Pañcāṅga, computed here from Swiss Ephemeris' own longitudes so the
+    # TypeScript implementation is checked against an independent one rather
+    # than against itself.
+    sun_sid = points["Sun"]["siderealLongitude"]
+    moon_sid = points["Moon"]["siderealLongitude"]
+    elongation = (moon_sid - sun_sid) % 360
+    tithi_index = int(elongation // 12) + 1
+    karana_index = int(elongation // 6) + 1
+    yoga_index = int(((sun_sid + moon_sid) % 360) // (360 / 27)) + 1
+    nak_index = int((moon_sid % 360) // (360 / 27)) + 1
+    panchanga = {
+        "elongation": elongation,
+        "tithiIndex": tithi_index,
+        "paksha": "shukla" if tithi_index <= 15 else "krishna",
+        "karanaIndex": karana_index,
+        "yogaIndex": yoga_index,
+        "nakshatraIndex": nak_index,
+    }
+
+    # Sunrise / sunset for the LOCAL civil day containing the instant. Both
+    # sides must search from the same origin or they disagree by a whole day
+    # for anyone born near either end of their day.
+    local_offset = lon / 360.0
+    local_midnight = math.floor(jd + local_offset + 0.5) - 0.5 - local_offset
+
+    def _rise(flag):
+        try:
+            result = swe.rise_trans(local_midnight, swe.SUN, flag, (lon, lat, 0))
+            return result[1][0] if result[0] >= 0 and result[1][0] else None
+        except Exception:
+            return None
+
+    sunrise = _rise(swe.CALC_RISE)
+    sunset = _rise(swe.CALC_SET)
+
     return {
         "jdUt": jd,
         "location": {"latitude": lat, "longitude": lon},
@@ -131,6 +167,9 @@ def sidereal_chart(y, m, d, hour, lat, lon, node_type="mean"):
         "ascendantTropical": ascmc_trop[0],
         "midheavenTropical": ascmc_trop[1],
         "wholeSignCuspsSidereal": list(cusps_sid),
+        "panchanga": panchanga,
+        "sunrise": sunrise,
+        "sunset": sunset,
         "points": points,
     }
 

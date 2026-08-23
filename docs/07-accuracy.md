@@ -66,6 +66,25 @@ why** — often it's a documented convention difference (ayanāṁśa variant, y
 model), and documenting those differences publicly is itself the most credible thing on the
 site.
 
+## What is NOT verified, and how to verify it
+
+Three pieces of the calculation spec are deliberately unbuilt because they
+could not be checked against an authority. Each is listed with the check that
+would let it ship.
+
+| Missing               | Why it is not guessed                                                                                                                                        | How to verify before writing it                                                                                                                                                                                    |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Aṣṭakavarga**       | The bhinnāṣṭakavarga benefit tables are 56 rows of house lists. Recalling them approximately produces a chart that totals correctly and is wrong row by row. | The per-graha totals are fixed: Sun 48, Moon 49, Mars 39, Mercury 54, Jupiter 56, Venus 52, Saturn 39, summing to 337. Encode the tables, assert all eight totals, then diff a full chart against Jagannātha Hora. |
+| **Ṣaḍbala**           | Six sources with sub-components, and authorities differ on several.                                                                                          | Diff rūpa values per graha against Jagannātha Hora on the golden fixture set; agree a convention per sub-component and record it in the spec.                                                                      |
+| **Yogas**             | A yoga list without cancellation rules is astrologically dishonest, and cancellations are where schools diverge most.                                        | Start with Pañca Mahāpuruṣa, which is unambiguous (graha in own or exaltation sign AND in a kendra), each with its BPHS citation. Expand only where a citation exists.                                             |
+| **East Indian chart** | The Bengali sign arrangement could not be confirmed.                                                                                                         | Render the same chart in Jagannātha Hora's Bengali style and match cell by cell.                                                                                                                                   |
+
+VedAstro is MIT-licensed and ships a Docker API covering all of these. Running
+it locally and diffing against the golden fixtures is the cheapest route to
+shipping any of them with confidence. Its Python package is only an HTTP
+client to their hosted service, so it needs the container, not just a pip
+install.
+
 ## Regression discipline
 
 - The `astro` package version is stored on every computed chart. Bumping it invalidates the

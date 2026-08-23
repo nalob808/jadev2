@@ -14,7 +14,14 @@ import {
   type VargaId,
 } from '@jade/astro';
 import { formatOffset, offsetWarning, TIME_ACCURACY_MINUTES } from '@jade/atlas';
-import { DashaColumn, GLYPHS, NorthIndianChart, SouthIndianChart, VargaGrid } from '@jade/ui';
+import {
+  DashaColumn,
+  GLYPHS,
+  NorthIndianChart,
+  PanchangaCard,
+  SouthIndianChart,
+  VargaGrid,
+} from '@jade/ui';
 import { getSession } from '@/lib/auth';
 import { getDatabase } from '@/lib/db';
 import { getOrComputeChart } from '@/lib/chart';
@@ -195,6 +202,7 @@ export default async function PersonPage({
                   <th className="pb-2">Position</th>
                   <th className="hidden pb-2 sm:table-cell">Nakṣatra</th>
                   <th className="hidden pb-2 sm:table-cell">House</th>
+                  <th className="hidden pb-2 md:table-cell">Dignity</th>
                 </tr>
               </thead>
               <tbody className="font-mono">
@@ -209,6 +217,9 @@ export default async function PersonPage({
                         </span>
                         <span className="block text-[10px] text-[var(--ink-muted)] sm:hidden">
                           H{point.house} · {point.nakshatra.name} · {point.nakshatra.pada}
+                          {formatDignity(chart.dignity[point.id], chart.combustion[point.id])
+                            ? ` · ${formatDignity(chart.dignity[point.id], chart.combustion[point.id])}`
+                            : ''}
                         </span>
                       </td>
                       <td className="py-1.5 pr-3 whitespace-nowrap">
@@ -218,7 +229,10 @@ export default async function PersonPage({
                         {point.nakshatra.name}
                         <span className="text-[var(--ink-muted)]"> · {point.nakshatra.pada}</span>
                       </td>
-                      <td className="hidden py-1.5 sm:table-cell">{point.house}</td>
+                      <td className="hidden py-1.5 pr-3 sm:table-cell">{point.house}</td>
+                      <td className="hidden py-1.5 md:table-cell">
+                        {formatDignity(chart.dignity[point.id], chart.combustion[point.id])}
+                      </td>
                     </tr>
                   ))}
               </tbody>
@@ -249,6 +263,18 @@ export default async function PersonPage({
       ) : null}
 
       <Panel className="mt-5">
+        <Kicker>Pañcāṅga at birth</Kicker>
+        <div className="mt-3">
+          <PanchangaCard
+            panchanga={chart.panchanga}
+            sunrise={chart.sunrise}
+            sunset={chart.sunset}
+            formatJd={(jd) => formatLocalClock(jd, birthEvent.utcOffsetMinutes)}
+          />
+        </div>
+      </Panel>
+
+      <Panel className="mt-5">
         <div className="mb-1 flex flex-wrap items-baseline justify-between gap-2">
           <Kicker>Daśā</Kicker>
           <span className="font-mono text-[10px] text-[var(--ink-muted)]">
@@ -259,4 +285,32 @@ export default async function PersonPage({
       </Panel>
     </Shell>
   );
+}
+
+/** Julian Day to a local wall clock, using the birth event's own offset. */
+function formatLocalClock(jdUt: number, offsetMinutes: number): string {
+  const utcMs = (jdUt - 2440587.5) * 86400000;
+  const local = new Date(utcMs + offsetMinutes * 60000);
+  return `${String(local.getUTCHours()).padStart(2, '0')}:${String(local.getUTCMinutes()).padStart(2, '0')}`;
+}
+
+const DIGNITY_LABELS: Record<string, string> = {
+  exalted: 'exalted',
+  moolatrikona: 'mūlatrikoṇa',
+  own: 'own sign',
+  friend: 'friend',
+  neutral: 'neutral',
+  enemy: 'enemy',
+  debilitated: 'debilitated',
+};
+
+function formatDignity(
+  dignity: string | null | undefined,
+  combustion: { combust: boolean; cazimi: boolean } | null | undefined,
+): string {
+  const parts: string[] = [];
+  if (dignity) parts.push(DIGNITY_LABELS[dignity] ?? dignity);
+  if (combustion?.cazimi) parts.push('cazimi');
+  else if (combustion?.combust) parts.push('combust');
+  return parts.join(' · ');
 }

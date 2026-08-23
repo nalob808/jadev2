@@ -3,11 +3,11 @@ import { SOUTH_INDIAN_CELL, SOUTH_INDIAN_CELLS } from './geometry.js';
 import {
   CHART_CSS,
   SIGN_ABBREVIATIONS,
+  describeChart,
   glyphFor,
   layoutGlyphs,
   type ChartProps,
 } from './shared.js';
-import { describe } from './NorthIndianChart.js';
 
 /**
  * South Indian chart.
@@ -41,7 +41,7 @@ export function SouthIndianChart({
       }
     >
       <style>{CHART_CSS}</style>
-      <desc>{describe(varga)}</desc>
+      <desc>{describeChart(varga)}</desc>
 
       {SOUTH_INDIAN_CELLS.map(({ signIndex, row, column }) => {
         const x = column * cell;

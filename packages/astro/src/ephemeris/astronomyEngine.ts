@@ -2,7 +2,7 @@ import * as Astronomy from 'astronomy-engine';
 import type { EclipticPosition, EphemerisProvider } from './provider.js';
 import type { PointId } from '../types.js';
 import { atan2Deg, norm360, wrap180 } from '../angles.js';
-import { jdTtFromJdUt, unixMsFromJd } from '../time.js';
+import { jdFromUnixMs, jdTtFromJdUt, unixMsFromJd } from '../time.js';
 import { delaunayArguments, nutation } from '../nutation.js';
 import { centuriesFromJ2000 } from '../time.js';
 
@@ -148,5 +148,27 @@ export class AstronomyEngineProvider implements EphemerisProvider {
 
   trueObliquity(jdUt: number): number {
     return nutation(jdTtFromJdUt(jdUt)).trueObliquity;
+  }
+
+  sunriseSunset(
+    jdUt: number,
+    latitude: number,
+    longitude: number,
+  ): { sunrise: number | null; sunset: number | null } {
+    const observer = new Astronomy.Observer(latitude, longitude, 0);
+    // Search from the start of the LOCAL civil day, so the pair belongs to one
+    // day rather than straddling two. Julian Days begin at noon UT, and local
+    // time runs about longitude/360 of a day ahead of UT, hence both terms.
+    const localOffset = longitude / 360;
+    const localDayNumber = Math.floor(jdUt + localOffset + 0.5);
+    const localMidnight = localDayNumber - 0.5 - localOffset;
+    const from = timeFromJd(localMidnight);
+
+    const find = (direction: 1 | -1): number | null => {
+      const found = Astronomy.SearchRiseSet(Astronomy.Body.Sun, observer, direction, from, 1);
+      return found ? jdFromUnixMs(found.date.getTime()) : null;
+    };
+
+    return { sunrise: find(+1), sunset: find(-1) };
   }
 }

@@ -20,3 +20,8 @@ test-results/
 
 # Scratch drop for files the remote sandbox could not delete
 _to_delete/
+
+# Screenshots from verification runs belong in the session, not the repo
+/*.png
+/apps/*/*.png
+/packages/*/*.png
