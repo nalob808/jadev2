@@ -11,7 +11,7 @@ concurrency:
 
 jobs:
   verify:
-    name: typecheck · lint · test
+    name: typecheck · lint · test · build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -38,6 +38,15 @@ jobs:
 
       - name: Unit tests
         run: pnpm test
+
+      # The production build, because two whole classes of failure live only
+      # here. `tsc --noEmit` does not check declaration emit, so TS2742
+      # ("cannot be named without a reference to .pnpm/...") passes typecheck
+      # and fails `next build`. And `--frozen-lockfile` above is what catches
+      # a package.json edited without regenerating pnpm-lock.yaml. Both of
+      # those reached Vercel once. Neither should again.
+      - name: Production build
+        run: pnpm build
 
   database:
     name: database — schema, tenancy, end to end
@@ -103,6 +112,13 @@ jobs:
       # This is the check that keeps Jade honest.
       - name: Regenerate golden fixtures
         run: python3 scripts/generate_fixtures.py --check
+
+      # The Jagannātha Hora oracle. AGPL, a developer tool, never shipped —
+      # see docs/07-accuracy.md. Regenerating here means a PyJHora upgrade that
+      # changes a number fails CI instead of silently rewriting the reference.
+      - run: pip install PyJHora pytz geocoder timezonefinder geopy
+      - name: Check the oracle fixtures are current
+        run: python3 scripts/oracle_jhora.py --check
 
       - name: Run accuracy suite
         run: pnpm --filter @jade/astro test

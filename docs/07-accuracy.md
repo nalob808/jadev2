@@ -68,22 +68,130 @@ site.
 
 ## What is NOT verified, and how to verify it
 
-Three pieces of the calculation spec are deliberately unbuilt because they
+Two pieces of the calculation spec are deliberately unbuilt because they
 could not be checked against an authority. Each is listed with the check that
 would let it ship.
 
-| Missing               | Why it is not guessed                                                                                                                                        | How to verify before writing it                                                                                                                                                                                    |
-| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Aṣṭakavarga**       | The bhinnāṣṭakavarga benefit tables are 56 rows of house lists. Recalling them approximately produces a chart that totals correctly and is wrong row by row. | The per-graha totals are fixed: Sun 48, Moon 49, Mars 39, Mercury 54, Jupiter 56, Venus 52, Saturn 39, summing to 337. Encode the tables, assert all eight totals, then diff a full chart against Jagannātha Hora. |
-| **Ṣaḍbala**           | Six sources with sub-components, and authorities differ on several.                                                                                          | Diff rūpa values per graha against Jagannātha Hora on the golden fixture set; agree a convention per sub-component and record it in the spec.                                                                      |
-| **Yogas**             | A yoga list without cancellation rules is astrologically dishonest, and cancellations are where schools diverge most.                                        | Start with Pañca Mahāpuruṣa, which is unambiguous (graha in own or exaltation sign AND in a kendra), each with its BPHS citation. Expand only where a citation exists.                                             |
-| **East Indian chart** | The Bengali sign arrangement could not be confirmed.                                                                                                         | Render the same chart in Jagannātha Hora's Bengali style and match cell by cell.                                                                                                                                   |
+| Missing               | Why it is not guessed                                                                                                 | How to verify before writing it                                                                                                                                        |
+| --------------------- | --------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Ṣaḍbala**           | Six sources with sub-components, and authorities differ on several.                                                   | Diff rūpa values per graha against Jagannātha Hora on the golden fixture set; agree a convention per sub-component and record it in the spec.                          |
+| **Yogas**             | A yoga list without cancellation rules is astrologically dishonest, and cancellations are where schools diverge most. | Start with Pañca Mahāpuruṣa, which is unambiguous (graha in own or exaltation sign AND in a kendra), each with its BPHS citation. Expand only where a citation exists. |
+| **East Indian chart** | The Bengali sign arrangement could not be confirmed.                                                                  | Render the same chart in Jagannātha Hora's Bengali style and match cell by cell.                                                                                       |
 
-VedAstro is MIT-licensed and ships a Docker API covering all of these. Running
-it locally and diffing against the golden fixtures is the cheapest route to
-shipping any of them with confidence. Its Python package is only an HTTP
-client to their hosted service, so it needs the container, not just a pip
-install.
+### The oracle, and the line around it
+
+`PyJHora` is a Python port of Jagannātha Hora and covers every row above:
+aṣṭakavarga, ṣaḍbala, 1041 yoga routines, aṣṭakūṭa compatibility and doṣa. It
+is installable (`pip install PyJHora`) and it agrees with Jade exactly.
+
+Validated on 2026-08-23 across 17 of the 18 golden fixtures — seven grahas
+each, ayanāṁśa and ascendant included:
+
+    worst planet disagreement:  0.0000 arcsec
+    ayanāṁśa disagreement:      0.0001 arcsec
+
+That is not approximate agreement; it is the same Swiss Ephemeris underneath,
+reached by two independent code paths. Which makes it a usable oracle: it can
+be trusted to be a correct _reference_, so a disagreement on a derived table is
+a bug in Jade's technique, not noise in the positions.
+
+Two conditions make the comparison meaningful, and both must be set:
+
+1. **Ayanāṁśa mode `LAHIRI`.** Its default is `TRUE_PUSHYA`.
+2. **`PLANET_FLAGS` without `SEFLG_TRUEPOS`.** Its default is true positions,
+   Jade's is apparent — see the section below. Left alone, every comparison is
+   off by up to 55″ and the real technique bugs hide inside that.
+
+The eighteenth fixture, `arctic-tromso`, cannot be compared: PyJHora computes
+the ascendant through Placidus, which is undefined above the Arctic Circle, and
+`swe.houses_ex` errors. Jade uses whole-sign and returns a correct ascendant
+there, which is why that fixture exists.
+
+**PyJHora is AGPL-3.0, and must never enter Jade.** Linking it — even
+server-side, even privately — is exactly the trap Swiss Ephemeris sets: the
+network clause would oblige Jade to be released in full. The line Jade holds:
+
+- It is a **developer tool**, run in a container to emit fixture JSON. It is
+  not a dependency of any package, is never installed by `pnpm install`, and no
+  Jade code imports it.
+- Techniques are implemented **from the classical sources** — BPHS and its
+  commentaries — and then _checked_ against the oracle. Its code is not read
+  for logic and not transcribed.
+- What lands in the repository is **numbers**: computed values for specific
+  moments. Facts about a chart, not expression.
+
+That is the same relationship Jade already has with Swiss Ephemeris, which is
+also AGPL and also generates the golden fixtures. The professional licence on
+the pre-launch checklist is for _shipping_ Swiss Ephemeris; neither licence is
+triggered by generating fixtures with it. If that reading ever needs to be
+firmer than a careful reading, it is a question for a lawyer before launch, not
+after.
+
+### Apparent versus true positions
+
+Jade and Jagannātha Hora disagree, on purpose, about what a graha's position
+means.
+
+Jade computes **apparent** positions — light-time, annual aberration and
+gravitational deflection applied. That is the astronomical standard, what Swiss
+Ephemeris returns by default, and what most Jyotiṣa software uses. Jagannātha
+Hora computes **true** (geometric) positions: `SEFLG_TRUEPOS`, where the graha
+actually is at that instant.
+
+Measured across the golden fixtures, worst case:
+
+| Moon  | Sun    | Saturn | Jupiter | Mars   | Venus  | Mercury |
+| ----- | ------ | ------ | ------- | ------ | ------ | ------- |
+| 0.75″ | 20.83″ | 27.07″ | 29.18″  | 37.99″ | 44.77″ | 55.34″  |
+
+Just under an arcminute at the extreme. No sign, house, nakṣatra or varga
+changes. A degree printed to the minute can differ by one — and a practitioner
+checking Jade against the tool they already trust will notice, so the setting
+is named, persisted with the chart, and shown.
+
+`positionBasis: 'true'` is **not implemented on the astronomy-engine
+provider**, and throws there rather than approximating. The geometric route
+available to it — differencing heliocentric vectors — lands within 0.35″ on the
+Sun but drifts past 20″ on the outer planets, and `GeoMoon` is not a geometric
+position at all. A basis wrong by 20″ that exists to close a gap of 55″ trades
+one disagreement for another while looking authoritative. It belongs on the
+swisseph provider, where it is a single flag, and can ship the day the
+professional licence is bought.
+
+## Aṣṭakavarga — shipped, and what it cost
+
+The prediction in the table above was that recalling the tables approximately
+"produces a chart that totals correctly and is wrong row by row". That is
+exactly what happened, and it is worth recording because it is the argument for
+the whole verification programme.
+
+Of the 64 rows written from the classical text, 60 were right and four were
+not:
+
+| Table | Row          | Written          | Correct    | Caught by      |
+| ----- | ------------ | ---------------- | ---------- | -------------- |
+| Venus | from Mars    | house 5          | house 4    | totals check   |
+| Moon  | from Moon    | missing house 9  | includes 9 | **the oracle** |
+| Moon  | from Mars    | spurious house 9 | omits 9    | **the oracle** |
+| Moon  | from Jupiter | house 12         | house 2    | **the oracle** |
+
+The Venus slip broke the 52-bindu total and the cheap internal check found it.
+The three Moon slips **cancelled**: the row still summed to 49, the
+sarvāṣṭakavarga still summed to 337, every internal invariant held, and the
+chart looked entirely plausible. Nothing short of a diff against a reference
+implementation would have found them.
+
+Localising them took the oracle in a second mode. `av.get_ashtaka_varga` takes
+a sign placement directly, so 60 synthetic placements give an overdetermined
+linear system in the 96 unknowns of one table, solved exactly and returning
+binary values. The recovered tables reproduced all eight classical totals —
+48, 49, 39, 54, 56, 52, 39 and the ascendant's 49 — which were not inputs to
+the fit. Each of the four corrections was then checked against the classical
+reading before being accepted.
+
+Both modes are guarded in CI: the fixtures are regenerated and diffed, so a
+PyJHora upgrade that changes a number fails the build rather than quietly
+rewriting the reference.
 
 ## Regression discipline
 

@@ -20,6 +20,7 @@ export function toChartSettings(profile: SettingsProfile): ChartSettings {
     customAyanamsaAtJ2000: profile.customAyanamsaAtJ2000 ?? undefined,
     nodeType: profile.nodeType,
     houseSystem: profile.houseSystem,
+    positionBasis: profile.positionBasis,
     includeOuters: profile.includeOuters,
   };
 }

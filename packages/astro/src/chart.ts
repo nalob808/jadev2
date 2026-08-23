@@ -8,6 +8,12 @@ import { combustionOf, dignityOf, type Combustion, type Dignity } from './dignit
 import { panchangaOf, type Panchanga } from './panchanga.js';
 import { norm360 } from './angles.js';
 import {
+  ashtakavarga as computeAshtakavarga,
+  AV_CONTRIBUTORS,
+  type AshtakavargaResult,
+  type SignPlacement,
+} from './ashtakavarga.js';
+import {
   DEFAULT_SETTINGS,
   GRAHAS,
   OUTERS,
@@ -44,10 +50,12 @@ export interface ComputedChart {
   };
   readonly vargas: Record<string, Record<VargaId, number>>;
   readonly vargottama: string[];
+  /** Bhinnāṣṭakavarga per graha plus the ascendant, and the sarva totals. */
+  readonly ashtakavarga: AshtakavargaResult;
 }
 
 /** Bumped whenever any calculation changes. Stored on every cached chart. */
-export const ASTRO_VERSION = '0.2.0';
+export const ASTRO_VERSION = '0.4.0';
 
 /**
  * Compute a full sidereal chart.
@@ -95,7 +103,7 @@ export function computeChart(
   };
 
   for (const body of bodies) {
-    const p = provider.position(body, jdUt);
+    const p = provider.position(body, jdUt, settings.positionBasis);
     place(body, p.longitude, p.latitude, p.speed);
   }
   place('Ascendant', angles.ascendantTropical, 0, 0);
@@ -126,6 +134,12 @@ export function computeChart(
     if (isVargottama(position.longitude)) vargottama.push(id);
   }
 
+  // Aṣṭakavarga needs only the eight sign positions, so it is computed from
+  // the finished points rather than from longitudes again.
+  const placement = Object.fromEntries(
+    AV_CONTRIBUTORS.map((c) => [c, points[c]!.signIndex]),
+  ) as SignPlacement;
+
   return {
     meta: {
       astroVersion: ASTRO_VERSION,
@@ -150,5 +164,6 @@ export function computeChart(
     },
     vargas,
     vargottama,
+    ashtakavarga: computeAshtakavarga(placement),
   };
 }

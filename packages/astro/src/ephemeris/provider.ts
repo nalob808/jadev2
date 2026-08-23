@@ -1,4 +1,4 @@
-import type { PointId } from '../types.js';
+import type { PointId, PositionBasis } from '../types.js';
 
 /** A body's geocentric apparent position in the true ecliptic of date. */
 export interface EclipticPosition {
@@ -32,8 +32,14 @@ export interface EphemerisProvider {
   readonly id: 'astronomy-engine' | 'swisseph-native' | 'swisseph-wasm';
   readonly precisionClass: 'reference' | 'interactive';
 
-  /** Apparent geocentric position, true ecliptic of date. */
-  position(body: PointId, jdUt: number): EclipticPosition;
+  /**
+   * Geocentric position in the true ecliptic of date.
+   *
+   * `basis` selects apparent (light-time, aberration and deflection applied —
+   * the default and the astronomical standard) or true (the geometric position,
+   * which is what Jagannātha Hora computes). See `PositionBasis`.
+   */
+  position(body: PointId, jdUt: number, basis?: PositionBasis): EclipticPosition;
 
   /** Greenwich apparent sidereal time in degrees [0, 360). */
   greenwichApparentSiderealTime(jdUt: number): number;

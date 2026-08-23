@@ -15,6 +15,7 @@ const settings: ChartSettings = {
   ayanamsa: 'lahiri',
   nodeType: 'mean',
   houseSystem: 'whole_sign',
+  positionBasis: 'apparent',
   includeOuters: false,
 };
 

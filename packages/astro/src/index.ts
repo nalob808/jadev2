@@ -6,6 +6,7 @@ export * from './nakshatra.js';
 export * from './panchanga.js';
 export * from './dignity.js';
 export * from './drishti.js';
+export * from './ashtakavarga.js';
 export * from './vargas.js';
 export * from './vargaChart.js';
 export * from './houses.js';

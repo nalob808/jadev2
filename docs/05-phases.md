@@ -10,6 +10,25 @@ every day.
 
 ---
 
+## The gate before every push
+
+`pnpm verify` runs exactly what CI runs — `--frozen-lockfile`, format, typecheck, lint, test,
+build — in about a minute. Run it before pushing.
+
+Two classes of failure exist **only** in the production build and never in `next dev`:
+
+- **TS2742**, "the inferred type of X cannot be named without a reference to `.pnpm/…`". A
+  package whose types appear in an exported signature must be a _direct_ dependency even if
+  nothing imports it by name. `tsc --noEmit` does not check declaration emit, so typecheck
+  passes and `next build` fails.
+- **A `pnpm-lock.yaml` that has drifted from a `package.json`.** Your machine installs anyway;
+  CI and Vercel use `--frozen-lockfile` and refuse.
+
+Both reached Vercel once. The `Production build` step in `.github/workflows/ci.yml` is there
+so neither does again.
+
+---
+
 ## Phase 0 — Rails (2–4 days)
 
 **Goal:** an empty repo that is impossible to build sloppily in.

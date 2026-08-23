@@ -15,7 +15,8 @@ import {
   signsAspectedBy,
   signsAspectedBySign,
 } from '../src/drishti.js';
-import { GRAHAS, SIGNS, type Graha } from '../src/types.js';
+import { AstronomyEngineProvider } from '../src/ephemeris/astronomyEngine.js';
+import { DEFAULT_SETTINGS, GRAHAS, SIGNS, type Graha } from '../src/types.js';
 
 const CLASSICAL: Graha[] = ['Sun', 'Moon', 'Mars', 'Mercury', 'Jupiter', 'Venus', 'Saturn'];
 
@@ -231,7 +232,7 @@ describe('the computed chart carries dignity, combustion and pañcāṅga', () =
     // Bumping the version is what invalidates every cached chart. If this
     // assertion fails because the version moved, that is correct — but the
     // cache key must move with it.
-    expect(ASTRO_VERSION).toBe('0.2.0');
+    expect(ASTRO_VERSION).toBe('0.4.0');
 
     expect(chart.dignity.Saturn).toBeDefined();
     expect(chart.dignity.Ascendant).toBeUndefined();
@@ -263,5 +264,25 @@ describe('the computed chart carries dignity, combustion and pañcāṅga', () =
     expect(chart.panchanga.nakshatra.name).toBe('Pushya');
     expect(chart.panchanga.vara?.name).toBe('Wednesday');
     expect(chart.sunrise).not.toBeNull();
+  });
+});
+
+describe('position basis', () => {
+  const provider = new AstronomyEngineProvider({ nodeType: 'mean' });
+
+  it('computes apparent positions by default', () => {
+    const a = provider.position('Sun', 2451545.0);
+    const b = provider.position('Sun', 2451545.0, 'apparent');
+    expect(a.longitude).toBe(b.longitude);
+  });
+
+  it('refuses the true basis rather than approximating it', () => {
+    // The gap this setting exists to close is at most 55 arcseconds. The best
+    // this provider can do geometrically is wrong by 20. Refusing is correct.
+    expect(() => provider.position('Sun', 2451545.0, 'true')).toThrow(/swisseph provider/);
+  });
+
+  it('is part of the settings, so a chart records which basis produced it', () => {
+    expect(DEFAULT_SETTINGS.positionBasis).toBe('apparent');
   });
 });

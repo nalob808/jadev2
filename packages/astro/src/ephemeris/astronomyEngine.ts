@@ -1,6 +1,6 @@
 import * as Astronomy from 'astronomy-engine';
 import type { EclipticPosition, EphemerisProvider } from './provider.js';
-import type { PointId } from '../types.js';
+import type { PointId, PositionBasis } from '../types.js';
 import { atan2Deg, norm360, wrap180 } from '../angles.js';
 import { jdFromUnixMs, jdTtFromJdUt, unixMsFromJd } from '../time.js';
 import { delaunayArguments, nutation } from '../nutation.js';
@@ -107,7 +107,21 @@ export class AstronomyEngineProvider implements EphemerisProvider {
     this.nodeType = options.nodeType ?? 'mean';
   }
 
-  position(body: PointId, jdUt: number): EclipticPosition {
+  position(body: PointId, jdUt: number, basis: PositionBasis = 'apparent'): EclipticPosition {
+    if (basis !== 'apparent') {
+      // Refusing is the correct answer here. The geometric route available to
+      // this provider — differencing heliocentric vectors — agrees with
+      // SEFLG_TRUEPOS to 0.35" on the Sun but drifts past 20" on the outer
+      // planets, and astronomy-engine's GeoMoon is not a geometric position at
+      // all. Since the whole point of the setting is to close a gap of at most
+      // 55", an implementation wrong by 20" would silently replace one
+      // disagreement with another. Use the swisseph provider, where this is
+      // one flag.
+      throw new Error(
+        `positionBasis '${basis}' is not available on the astronomy-engine provider. ` +
+          'True (geometric) positions require the swisseph provider — see docs/07-accuracy.md.',
+      );
+    }
     if (body === 'Rahu' || body === 'Ketu') {
       const longitude = nodeLongitude(body, jdUt, this.nodeType);
       const dt = 0.5;

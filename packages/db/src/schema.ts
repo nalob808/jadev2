@@ -68,6 +68,14 @@ export const ayanamsaMode = pgEnum('ayanamsa_mode', [
 
 export const nodeType = pgEnum('node_type', ['mean', 'true']);
 
+/**
+ * Apparent (light-time, aberration and deflection applied — the astronomical
+ * standard) or true (geometric, which is what Jagannātha Hora computes). They
+ * differ by up to 55 arcseconds. Persisted with the profile because a chart
+ * must always be able to say which one produced it.
+ */
+export const positionBasis = pgEnum('position_basis', ['apparent', 'true']);
+
 export const houseSystem = pgEnum('house_system', ['whole_sign', 'equal', 'sripati', 'placidus']);
 
 export const chartStyle = pgEnum('chart_style', ['north', 'south', 'east', 'western_wheel']);
@@ -167,6 +175,7 @@ export const settingsProfiles = pgTable(
     customAyanamsaAtJ2000: doublePrecision('custom_ayanamsa_at_j2000'),
     nodeType: nodeType('node_type').notNull().default('mean'),
     houseSystem: houseSystem('house_system').notNull().default('whole_sign'),
+    positionBasis: positionBasis('position_basis').notNull().default('apparent'),
     chartStyle: chartStyle('chart_style').notNull().default('north'),
     includeOuters: boolean('include_outers').notNull().default(false),
     isDefault: boolean('is_default').notNull().default(false),

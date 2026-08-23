@@ -1,0 +1,6 @@
+# Generated fixtures. These are written by scripts/ and checked byte-for-byte
+# by `--check` in CI; reformatting them makes the generator and the formatter
+# fight, and the drift gate fails on a whitespace difference nobody made.
+packages/astro/test/fixtures/swisseph-golden.json
+packages/astro/test/fixtures/jhora-oracle.json
+packages/astro/test/fixtures/accuracy-report.json

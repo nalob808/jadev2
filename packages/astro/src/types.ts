@@ -34,6 +34,36 @@ export const POINT_DISPLAY_ORDER: readonly PointId[] = [...GRAHAS, ...OUTERS, ..
 
 export type NodeType = 'mean' | 'true';
 
+/**
+ * Where a graha *appears* versus where it *is*.
+ *
+ * `apparent` applies light-time, annual aberration and gravitational
+ * deflection — the astronomical standard, what Swiss Ephemeris returns by
+ * default, and what most Jyotiṣa software uses.
+ *
+ * `true` is the geometric position at that instant, uncorrected. Jagannātha
+ * Hora computes charts this way (Swiss Ephemeris `SEFLG_TRUEPOS`), so a
+ * practitioner reconciling Jade against JHora will find them disagreeing until
+ * this matches their setting. Measured across the golden fixtures, worst case:
+ *
+ *     Moon 0.75″   Sun 20.8″   Saturn 27.1″   Jupiter 29.2″
+ *     Mars 38.0″   Venus 44.8″   Mercury 55.3″
+ *
+ * Just under an arcminute at the extreme. Signs, houses, nakṣatras and vargas
+ * are unaffected; a degree printed to the minute can differ by one, and an
+ * astrologer checking Jade against the tool they already trust will notice.
+ *
+ * Jade defaults to `apparent` and says so, rather than picking silently.
+ *
+ * `true` is **not implemented on the astronomy-engine provider** and throws
+ * there. Reaching it geometrically — differencing heliocentric vectors —
+ * lands within 0.35″ on the Sun but drifts past 20″ on the outer planets, and
+ * `GeoMoon` is not a geometric position at all. A basis that is wrong by
+ * roughly the amount it exists to correct is worse than no basis. It belongs
+ * on the swisseph provider, where it is one flag; see `docs/07-accuracy.md`.
+ */
+export type PositionBasis = 'apparent' | 'true';
+
 export type HouseSystem = 'whole_sign' | 'equal' | 'sripati' | 'placidus';
 
 export const SIGNS = [
@@ -106,6 +136,7 @@ export interface ChartSettings {
   readonly customAyanamsaAtJ2000?: number;
   readonly nodeType: NodeType;
   readonly houseSystem: HouseSystem;
+  readonly positionBasis: PositionBasis;
   readonly includeOuters: boolean;
 }
 
@@ -113,6 +144,7 @@ export const DEFAULT_SETTINGS: ChartSettings = {
   ayanamsa: 'lahiri',
   nodeType: 'mean',
   houseSystem: 'whole_sign',
+  positionBasis: 'apparent',
   includeOuters: false,
 };
 
