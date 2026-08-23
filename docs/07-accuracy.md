@@ -247,6 +247,64 @@ resurfaces them:
   the nodes, and JHora reports the yoga anyway. Whatever produces that is not
   the rule in the text, so Jade does not copy it.
 
+## Ṣaḍbala — built to the point where it can be trusted, and stopped there
+
+The reconnaissance below was right about the shape of the problem. Verifying
+per sub-component rather than per bala found six that reconcile exactly and,
+more usefully, three places where the **reference** is the one that is wrong.
+
+### Verified exactly, across all seventeen charts and seven grahas
+
+| Component  | Result                                                     |
+| ---------- | ---------------------------------------------------------- |
+| uccha      | exact, 119/119                                             |
+| kendrādi   | exact, 119/119                                             |
+| oja-yugma  | exact, 119/119, neuter grahas counted as male              |
+| dig        | exact, 119/119 — against the reference's **second** method |
+| pakṣa      | exact wherever the reference returns a value in range      |
+| naisargika | a fixed table of sevenths; matches to the digit            |
+
+An early scare turned out to be nothing: uccha bala looked wrong by 0.005
+virūpa everywhere, until it became clear that every reference value ends in
+exactly two decimals. The reference rounds. The formula was right.
+
+### Three places the reference is out of range
+
+- **Its default dig bala is broken.** `_dig_bala(method=1)` returns values above
+  60 on a third of the sample, peaking at **99.95**. Dig bala is a distance
+  divided by three; 60 is a ceiling by construction. `method=2` matches Jade
+  exactly everywhere. Where an implementation ships two methods, one of them is
+  usually wrong — and the wrong one was the default.
+- **Its pakṣa bala returns −41.45** on one chart and **101.45** on another.
+  Jade agrees with it on every chart where it stays inside 0–60.
+- **Its drekkāṇa bala measures something else.** Classically fifteen virūpas or
+  nothing, by the graha's sex and third of the sign. The reference returns 0,
+  2.5, 5 and 10 — a dignity scale wearing the same name.
+
+### Sapta-vargaja: six of seven divisions agree
+
+The horā is the seventh. The classical rule admits only Cancer and Leo; the
+reference uses a twelve-sign variant. Its relationship model also cannot be
+recovered from its API, and reading its source to find out is the line this
+project does not cross. Jade implements the pañcadhā maitrī compound
+relationship from the text, and the divergence is pinned as a test.
+
+### There is no ṣaḍbala total
+
+Deliberately. A total is only as trustworthy as its weakest component, and two
+large ones are not reconciled. A number called "ṣaḍbala" assembled from
+half-verified parts is exactly the plausible-but-wrong result this project
+treats as severity one — and unlike a missing feature, nobody would ever catch
+it. A test asserts that no total is exported, so it cannot be added absent-mindedly.
+
+Dig bala and uccha bala are used standalone by practitioners, so the components
+are worth having before the total is.
+
+Still unbuilt: nathonnata (the reference returns negatives where the classical
+range is 0–60), ayana, ceṣṭā, tribhāga, yuddha, dṛk, and the calendrical four —
+abda, māsa, vāra and horā — which depend on a year and month reckoning that
+needs its own verification programme.
+
 ## Ṣaḍbala — the reconnaissance, before the build
 
 `strength.shad_bala` returns only six aggregates plus totals, and matching an

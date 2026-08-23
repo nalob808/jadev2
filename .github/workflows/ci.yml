@@ -121,6 +121,7 @@ jobs:
         run: |
           python3 scripts/oracle_jhora.py --check
           python3 scripts/oracle_ashtakuta.py --check
+          python3 scripts/oracle_shadbala.py --check
 
       - name: Run accuracy suite
         run: pnpm --filter @jade/astro test

@@ -17,3 +17,4 @@ export * from './sidereal/ayanamsa.js';
 export * from './dashas/vimshottari.js';
 export type { EclipticPosition, EphemerisProvider } from './ephemeris/provider.js';
 export { AstronomyEngineProvider } from './ephemeris/astronomyEngine.js';
+export * from './shadbala/index.js';
