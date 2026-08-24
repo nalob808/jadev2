@@ -28,6 +28,8 @@ import { getDatabase } from '@/lib/db';
 import { getOrComputeChart } from '@/lib/chart';
 import { removePerson } from '@/app/actions';
 import { Kicker, Panel, Shell } from '@/components/Shell';
+import { housesForChart, readingFor } from '@jade/interpret';
+import { HouseTable, Reading } from '@/components/Reading';
 import { NoteCard } from '@/components/NoteCard';
 import { NoteComposer } from '@/components/NoteComposer';
 
@@ -88,6 +90,11 @@ export default async function PersonPage({
   // Anchors come from this chart and this daśā, so the picker offers exactly
   // the factors on screen rather than a generic vocabulary.
   const anchors = availableAnchors(chart, dashas.periods);
+
+  // The reading is composed from this chart's own factors — see
+  // packages/interpret. Nothing here is pre-written prose.
+  const reading = readingFor(chart, { dasha: dashas.periods, nowJd });
+  const houseRows = housesForChart(chart);
   const notes = await listNotes(getDatabase(), session.workspaceId, { subjectId: subject.id });
 
   const uncertaintyMinutes = TIME_ACCURACY_MINUTES[birthEvent.timeAccuracy];
@@ -203,7 +210,7 @@ export default async function PersonPage({
             </span>
           </div>
           <div className="overflow-x-auto">
-            <table className="w-full text-[13px] sm:text-sm">
+            <table aria-label="Graha positions" className="w-full text-[13px] sm:text-sm">
               <thead>
                 <tr className="text-left font-mono text-[10px] uppercase tracking-wider text-[var(--ink-muted)]">
                   <th className="pb-2">Graha</th>
@@ -292,7 +299,39 @@ export default async function PersonPage({
         <DashaColumn dashas={dashas} atJdUt={nowJd} levels={3} />
       </Panel>
 
-      <section className="mt-5">
+      <section className="mt-8">
+        <div className="mb-4 flex flex-wrap items-baseline justify-between gap-4">
+          <div>
+            <Kicker>Reading</Kicker>
+            <h2 className="font-display text-3xl font-semibold leading-tight">
+              What this chart says, and why
+            </h2>
+          </div>
+          <Link
+            href="/learn"
+            className="font-mono text-[10px] uppercase tracking-wider text-[var(--ink-faint)] transition-colors hover:text-[var(--ink)]"
+          >
+            Reference →
+          </Link>
+        </div>
+        <p className="mb-5 max-w-[64ch] text-[14px] leading-relaxed text-[var(--ink-muted)]">
+          Every statement below carries the placements it was composed from. Nothing is asserted
+          that cannot be traced back to a factor in this chart.
+        </p>
+        <Reading sections={reading} subjectId={subject.id} />
+      </section>
+
+      <section className="mt-8">
+        <div className="mb-3">
+          <Kicker>The twelve houses</Kicker>
+          <h2 className="font-display text-3xl font-semibold leading-tight">
+            What sits in each area of life
+          </h2>
+        </div>
+        <HouseTable rows={houseRows} />
+      </section>
+
+      <section id="notes" className="mt-8">
         <div className="mb-3 flex items-baseline justify-between gap-4">
           <Kicker>Notes</Kicker>
           <Link

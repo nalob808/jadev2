@@ -39,7 +39,9 @@ test('sign in, add a person, and see their chart', async ({ page }) => {
 
   // The chart must match the values the @jade/astro accuracy suite pins to
   // Swiss Ephemeris — this is the whole pipeline agreeing end to end.
-  const table = page.locator('tbody');
+  // Named, because the page now carries two tables — the positions and the
+  // twelve houses — and an unqualified `tbody` matches both.
+  const table = page.getByRole('table', { name: 'Graha positions' }).locator('tbody');
   await expect(table).toContainText('29°48′ Scorpio'); // Ascendant
   await expect(table).toContainText('10°08′ Cancer'); // Moon
   await expect(table).toContainText('Pushya');
