@@ -12,6 +12,9 @@
     "e2e": "playwright test"
   },
   "dependencies": {
+    "@fontsource/barlow": "^5",
+    "@fontsource/barlow-condensed": "^5",
+    "@fontsource/ibm-plex-mono": "^5",
     "@jade/astro": "workspace:*",
     "@jade/atlas": "workspace:^",
     "@jade/db": "workspace:^",

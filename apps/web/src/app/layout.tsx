@@ -3,9 +3,40 @@ import type { Metadata } from 'next';
 import { NavProgress } from '@/components/NavProgress';
 import './globals.css';
 
+/**
+ * Site-wide metadata.
+ *
+ * `metadataBase` is what makes every relative Open Graph and canonical URL
+ * resolve to an absolute one. Without it Next emits relative OG tags, which
+ * most crawlers and every social preview silently drop — the page looks fine
+ * and shares as a bare link.
+ *
+ * The title template means a page sets 'Pricing' and gets 'Pricing — Jade',
+ * while the landing page overrides it outright.
+ */
 export const metadata: Metadata = {
-  title: 'Jade',
-  description: 'The practice OS for Vedic astrology.',
+  metadataBase: new URL('https://jadeapp.co'),
+  title: {
+    default: 'Jade — Vedic astrology software for serious practice',
+    template: '%s | Jade',
+  },
+  description:
+    'Professional Jyotiṣa software with verified classical mathematics: sixteen divisional charts, aṣṭakavarga, yogas, daśās, transits and relationship analysis. Free to start.',
+  applicationName: 'Jade',
+  keywords: [
+    'vedic astrology software',
+    'jyotish software',
+    'sidereal astrology',
+    'divisional charts',
+    'ashtakavarga',
+    'vimshottari dasha',
+    'north indian chart',
+    'ashtakuta matching',
+    'professional astrology software',
+  ],
+  openGraph: { siteName: 'Jade', locale: 'en', type: 'website' },
+  twitter: { card: 'summary_large_image' },
+  robots: { index: true, follow: true },
 };
 
 /**

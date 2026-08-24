@@ -80,6 +80,24 @@ export const houseSystem = pgEnum('house_system', ['whole_sign', 'equal', 'sripa
 
 export const chartStyle = pgEnum('chart_style', ['north', 'south', 'east', 'western_wheel']);
 
+/**
+ * What a note is fastened to.
+ *
+ * These are the factor *names* Jade computes, never chart rows — see
+ * `packages/astro/src/notes/anchors.ts` for why identity has to survive a
+ * settings change.
+ */
+export const noteAnchorKind = pgEnum('note_anchor_kind', [
+  'chart',
+  'graha',
+  'house',
+  'sign',
+  'nakshatra',
+  'yoga',
+  'dasha',
+  'varga',
+]);
+
 // ---------------------------------------------------------------------------
 // Identity
 // ---------------------------------------------------------------------------
@@ -424,3 +442,51 @@ export type NewWatch = typeof watches.$inferInsert;
 export type WatchHit = typeof watchHits.$inferSelect;
 export type Relationship = typeof relationships.$inferSelect;
 export type NewRelationship = typeof relationships.$inferInsert;
+
+// ---------------------------------------------------------------------------
+// Notes
+// ---------------------------------------------------------------------------
+
+/**
+ * A note, either about a person or about a technique.
+ *
+ * `subjectId` null means the latter — a note about kendras rather than about
+ * anyone's kendras. Both live here so there is one place to search.
+ *
+ * `anchorLabel` is denormalised on purpose. The notes index lists notes from
+ * every person at once and cannot compute a chart per row, so the label is
+ * stored as it read when written. It is a caption, never an identity: the
+ * anchor is `anchorKind` + `anchorKey`.
+ */
+export const notes = pgTable(
+  'notes',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    workspaceId: uuid('workspace_id')
+      .notNull()
+      .references(() => workspaces.id, { onDelete: 'cascade' }),
+    subjectId: uuid('subject_id').references(() => subjects.id, { onDelete: 'cascade' }),
+    anchorKind: noteAnchorKind('anchor_kind').notNull().default('chart'),
+    anchorKey: text('anchor_key'),
+    anchorLabel: text('anchor_label'),
+    body: text('body').notNull(),
+    tags: text('tags').array().notNull().default([]),
+    pinned: boolean('pinned').notNull().default(false),
+    createdBy: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({
+    workspaceIdx: index('notes_workspace_idx').on(table.workspaceId),
+    subjectIdx: index('notes_subject_idx').on(table.workspaceId, table.subjectId),
+    anchorIdx: index('notes_anchor_idx').on(
+      table.workspaceId,
+      table.anchorKind,
+      table.anchorKey,
+      table.updatedAt,
+    ),
+  }),
+);
+
+export type Note = typeof notes.$inferSelect;
+export type NewNote = typeof notes.$inferInsert;

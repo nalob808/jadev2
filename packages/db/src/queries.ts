@@ -5,6 +5,7 @@ import {
   birthEvents,
   charts,
   memberships,
+  notes,
   places,
   settingsProfiles,
   subjects,
@@ -18,6 +19,8 @@ import {
   type Relationship,
   type Subject,
   type Watch,
+  type Note,
+  type NewNote,
   type WatchHit as WatchHitRow,
 } from './schema.js';
 
@@ -445,6 +448,169 @@ export async function updateSettingsProfile(
       .where(and(eq(settingsProfiles.id, profileId), eq(settingsProfiles.workspaceId, workspaceId)))
       .returning();
     return rows[0] ?? null;
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Notes
+
+export interface NoteFilter {
+  /** Only notes on this person. Pass `null` for technique notes with no person. */
+  readonly subjectId?: string | null;
+  readonly anchorKind?: string;
+  readonly anchorKey?: string;
+  /** Free text over the body. Uses the 'simple' dictionary — see the migration. */
+  readonly query?: string;
+  readonly tag?: string;
+  readonly limit?: number;
+}
+
+/**
+ * Notes matching a filter, pinned first and then newest.
+ *
+ * Pinned-first is not decoration. A student keeps one note per person she
+ * returns to constantly and a long tail she wrote once; without pinning, the
+ * useful one sinks the moment anything else is edited.
+ *
+ * Full-text search runs against the same expression the index was built on
+ * (`to_tsvector(\'simple\', body)`) — written differently here, the planner would
+ * not use the index and every search would be a sequential scan.
+ */
+export async function listNotes(
+  database: Database,
+  workspaceId: string,
+  filter: NoteFilter = {},
+): Promise<Note[]> {
+  return withWorkspace(database, workspaceId, async (tx) => {
+    const conditions = [eq(notes.workspaceId, workspaceId)];
+
+    if (filter.subjectId === null) conditions.push(isNull(notes.subjectId));
+    else if (filter.subjectId) conditions.push(eq(notes.subjectId, filter.subjectId));
+
+    if (filter.anchorKind) {
+      conditions.push(eq(notes.anchorKind, filter.anchorKind as 'chart'));
+      if (filter.anchorKey) conditions.push(eq(notes.anchorKey, filter.anchorKey));
+    }
+
+    if (filter.tag) conditions.push(sql`${notes.tags} @> ARRAY[${filter.tag}]::text[]`);
+
+    const text = filter.query?.trim();
+    if (text) {
+      conditions.push(
+        sql`to_tsvector('simple', ${notes.body}) @@ plainto_tsquery('simple', ${text})`,
+      );
+    }
+
+    return tx
+      .select()
+      .from(notes)
+      .where(and(...conditions))
+      .orderBy(desc(notes.pinned), desc(notes.updatedAt))
+      .limit(Math.min(filter.limit ?? 200, 500));
+  });
+}
+
+/**
+ * How many notes exist per anchor, for the index sidebar.
+ *
+ * One grouped query rather than one per anchor: the interesting question is
+ * "what have I written most about", and answering it in the application would
+ * mean fetching every note in the workspace to throw the bodies away.
+ */
+export async function noteAnchorCounts(
+  database: Database,
+  workspaceId: string,
+): Promise<
+  Array<{ anchorKind: string; anchorKey: string | null; label: string | null; count: number }>
+> {
+  return withWorkspace(database, workspaceId, async (tx) =>
+    tx
+      .select({
+        anchorKind: notes.anchorKind,
+        anchorKey: notes.anchorKey,
+        label: sql<string | null>`max(${notes.anchorLabel})`,
+        count: sql<number>`count(*)::int`,
+      })
+      .from(notes)
+      .where(eq(notes.workspaceId, workspaceId))
+      .groupBy(notes.anchorKind, notes.anchorKey)
+      .orderBy(desc(sql`count(*)`)),
+  );
+}
+
+export async function getNote(
+  database: Database,
+  workspaceId: string,
+  noteId: string,
+): Promise<Note | null> {
+  return withWorkspace(database, workspaceId, async (tx) => {
+    const rows = await tx
+      .select()
+      .from(notes)
+      .where(and(eq(notes.id, noteId), eq(notes.workspaceId, workspaceId)))
+      .limit(1);
+    return rows[0] ?? null;
+  });
+}
+
+export async function createNote(
+  database: Database,
+  workspaceId: string,
+  note: Omit<NewNote, 'workspaceId'>,
+): Promise<Note> {
+  return withWorkspace(database, workspaceId, async (tx) => {
+    const rows = await tx
+      .insert(notes)
+      .values({ ...note, workspaceId })
+      .returning();
+    return rows[0]!;
+  });
+}
+
+/**
+ * Edit a note.
+ *
+ * `updatedAt` is set here rather than by a database trigger so the ordering the
+ * list depends on cannot silently stop working. A trigger dropped by a future
+ * migration would leave every note sorting by a timestamp that never changes,
+ * and nothing would fail loudly.
+ */
+export async function updateNote(
+  database: Database,
+  workspaceId: string,
+  noteId: string,
+  patch: Partial<
+    Pick<NewNote, 'body' | 'tags' | 'pinned' | 'anchorKind' | 'anchorKey' | 'anchorLabel'>
+  >,
+): Promise<Note | null> {
+  return withWorkspace(database, workspaceId, async (tx) => {
+    const rows = await tx
+      .update(notes)
+      .set({ ...patch, updatedAt: new Date() })
+      .where(and(eq(notes.id, noteId), eq(notes.workspaceId, workspaceId)))
+      .returning();
+    return rows[0] ?? null;
+  });
+}
+
+export async function deleteNote(
+  database: Database,
+  workspaceId: string,
+  noteId: string,
+): Promise<void> {
+  await withWorkspace(database, workspaceId, async (tx) => {
+    await tx.delete(notes).where(and(eq(notes.id, noteId), eq(notes.workspaceId, workspaceId)));
+  });
+}
+
+/** Every tag in use, for the filter menu. */
+export async function listNoteTags(database: Database, workspaceId: string): Promise<string[]> {
+  return withWorkspace(database, workspaceId, async (tx) => {
+    const rows = await tx
+      .select({ tag: sql<string>`distinct unnest(${notes.tags})` })
+      .from(notes)
+      .where(eq(notes.workspaceId, workspaceId));
+    return rows.map((row) => row.tag).sort();
   });
 }
 

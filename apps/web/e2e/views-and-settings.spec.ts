@@ -110,6 +110,15 @@ test('a custom ayanamsa without a value is rejected, not silently defaulted', as
   // to Lahiri here would compute charts in a frame nobody chose while the UI
   // reported the frame they did.
   await signIn(page);
+
+  // Establish the baseline rather than inheriting whatever the previous test
+  // left behind. A test that only passes in a particular order is a test that
+  // will fail for the wrong reason later.
+  await page.goto('/settings');
+  await page.locator('select[name="ayanamsa"]').selectOption('lahiri');
+  await page.getByRole('button', { name: 'Save settings' }).click();
+  await expect(page).toHaveURL(/saved=1/, { timeout: 20_000 });
+
   await page.goto('/settings');
   await page.locator('select[name="ayanamsa"]').selectOption('custom');
   await page.fill('input[name="customAyanamsaAtJ2000"]', '');

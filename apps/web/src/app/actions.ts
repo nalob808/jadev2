@@ -10,6 +10,10 @@ import {
   hardDeleteSubject,
   softDeleteSubject,
   updateSettingsProfile,
+  createNote,
+  updateNote,
+  deleteNote,
+  getNote,
 } from '@jade/db';
 import {
   localMeanTimeOffset,
@@ -18,7 +22,7 @@ import {
   toUtcMillis,
   type LocalDateTime,
 } from '@jade/atlas';
-import { isImplementedChartStyle, isImplementedHouseSystem } from '@jade/astro';
+import { isAnchorKind, isImplementedChartStyle, isImplementedHouseSystem } from '@jade/astro';
 import { getDatabase } from '@/lib/db';
 import { requireSession, signInDev, signOut } from '@/lib/auth';
 
@@ -209,6 +213,130 @@ export async function updateSettings(formData: FormData): Promise<void> {
   revalidatePath('/people');
   revalidatePath('/relationships');
   redirect('/settings?saved=1');
+}
+
+// ---------------------------------------------------------------------------
+// Notes
+
+/**
+ * Tags, from one comma-separated field.
+ *
+ * Lower-cased and de-duplicated so "Yoga", "yoga" and "yoga " are one tag
+ * rather than three that each match a third of the notes — the failure mode
+ * that makes a tag filter useless within a month of real use.
+ */
+function readTags(raw: string): string[] {
+  return [
+    ...new Set(
+      raw
+        .split(',')
+        .map((tag) => tag.trim().toLowerCase())
+        .filter(Boolean),
+    ),
+  ].slice(0, 12);
+}
+
+/**
+ * Where a note came from, for the redirect afterwards.
+ *
+ * Notes are written from three places — a person's page, the notes index, and
+ * a filtered view of the index — and landing somewhere else after saving loses
+ * the reader's place. The form carries its own return path.
+ */
+function safeReturn(raw: string): string {
+  // Only same-site paths. An absolute URL here would be an open redirect.
+  return raw.startsWith('/') && !raw.startsWith('//') ? raw : '/notes';
+}
+
+export async function addNote(formData: FormData): Promise<void> {
+  const session = await requireSession();
+  const read = (key: string): string => String(formData.get(key) ?? '').trim();
+  const back = safeReturn(read('returnTo'));
+
+  const body = read('body');
+  if (!body) redirect(`${back}${back.includes('?') ? '&' : '?'}noteError=Write something first.`);
+
+  const kindRaw = read('anchorKind') || 'chart';
+  const kind = isAnchorKind(kindRaw) ? kindRaw : 'chart';
+  const key = read('anchorKey');
+
+  // The database has the same rule as a CHECK constraint. Enforcing it here
+  // too means the person gets a sentence rather than a 500.
+  if (kind !== 'chart' && !key) {
+    redirect(`${back}${back.includes('?') ? '&' : '?'}noteError=Choose what to attach this to.`);
+  }
+
+  const subjectId = read('subjectId');
+
+  await createNote(getDatabase(), session.workspaceId, {
+    subjectId: subjectId || null,
+    anchorKind: kind,
+    anchorKey: kind === 'chart' ? null : key,
+    anchorLabel: read('anchorLabel') || null,
+    body,
+    tags: readTags(read('tags')),
+    createdBy: session.userId,
+  });
+
+  revalidatePath('/notes');
+  if (subjectId) revalidatePath(`/people/${subjectId}`);
+  redirect(back);
+}
+
+export async function editNote(formData: FormData): Promise<void> {
+  const session = await requireSession();
+  const read = (key: string): string => String(formData.get(key) ?? '').trim();
+  const back = safeReturn(read('returnTo'));
+  const id = read('id');
+
+  const body = read('body');
+  if (!body) redirect(`${back}${back.includes('?') ? '&' : '?'}noteError=A note cannot be empty.`);
+
+  const existing = await getNote(getDatabase(), session.workspaceId, id);
+  if (!existing) redirect(back);
+
+  await updateNote(getDatabase(), session.workspaceId, id, {
+    body,
+    tags: readTags(read('tags')),
+  });
+
+  revalidatePath('/notes');
+  if (existing.subjectId) revalidatePath(`/people/${existing.subjectId}`);
+  redirect(back);
+}
+
+/**
+ * Pin or unpin.
+ *
+ * Reads the current value and flips it rather than taking the desired state
+ * from the form, so a stale page cannot un-pin something by submitting the
+ * value it saw ten minutes ago.
+ */
+export async function toggleNotePin(formData: FormData): Promise<void> {
+  const session = await requireSession();
+  const id = String(formData.get('id') ?? '');
+  const back = safeReturn(String(formData.get('returnTo') ?? ''));
+
+  const existing = await getNote(getDatabase(), session.workspaceId, id);
+  if (existing) {
+    await updateNote(getDatabase(), session.workspaceId, id, { pinned: !existing.pinned });
+    revalidatePath('/notes');
+    if (existing.subjectId) revalidatePath(`/people/${existing.subjectId}`);
+  }
+  redirect(back);
+}
+
+export async function removeNote(formData: FormData): Promise<void> {
+  const session = await requireSession();
+  const id = String(formData.get('id') ?? '');
+  const back = safeReturn(String(formData.get('returnTo') ?? ''));
+
+  const existing = await getNote(getDatabase(), session.workspaceId, id);
+  await deleteNote(getDatabase(), session.workspaceId, id);
+
+  revalidatePath('/notes');
+  if (existing?.subjectId) revalidatePath(`/people/${existing.subjectId}`);
+  redirect(back);
 }
 
 export async function devSignIn(formData: FormData): Promise<void> {

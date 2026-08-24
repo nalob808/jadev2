@@ -1,7 +1,8 @@
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
-import { getSettingsProfile, getSubject } from '@jade/db';
+import { getSettingsProfile, getSubject, listNotes } from '@jade/db';
 import {
+  availableAnchors,
   buildVargaChart,
   dashaChainAt,
   formatSignPosition,
@@ -27,6 +28,8 @@ import { getDatabase } from '@/lib/db';
 import { getOrComputeChart } from '@/lib/chart';
 import { removePerson } from '@/app/actions';
 import { Kicker, Panel, Shell } from '@/components/Shell';
+import { NoteCard } from '@/components/NoteCard';
+import { NoteComposer } from '@/components/NoteComposer';
 
 export const dynamic = 'force-dynamic';
 
@@ -44,7 +47,7 @@ export default async function PersonPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ style?: string; varga?: string; view?: string }>;
+  searchParams: Promise<{ style?: string; varga?: string; view?: string; noteError?: string }>;
 }) {
   const session = await getSession();
   if (!session) redirect('/sign-in');
@@ -81,6 +84,11 @@ export default async function PersonPage({
   // "Now" is passed explicitly rather than read inside the core.
   const nowJd = jdFromUnixMs(Date.now());
   const runningChain = dashaChainAt(dashas, nowJd);
+
+  // Anchors come from this chart and this daśā, so the picker offers exactly
+  // the factors on screen rather than a generic vocabulary.
+  const anchors = availableAnchors(chart, dashas.periods);
+  const notes = await listNotes(getDatabase(), session.workspaceId, { subjectId: subject.id });
 
   const uncertaintyMinutes = TIME_ACCURACY_MINUTES[birthEvent.timeAccuracy];
   const warning = offsetWarning({
@@ -283,6 +291,37 @@ export default async function PersonPage({
         </div>
         <DashaColumn dashas={dashas} atJdUt={nowJd} levels={3} />
       </Panel>
+
+      <section className="mt-5">
+        <div className="mb-3 flex items-baseline justify-between gap-4">
+          <Kicker>Notes</Kicker>
+          <Link
+            href={`/notes?q=&anchorKind=`}
+            className="font-mono text-[10px] uppercase tracking-wider text-[var(--ink-faint)] transition-colors hover:text-[var(--ink)]"
+          >
+            All notes →
+          </Link>
+        </div>
+
+        <div className="flex flex-col gap-3">
+          {/* Keyed on the newest note — see the note on /notes. */}
+          <NoteComposer
+            key={notes[0]?.id ?? 'empty'}
+            subjectId={subject.id}
+            anchors={anchors}
+            returnTo={base}
+            error={query.noteError || undefined}
+          />
+          {notes.map((note, index) => (
+            <NoteCard
+              key={`${note.id}:${new Date(note.updatedAt).getTime()}`}
+              note={note}
+              index={index}
+              returnTo={base}
+            />
+          ))}
+        </div>
+      </section>
     </Shell>
   );
 }

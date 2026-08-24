@@ -1,0 +1,35 @@
+/*
+ * Jade's typefaces, self-hosted.
+ *
+ * packages/ui/tokens.ts has named these three since Phase 0 and nothing ever
+ * loaded them, so every screen rendered in the system sans fallback — which is
+ * why the app looked generic despite having a design system. A font stack is a
+ * wish, not a font.
+ *
+ * Fontsource rather than next/font/google, deliberately. next/font fetches
+ * from Google at *build* time, which makes every build depend on a third-party
+ * host being reachable; a sandbox or an offline CI runner fails the build with
+ * an error about fonts. These packages ship the woff2 files in node_modules,
+ * so the build is hermetic, and nothing is requested from Google at runtime
+ * either — one less third party seeing your users' IP addresses.
+ *
+ * Only the weights actually used. Each one is a separate file the browser
+ * downloads, and shipping nine weights to render three is how a page ends up
+ * spending 400KB on type.
+ */
+
+/* Body — Barlow */
+@import '@fontsource/barlow/400.css';
+@import '@fontsource/barlow/500.css';
+@import '@fontsource/barlow/600.css';
+
+/* Display — Barlow Condensed. The narrow face is what lets a heading carry a
+   long Sanskrit compound on one line. */
+@import '@fontsource/barlow-condensed/500.css';
+@import '@fontsource/barlow-condensed/600.css';
+@import '@fontsource/barlow-condensed/700.css';
+
+/* Data — IBM Plex Mono. Degrees, dates and bindu counts sit in columns, and a
+   proportional face makes a column of numbers an edge the eye cannot scan. */
+@import '@fontsource/ibm-plex-mono/400.css';
+@import '@fontsource/ibm-plex-mono/500.css';
