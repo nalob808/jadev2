@@ -36,7 +36,8 @@ test('pair two people and read the two charts together', async ({ page }) => {
   await page.goto('/sign-in');
   await page.fill('#email', EMAIL);
   await page.getByRole('button', { name: 'Continue' }).click();
-  await expect(page).toHaveURL(/\/people$/);
+  // Signing in lands on the dashboard, not the list.
+  await expect(page).toHaveURL(/\/dashboard$/, { timeout: 20_000 });
 
   await addPerson(page, 'First Person', '2001-11-07', '10:32');
   await addPerson(page, 'Second Person', '1996-03-19', '04:10');

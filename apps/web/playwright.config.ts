@@ -10,7 +10,14 @@ const port = 3199;
 
 export default defineConfig({
   testDir: './e2e',
-  timeout: 60_000,
+  /**
+   * The person page now composes a reading, seats twelve houses and renders an
+   * interactive wheel on top of casting the chart, and several tests create a
+   * person each. Sixty seconds was comfortable before that and became a
+   * source of failures that pass in isolation — which is the worst kind,
+   * because it teaches you to re-run rather than to look.
+   */
+  timeout: 120_000,
   fullyParallel: false,
   workers: 1,
   reporter: process.env.CI ? 'github' : 'list',

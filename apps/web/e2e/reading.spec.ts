@@ -17,7 +17,8 @@ async function signInAndAddPerson(page: Page): Promise<string> {
   await page.goto('/sign-in');
   await page.fill('#email', EMAIL);
   await page.getByRole('button', { name: 'Continue' }).click();
-  await expect(page).toHaveURL(/\/people$/);
+  // Signing in lands on the dashboard, not the list.
+  await expect(page).toHaveURL(/\/dashboard$/, { timeout: 20_000 });
 
   await page.goto('/people/new');
   await page.fill('#displayName', 'Reading Subject');
@@ -27,6 +28,11 @@ async function signInAndAddPerson(page: Page): Promise<string> {
   await page.locator('ul li button').first().click();
   await page.getByRole('button', { name: 'Add person' }).click();
   await expect(page).toHaveURL(/\/people\/[0-9a-f-]{36}$/, { timeout: 30_000 });
+  // The URL changes before the server component finishes streaming, so
+  // waiting on it alone reads the loading skeleton. Wait for real content.
+  await expect(page.getByRole('table', { name: 'Graha positions' })).toBeVisible({
+    timeout: 30_000,
+  });
   return page.url();
 }
 
@@ -70,9 +76,9 @@ test('a reading is specific to the chart, and never predicts the forbidden', asy
 test('the house table teaches, and links to the reference', async ({ page }) => {
   const person = await signInAndAddPerson(page);
   await page.goto(person);
-
-  const table = page.locator('table', { hasText: 'What it governs' });
-  await expect(table).toBeVisible();
+  // Named, because the page carries two tables.
+  const table = page.getByRole('table', { name: 'The twelve houses' });
+  await expect(table).toBeVisible({ timeout: 30_000 });
   await expect(table.locator('tbody tr')).toHaveCount(12);
 
   await table.getByRole('link', { name: '7', exact: true }).click();

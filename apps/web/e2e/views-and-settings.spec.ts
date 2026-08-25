@@ -23,7 +23,8 @@ async function signIn(page: import('@playwright/test').Page): Promise<void> {
   await page.goto('/sign-in');
   await page.fill('#email', EMAIL);
   await page.getByRole('button', { name: 'Continue' }).click();
-  await expect(page).toHaveURL(/\/people$/);
+  // Signing in lands on the dashboard, not the list.
+  await expect(page).toHaveURL(/\/dashboard$/, { timeout: 20_000 });
 }
 
 test.beforeAll(async ({ browser }) => {
@@ -44,6 +45,7 @@ test.beforeAll(async ({ browser }) => {
 
 test('search, sort and view live in the URL and survive a reload', async ({ page }) => {
   await signIn(page);
+  await page.goto('/people');
 
   // Search narrows the list and reports what it hid.
   await page.fill('#people-search', 'zoya');

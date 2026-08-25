@@ -31,7 +31,8 @@ async function signIn(page: Page, email: string): Promise<void> {
   await page.goto('/sign-in');
   await page.fill('#email', email);
   await page.getByRole('button', { name: 'Continue' }).click();
-  await expect(page).toHaveURL(/\/people$/);
+  // Signing in lands on the dashboard, not the list.
+  await expect(page).toHaveURL(/\/dashboard$/, { timeout: 20_000 });
 }
 
 async function addPerson(page: Page, entry: (typeof PEOPLE)[number]): Promise<string> {
@@ -92,14 +93,18 @@ test('the study log searches, filters by tag, and pins', async ({ page }) => {
   // fails for a reason that has nothing to do with searching.
   await page.fill('#notes-search', 'pillars');
   await expect(page).toHaveURL(/q=pillars/, { timeout: 10_000 });
+  // The URL updates as soon as the debounce fires, but the filtered list is a
+  // server render that lands after it. Waiting for the list to settle to one
+  // card is a single assertion on the finished state rather than two that can
+  // each catch a different moment mid-flight.
+  await expect(page.locator('article')).toHaveCount(1, { timeout: 20_000 });
   await expect(page.getByText('Kendras are the pillars of the chart.')).toBeVisible();
-  await expect(page.getByText('Revisit the ninth lord question.')).toHaveCount(0);
 
   await page.goto('/notes');
   await page.locator('#notes-tag').selectOption('revisit');
   await expect(page).toHaveURL(/tag=revisit/, { timeout: 10_000 });
+  await expect(page.locator('article')).toHaveCount(1, { timeout: 20_000 });
   await expect(page.getByText('Revisit the ninth lord question.')).toBeVisible();
-  await expect(page.getByText('Kendras are the pillars of the chart.')).toHaveCount(0);
 
   // Pinning floats a note above newer ones. Located by its text rather than by
   // position, so the assertion says what it means.

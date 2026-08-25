@@ -4,6 +4,7 @@ import { getSettingsProfile, getSubject, listNotes } from '@jade/db';
 import {
   availableAnchors,
   buildVargaChart,
+  signsAspectedBy,
   dashaChainAt,
   formatSignPosition,
   jdFromUnixMs,
@@ -22,6 +23,7 @@ import {
   PanchangaCard,
   SouthIndianChart,
   VargaGrid,
+  Wheel,
 } from '@jade/ui';
 import { getSession } from '@/lib/auth';
 import { getDatabase } from '@/lib/db';
@@ -95,6 +97,27 @@ export default async function PersonPage({
   // packages/interpret. Nothing here is pre-written prose.
   const reading = readingFor(chart, { dasha: dashas.periods, nowJd });
   const houseRows = housesForChart(chart);
+
+  // The wheel draws from real longitudes rather than sign buckets, so it needs
+  // the points themselves rather than the varga projection the square charts
+  // use.
+  const wheelPoints = POINT_DISPLAY_ORDER.filter((id) => chart.points[id]).map((id) => {
+    const point = chart.points[id]!;
+    return {
+      id,
+      longitude: point.longitude,
+      signIndex: point.signIndex,
+      degreesInSign: point.degreesInSign,
+      house: point.house,
+      retrograde: point.retrograde,
+      nakshatra: point.nakshatra.name,
+      dignity: chart.dignity[id] ?? null,
+    };
+  });
+
+  const wheelAspects = (['Sun', 'Moon', 'Mars', 'Mercury', 'Jupiter', 'Venus', 'Saturn'] as const)
+    .filter((id) => chart.points[id])
+    .flatMap((id) => signsAspectedBy(id, chart.points[id]!.signIndex));
   const notes = await listNotes(getDatabase(), session.workspaceId, { subjectId: subject.id });
 
   const uncertaintyMinutes = TIME_ACCURACY_MINUTES[birthEvent.timeAccuracy];
@@ -298,6 +321,33 @@ export default async function PersonPage({
         </div>
         <DashaColumn dashas={dashas} atJdUt={nowJd} levels={3} />
       </Panel>
+
+      <section className="mt-8">
+        <div className="mb-3">
+          <Kicker>The wheel</Kicker>
+          <h2 className="font-display text-3xl font-semibold leading-tight">
+            Every degree, and what aspects what
+          </h2>
+          <p className="mt-1 max-w-[64ch] text-[14px] leading-relaxed text-[var(--ink-muted)]">
+            Drawn from longitudes rather than sign buckets — the square charts say Mars is in
+            Scorpio, this says where in Scorpio. Toggle the layers; click a graha to isolate its
+            dṛṣṭi.
+          </p>
+        </div>
+        <Panel>
+          <div className="flex justify-center">
+            <div className="w-full max-w-[560px]">
+              <Wheel
+                points={wheelPoints}
+                aspects={wheelAspects}
+                ascendant={chart.points.Ascendant!.longitude}
+                ascendantSign={chart.houses.ascendantSign}
+                title={`${subject.displayName} — circular chart`}
+              />
+            </div>
+          </div>
+        </Panel>
+      </section>
 
       <section className="mt-8">
         <div className="mb-4 flex flex-wrap items-baseline justify-between gap-4">

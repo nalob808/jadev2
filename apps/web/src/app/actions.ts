@@ -343,7 +343,9 @@ export async function devSignIn(formData: FormData): Promise<void> {
   const email = String(formData.get('email') ?? '').trim();
   if (!email) return;
   await signInDev(email);
-  redirect('/people');
+  // The dashboard, not the list: signing in should answer "what is happening"
+  // before it asks "who do you want to look at".
+  redirect('/dashboard');
 }
 
 export async function devSignOut(): Promise<void> {
