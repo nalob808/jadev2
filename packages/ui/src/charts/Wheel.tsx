@@ -58,6 +58,24 @@ export interface WheelProps {
   readonly aspects?: readonly WheelAspect[];
   /** A second ring, for transits over a natal chart. */
   readonly transits?: readonly WheelPoint[];
+  /**
+   * Sarvāṣṭakavarga bindus per sign, index 0 = Aries. Twelve numbers summing
+   * to 337. Given, the wheel can shade each sign by its count — which is what
+   * transit work actually reads the wheel for.
+   */
+  readonly sarva?: readonly number[];
+  /**
+   * Bhāva cusp longitudes, twelve of them, for the chalit overlay.
+   *
+   * The square charts and this wheel both seat grahas by whole sign, where
+   * house and sign are the same thing. Under any other frame they are not, and
+   * a graha late in a sign can sit in the *next* bhāva — which changes what it
+   * is read as doing. Drawn as a second, dashed set of spokes so the
+   * difference is visible rather than asserted.
+   */
+  readonly bhavaCusps?: readonly number[];
+  /** Names the frame `bhavaCusps` was computed in, so the overlay can say so. */
+  readonly bhavaLabel?: string;
   readonly size?: number;
   readonly title?: string;
 }
@@ -88,7 +106,16 @@ const ELEMENT_TINT: Record<string, string> = {
   water: 'var(--clay, #9E5B3A)',
 };
 
-type Toggle = 'houses' | 'signs' | 'degrees' | 'aspects' | 'nakshatras' | 'transits' | 'elements';
+type Toggle =
+  | 'houses'
+  | 'signs'
+  | 'degrees'
+  | 'aspects'
+  | 'nakshatras'
+  | 'transits'
+  | 'elements'
+  | 'sarva'
+  | 'chalit';
 
 const TOGGLE_LABELS: Record<Toggle, string> = {
   houses: 'House numbers',
@@ -98,6 +125,8 @@ const TOGGLE_LABELS: Record<Toggle, string> = {
   nakshatras: 'Nakṣatra divisions',
   transits: 'Transit ring',
   elements: 'Element tint',
+  sarva: 'Aṣṭakavarga',
+  chalit: 'Bhāva chalit',
 };
 
 export function Wheel({
@@ -106,6 +135,9 @@ export function Wheel({
   ascendantSign,
   aspects = [],
   transits = [],
+  sarva = [],
+  bhavaCusps = [],
+  bhavaLabel = 'equal from the lagna degree',
   size = 520,
   title,
 }: WheelProps): React.ReactElement {
@@ -117,6 +149,8 @@ export function Wheel({
     nakshatras: false,
     transits: transits.length > 0,
     elements: true,
+    sarva: false,
+    chalit: false,
   });
   const [selected, setSelected] = useState<string | null>(null);
 
@@ -158,7 +192,10 @@ export function Wheel({
       {/* ------------------------------------------------------------ controls */}
       <div role="group" aria-label="Chart layers" className="flex flex-wrap gap-1.5">
         {(Object.keys(TOGGLE_LABELS) as Toggle[])
+          // A toggle for a layer with no data is a dead control.
           .filter((key) => key !== 'transits' || transits.length > 0)
+          .filter((key) => key !== 'sarva' || sarva.length === 12)
+          .filter((key) => key !== 'chalit' || bhavaCusps.length === 12)
           .map((key) => (
             <button
               key={key}
@@ -194,6 +231,82 @@ export function Wheel({
         role="img"
         aria-label={title ?? 'Circular chart with twelve houses'}
       >
+        {/*
+          Sarvāṣṭakavarga.
+          
+          Shaded by bindu count and labelled with the number. The opacity ramp
+          is deliberately one hue rather than red-to-green: this is a density,
+          and the moment it becomes a traffic light it is claiming that a
+          transit through a low sign goes badly, which is not what the count
+          says. The number is always drawn, so the shading is decoration on top
+          of a figure rather than the figure itself.
+        */}
+        {on.sarva && sarva.length === 12
+          ? Array.from({ length: 12 }, (_, signIndex) => {
+              const bindus = sarva[signIndex] ?? 0;
+              const start = angleFor(signIndex * 30, ascendant);
+              // The classical range runs about 19–39 across the twelve.
+              const t = Math.max(0, Math.min(1, (bindus - 18) / 20));
+              const [tx, ty] = polar(cx, cy, rInner + 3.6, start + 15);
+              return (
+                <g key={`sarva-${signIndex}`}>
+                  <path
+                    d={annulusSector(cx, cy, rInner, rInner + 7, start, start + 30)}
+                    fill="var(--accent, #33668F)"
+                    opacity={0.08 + t * 0.42}
+                  />
+                  <text
+                    x={tx}
+                    y={ty}
+                    textAnchor="middle"
+                    dominantBaseline="central"
+                    fontSize={3}
+                    fontWeight={600}
+                    fill="var(--ink, #16222E)"
+                  >
+                    {bindus}
+                  </text>
+                </g>
+              );
+            })
+          : null}
+
+        {/*
+          Bhāva chalit cusps, dashed so they read as a second opinion rather
+          than as the frame everything else was drawn in.
+        */}
+        {on.chalit && bhavaCusps.length === 12
+          ? bhavaCusps.map((cusp, houseIndex) => {
+              const angle = angleFor(cusp, ascendant);
+              const [x1, y1] = polar(cx, cy, rInner, angle);
+              const [x2, y2] = polar(cx, cy, rOuter, angle);
+              const [lx, ly] = polar(cx, cy, rInner - 2.4, angle + 15);
+              return (
+                <g key={`chalit-${houseIndex}`}>
+                  <line
+                    x1={x1}
+                    y1={y1}
+                    x2={x2}
+                    y2={y2}
+                    stroke="var(--clay, #9E5B3A)"
+                    strokeWidth={0.35}
+                    strokeDasharray="1.4 1"
+                  />
+                  <text
+                    x={lx}
+                    y={ly}
+                    textAnchor="middle"
+                    dominantBaseline="central"
+                    fontSize={2.4}
+                    fill="var(--clay, #9E5B3A)"
+                  >
+                    {houseIndex + 1}
+                  </text>
+                </g>
+              );
+            })
+          : null}
+
         {/* Sign sectors */}
         {Array.from({ length: 12 }, (_, i) => {
           const signIndex = i;
@@ -482,6 +595,30 @@ export function Wheel({
           </p>
         )}
       </div>
+
+      {/*
+        A layer that changes the reading has to say what frame it is in. The
+        chalit spokes especially: without the label they look like a correction
+        to the house cusps rather than a different, named way of cutting them.
+      */}
+      {on.sarva || on.chalit ? (
+        <div className="flex flex-col gap-1 border-l-2 border-[var(--rule-strong,#A9B2AE)] pl-3">
+          {on.sarva ? (
+            <p className="font-mono text-[10.5px] leading-relaxed text-[var(--ink-muted)]">
+              <span className="text-[var(--accent)]">Aṣṭakavarga</span> — sarva bindus per sign, 337
+              across the twelve. The shading is density, not merit: a low count does not say a
+              transit through that sign goes badly, only that fewer contributors marked it.
+            </p>
+          ) : null}
+          {on.chalit ? (
+            <p className="font-mono text-[10.5px] leading-relaxed text-[var(--ink-muted)]">
+              <span className="text-[var(--clay)]">Bhāva chalit</span> — cusps {bhavaLabel}. Where a
+              dashed spoke falls between a graha and its sign boundary, that graha sits in a
+              different bhāva than the whole-sign house it is drawn in.
+            </p>
+          ) : null}
+        </div>
+      ) : null}
     </div>
   );
 }

@@ -19,6 +19,26 @@ const PEOPLE = [
   { name: 'Arun Mehta', date: '2001-11-07', time: '10:32', place: 'Ann Arb' },
 ];
 
+/**
+ * Open /settings and wait until React has taken the form over.
+ *
+ * The selects are uncontrolled with `defaultValue`, so a `selectOption` that
+ * lands before hydration can be reverted by it — the value goes back to what
+ * the server rendered and the save writes the old setting. That race was
+ * always here and was simply too narrow to hit until the zone picker added
+ * several hundred options to the page and slowed hydration down.
+ *
+ * The picker's detection button is rendered from an effect, so its presence
+ * is a genuine signal that hydration has finished rather than a sleep.
+ */
+async function openSettings(page: import('@playwright/test').Page): Promise<void> {
+  await page.goto('/settings');
+  await expect(page.locator('#homeZoneId')).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByRole('button', { name: /use this device/ })).toBeVisible({
+    timeout: 20_000,
+  });
+}
+
 async function signIn(page: import('@playwright/test').Page): Promise<void> {
   await page.goto('/sign-in');
   await page.fill('#email', EMAIL);
@@ -79,7 +99,7 @@ test('a nonsense URL shows the list rather than an error', async ({ page }) => {
 
 test('settings saves the lens, and refuses what is not implemented', async ({ page }) => {
   await signIn(page);
-  await page.goto('/settings');
+  await openSettings(page);
   await expect(page.getByRole('heading', { name: 'The lens' })).toBeVisible();
 
   // The two unbuilt house systems are visible — so the question is answered —
@@ -100,7 +120,12 @@ test('settings saves the lens, and refuses what is not implemented', async ({ pa
   await expect(page.locator('select[name="ayanamsa"]')).toHaveValue('raman');
   await expect(page.locator('select[name="nodeType"]')).toHaveValue('true');
 
-  // Put it back, so this test can run twice against the same database.
+  // Put it back, so this test can run twice against the same database. The
+  // reload above means hydration has to be waited for again before touching
+  // an uncontrolled select.
+  await expect(page.getByRole('button', { name: /use this device/ })).toBeVisible({
+    timeout: 20_000,
+  });
   await page.locator('select[name="ayanamsa"]').selectOption('lahiri');
   await page.locator('select[name="nodeType"]').selectOption('mean');
   await page.getByRole('button', { name: 'Save settings' }).click();
@@ -116,12 +141,12 @@ test('a custom ayanamsa without a value is rejected, not silently defaulted', as
   // Establish the baseline rather than inheriting whatever the previous test
   // left behind. A test that only passes in a particular order is a test that
   // will fail for the wrong reason later.
-  await page.goto('/settings');
+  await openSettings(page);
   await page.locator('select[name="ayanamsa"]').selectOption('lahiri');
   await page.getByRole('button', { name: 'Save settings' }).click();
   await expect(page).toHaveURL(/saved=1/, { timeout: 20_000 });
 
-  await page.goto('/settings');
+  await openSettings(page);
   await page.locator('select[name="ayanamsa"]').selectOption('custom');
   await page.fill('input[name="customAyanamsaAtJ2000"]', '');
   await page.getByRole('button', { name: 'Save settings' }).click();
@@ -136,6 +161,6 @@ test('a custom ayanamsa without a value is rejected, not silently defaulted', as
   // error and types the missing number rather than starting again.
   //
   // What matters is that nothing was *written*. A fresh load reads the row.
-  await page.goto('/settings');
+  await openSettings(page);
   await expect(page.locator('select[name="ayanamsa"]')).toHaveValue('lahiri');
 });

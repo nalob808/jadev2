@@ -121,6 +121,22 @@ export default async function PersonPage({
     };
   });
 
+  /**
+   * Bhāva cusps for the chalit overlay, equal from the ascendant *degree*.
+   *
+   * Named rather than implied. The chart itself is whole-sign, where house one
+   * begins at 0° of the rising sign; this frame begins it at the ascendant
+   * itself, so the two disagree by however far into the sign the lagna falls.
+   * That disagreement is the entire content of a chalit overlay — a graha in
+   * the last degrees of a sign can belong to the next bhāva.
+   *
+   * Śrīpati is the other common frame and is deliberately not offered: it is
+   * unimplemented in the core precisely because it has not been verified, and
+   * an unverified cusp is worse here than no overlay.
+   */
+  const ascendantLongitude = chart.points.Ascendant!.longitude;
+  const bhavaCusps = Array.from({ length: 12 }, (_, i) => (ascendantLongitude + i * 30) % 360);
+
   const wheelAspects = (['Sun', 'Moon', 'Mars', 'Mercury', 'Jupiter', 'Venus', 'Saturn'] as const)
     .filter((id) => chart.points[id])
     .flatMap((id) => signsAspectedBy(id, chart.points[id]!.signIndex));
@@ -169,6 +185,12 @@ export default async function PersonPage({
             href={`${base}/edit`}
           >
             edit
+          </Link>
+          <Link className="underline" href={`${base}/report`}>
+            report
+          </Link>
+          <Link className="underline" href={`${base}/report?notes=1`}>
+            report + notes
           </Link>
           <a className="underline" href={`/api/people/${subject.id}/export`}>
             export
@@ -360,6 +382,9 @@ export default async function PersonPage({
                 aspects={wheelAspects}
                 ascendant={chart.points.Ascendant!.longitude}
                 ascendantSign={chart.houses.ascendantSign}
+                sarva={chart.ashtakavarga.sarva}
+                bhavaCusps={bhavaCusps}
+                bhavaLabel="equal from the lagna degree"
                 title={`${subject.displayName} — circular chart`}
               />
             </div>

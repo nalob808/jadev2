@@ -470,3 +470,152 @@ h3 {
   white-space: nowrap;
   border-width: 0;
 }
+
+/* ===========================================================================
+   Print
+   ---------------------------------------------------------------------------
+   A report is the thing a practitioner hands to a client, and until now
+   Ctrl-P produced the screen: dark panels, a navigation bar, hover brackets,
+   and charts cropped at a page break.
+
+   Three rules drive everything here.
+
+   **Ink is expensive and paper is white.** Every surface tint, tinted panel
+   and dark-theme variable is forced back to white with black text. This is
+   also why `print-color-adjust` is *not* set to exact globally — the one
+   place colour is worth preserving is a chart, and those opt back in.
+
+   **A chart must never straddle a page break.** An SVG cut in half is not a
+   degraded chart, it is a useless one, so every chart and panel is
+   `break-inside: avoid`.
+
+   **Anything interactive is meaningless on paper.** Navigation, toggles,
+   buttons and forms are removed rather than greyed out — a printed page with
+   a disabled button on it looks like a screenshot, not a document.
+   =========================================================================== */
+
+@media print {
+  /* The theme is a screen concern. On paper there is one palette. */
+  :root,
+  :root[data-theme='dark'],
+  :root:not([data-theme='light']) {
+    --paper: #ffffff;
+    --surface: #ffffff;
+    --surface-alt: #ffffff;
+    --ink: #000000;
+    --ink-muted: #333333;
+    --ink-faint: #595959;
+    --rule: #bbbbbb;
+    --rule-strong: #888888;
+    --accent: #1c4a70;
+    --jade: #1d5f4c;
+    --clay: #7d4227;
+    --benefic: #1d5f4c;
+    --malefic: #7d4227;
+    --panel-shadow: none;
+    --panel-shadow-lifted: none;
+    --panel-highlight: transparent;
+    --grid-line: transparent;
+  }
+
+  @page {
+    size: A4;
+    margin: 14mm 12mm;
+  }
+
+  html,
+  body {
+    background: #fff !important;
+    color: #000 !important;
+  }
+
+  body {
+    font-size: 10pt;
+    line-height: 1.45;
+  }
+
+  /* Anything that only exists to be clicked. */
+  .print-hide,
+  nav,
+  header form,
+  button,
+  [role='group'][aria-label='Chart layers'],
+  .jade-ecliptic,
+  input,
+  select,
+  textarea {
+    display: none !important;
+  }
+
+  /* …except where a control is the only wrapper around real content. */
+  .print-keep,
+  .print-keep * {
+    display: revert !important;
+  }
+
+  /* Panels become plain ruled blocks: no shadow, no brackets, no tint. */
+  .jade-panel {
+    background: #fff !important;
+    border: 1px solid var(--rule) !important;
+    box-shadow: none !important;
+    break-inside: avoid;
+  }
+  .jade-panel::before,
+  .jade-panel::after {
+    display: none !important;
+  }
+
+  /* The entrance animation is a screen affordance and prints as nothing. */
+  .jade-rise {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+
+  /* Charts keep their colour and are never cut in half. */
+  .jade-chart,
+  svg {
+    break-inside: avoid;
+    page-break-inside: avoid;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+    max-width: 100% !important;
+    height: auto !important;
+  }
+
+  section,
+  article,
+  tr,
+  li,
+  .jade-print-block {
+    break-inside: avoid;
+  }
+
+  h1,
+  h2,
+  h3 {
+    break-after: avoid;
+  }
+
+  /* A table that runs over a page repeats its header, or the second page is
+     a grid of unlabelled numbers. */
+  thead {
+    display: table-header-group;
+  }
+
+  a {
+    text-decoration: none !important;
+    color: inherit !important;
+  }
+
+  /* Where a link carries information the paper cannot follow, print it. */
+  .print-url::after {
+    content: ' (' attr(href) ')';
+    font-size: 8pt;
+    color: var(--ink-faint);
+  }
+
+  .print-break-before {
+    break-before: page;
+  }
+}

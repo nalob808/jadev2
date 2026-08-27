@@ -200,6 +200,14 @@ export default async function RelationshipPage({ params }: { params: Promise<{ i
         <p className="mt-3 max-w-[74ch] text-[15px] leading-relaxed text-[var(--ink-muted)]">
           {SYNASTRY_PREAMBLE}
         </p>
+        <p className="mt-3">
+          <Link
+            className="font-mono text-[11px] uppercase tracking-wider text-[var(--accent)] underline underline-offset-2"
+            href={`/relationships/${pair.id}/report`}
+          >
+            Printable report →
+          </Link>
+        </p>
       </div>
 
       {/*
