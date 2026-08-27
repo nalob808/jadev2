@@ -31,6 +31,24 @@
   --benefic: #2c7a64;
   --malefic: #9e5b3a;
 
+  /*
+   * The three day bands.
+   *
+   * Drawn from the existing jade/clay pair rather than from traffic-light
+   * primaries. A saturated red square reads as a verdict on its own, before
+   * anyone gets to the sentence explaining that these are muhūrta counts about
+   * the suitability of undertakings — the colour would be making a claim the
+   * text spends a paragraph refusing to make. These are the same hues the rest
+   * of the app already uses for benefic and malefic, which is the right
+   * register: a classification, not a warning.
+   */
+  --band-favourable: #2c7a64;
+  --band-mixed: #b98325;
+  --band-difficult: #9e5b3a;
+  --band-favourable-wash: #e2ece8;
+  --band-mixed-wash: #f3ebd9;
+  --band-difficult-wash: #f0e4dd;
+
   --skeleton: #e2e4dd;
   --skeleton-sheen: #eef0ea;
 
@@ -63,6 +81,13 @@
     --clay: #cd8964;
     --benefic: #5cbba0;
     --malefic: #cd8964;
+
+    --band-favourable: #5cbba0;
+    --band-mixed: #d8ab55;
+    --band-difficult: #cd8964;
+    --band-favourable-wash: #17302a;
+    --band-mixed-wash: #302818;
+    --band-difficult-wash: #2f2119;
 
     --skeleton: #232f3a;
     --skeleton-sheen: #2c3a46;

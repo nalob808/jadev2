@@ -32,7 +32,7 @@ async function signIn(page: Page, email: string): Promise<void> {
   await page.fill('#email', email);
   await page.getByRole('button', { name: 'Continue' }).click();
   // Signing in lands on the dashboard, not the list.
-  await expect(page).toHaveURL(/\/dashboard$/, { timeout: 20_000 });
+  await expect(page).toHaveURL(/\/home$/, { timeout: 20_000 });
 }
 
 async function addPerson(page: Page, entry: (typeof PEOPLE)[number]): Promise<string> {

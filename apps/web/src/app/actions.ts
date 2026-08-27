@@ -10,12 +10,16 @@ import {
   hardDeleteSubject,
   softDeleteSubject,
   updateSettingsProfile,
+  updateSubject,
+  updatePrimaryBirthEvent,
+  setHomeZone,
   createNote,
   updateNote,
   deleteNote,
   getNote,
 } from '@jade/db';
 import {
+  isValidZone,
   localMeanTimeOffset,
   manualOffset,
   resolveOffset,
@@ -95,6 +99,94 @@ export async function addPerson(formData: FormData): Promise<void> {
 
   revalidatePath('/people');
   redirect(`/people/${created.subject.id}`);
+}
+
+/**
+ * Correct a person's details.
+ *
+ * Birth data is the most consequential thing in the app and the most commonly
+ * mistyped — a time misread off a certificate, the wrong Springfield picked
+ * from the list. Until now the only remedy was delete and re-enter, which took
+ * every note written against that chart with it.
+ *
+ * Time resolution is redone from scratch rather than patched, because the
+ * pieces are not independent: a new place means a new zone, a new zone means a
+ * new offset, and a new offset means a different instant for the same wall
+ * clock. Carrying over the old offset "because only the city changed" is the
+ * exact bug this recomputation exists to prevent.
+ *
+ * The cached chart is left alone deliberately. Its key is a hash of the birth
+ * moment, the lens and the astro version, so a corrected time is simply a
+ * different key and a cache miss — the old row stays valid for the moment it
+ * actually describes, and nothing has to be invalidated by hand.
+ */
+export async function editPerson(formData: FormData): Promise<void> {
+  const session = await requireSession();
+  const read = (key: string): string => String(formData.get(key) ?? '').trim();
+  const id = read('id');
+  if (!id) throw new Error('No person to edit.');
+
+  // Annotated on the variable so TypeScript narrows control flow past it —
+  // see the note in `updateSettings` for why the arrow's return type alone
+  // is not enough.
+  const fail: (message: string) => never = (message) =>
+    redirect(`/people/${id}/edit?error=${encodeURIComponent(message)}`);
+
+  const displayName = read('displayName');
+  if (!displayName) fail('A name is required.');
+
+  const date = read('date');
+  const time = read('time') || '12:00';
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) fail('Enter the birth date.');
+
+  const placeName = read('placeName');
+  const latitude = Number(read('latitude'));
+  const longitude = Number(read('longitude'));
+  const timezoneId = read('timezoneId');
+  if (!placeName || Number.isNaN(latitude) || Number.isNaN(longitude) || !timezoneId) {
+    fail('Choose a birthplace from the list, or enter coordinates and a time zone.');
+  }
+  if (Math.abs(latitude) > 90 || Math.abs(longitude) > 180) {
+    fail('Those coordinates are out of range — latitude ±90, longitude ±180.');
+  }
+
+  const [year, month, day] = date.split('-').map(Number) as [number, number, number];
+  const [hour, minute] = time.split(':').map(Number) as [number, number];
+  const local: LocalDateTime = { year, month, day, hour, minute, second: 0 };
+
+  const offsetChoice = read('offsetMode') || 'tzdb';
+  const resolved =
+    offsetChoice === 'lmt'
+      ? localMeanTimeOffset(longitude, timezoneId)
+      : offsetChoice === 'manual'
+        ? manualOffset(Number(read('manualOffsetMinutes')) || 0, timezoneId)
+        : resolveOffset(local, timezoneId);
+
+  await updateSubject(getDatabase(), session.workspaceId, id, {
+    displayName,
+    relationship: (read('relationship') || 'other') as 'other',
+  });
+
+  await updatePrimaryBirthEvent(getDatabase(), session.workspaceId, id, {
+    localDatetime: `${date}T${time.length === 5 ? `${time}:00` : time}`,
+    utcDatetime: new Date(toUtcMillis(local, resolved.offsetMinutes)),
+    utcOffsetMinutes: resolved.offsetMinutes,
+    offsetSource: resolved.source,
+    offsetAmbiguous: resolved.ambiguous,
+    offsetNote: resolved.note ?? null,
+    timeAccuracy: (read('timeAccuracy') || 'exact') as 'exact',
+    placeName,
+    latitude,
+    longitude,
+    timezoneId,
+    sourceNote: read('sourceNote') || null,
+  });
+
+  revalidatePath('/people');
+  revalidatePath(`/people/${id}`);
+  revalidatePath('/relationships');
+  revalidatePath('/home');
+  redirect(`/people/${id}?saved=1`);
 }
 
 export async function removePerson(formData: FormData): Promise<void> {
@@ -198,6 +290,15 @@ export async function updateSettings(formData: FormData): Promise<void> {
     customAyanamsaAtJ2000 = value;
   }
 
+  // The wall clock, which is not part of the lens and is stored separately.
+  // An empty value clears it back to "unset" — which the UI renders as a
+  // banner saying dates are in UTC, rather than quietly picking a zone.
+  const homeZone = read('homeZoneId');
+  if (homeZone && !isValidZone(homeZone)) {
+    fail(`${homeZone} is not a time zone this system recognises.`);
+  }
+  await setHomeZone(getDatabase(), session.workspaceId, homeZone || null);
+
   await updateSettingsProfile(getDatabase(), session.workspaceId, profileId, {
     name: read('name') || 'Default',
     ayanamsa: ayanamsa as 'lahiri',
@@ -209,9 +310,11 @@ export async function updateSettings(formData: FormData): Promise<void> {
     includeOuters: formData.get('includeOuters') === 'on',
   });
 
-  // Every chart page reads this profile, so they are all stale now.
+  // Every chart page reads the profile and every page reads the clock, so
+  // they are all stale now.
   revalidatePath('/people');
   revalidatePath('/relationships');
+  revalidatePath('/home');
   redirect('/settings?saved=1');
 }
 
@@ -345,7 +448,7 @@ export async function devSignIn(formData: FormData): Promise<void> {
   await signInDev(email);
   // The dashboard, not the list: signing in should answer "what is happening"
   // before it asks "who do you want to look at".
-  redirect('/dashboard');
+  redirect('/home');
 }
 
 export async function devSignOut(): Promise<void> {

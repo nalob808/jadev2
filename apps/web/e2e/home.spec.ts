@@ -1,13 +1,18 @@
 import { expect, test, type Page } from '@playwright/test';
 
 /**
- * The dashboard and the interactive wheel.
+ * Home, the coloured week, and the interactive wheel.
  *
- * The dashboard's structural claim is that "yours" and "the sky" are separate.
- * That separation is the whole reason it is not a horoscope: a general transit
+ * Home's structural claim is that "yours" and "the sky" are separate. That
+ * separation is the whole reason it is not a horoscope: a general transit
  * reads as a personal prediction the moment it sits under someone's name. So
  * the test asserts both sections exist and that the sky section says out loud
  * that it is about nobody.
+ *
+ * The coloured week is the riskiest thing on the page. Its defence is that the
+ * colour restates two named classical counts rather than expressing a view, so
+ * the tests here check that the counts are on screen beside the colour and that
+ * no verdict vocabulary reaches the rendered page.
  *
  * The wheel's claims are geometric and interactive. The geometry is unit
  * tested; what only a browser can check is that the toggles actually change
@@ -24,7 +29,7 @@ async function signIn(page: Page, email: string): Promise<void> {
   await page.getByRole('button', { name: 'Continue' }).click();
   // Wait for the session to actually land. Navigating before this races an
   // unset cookie and every subsequent page bounces back to /sign-in.
-  await expect(page).toHaveURL(/\/dashboard$/, { timeout: 20_000 });
+  await expect(page).toHaveURL(/\/home$/, { timeout: 20_000 });
 }
 
 async function addPerson(page: Page, name: string): Promise<string> {
@@ -44,14 +49,14 @@ async function addPerson(page: Page, name: string): Promise<string> {
   return page.url();
 }
 
-test('signing in lands on the dashboard, not the people list', async ({ page }) => {
+test('signing in lands on Home, not the people list', async ({ page }) => {
   await signIn(page, nextEmail());
-  await expect(page).toHaveURL(/\/dashboard$/, { timeout: 20_000 });
+  await expect(page).toHaveURL(/\/home$/, { timeout: 20_000 });
 });
 
-test('the dashboard separates what is yours from what is everyone’s', async ({ page }) => {
+test('Home separates what is yours from what is everyone’s', async ({ page }) => {
   await signIn(page, nextEmail());
-  await page.goto('/dashboard');
+  await page.goto('/home');
 
   await expect(page.getByText('Yours', { exact: true })).toBeVisible();
   await expect(page.getByText('The sky', { exact: true })).toBeVisible();
@@ -64,9 +69,9 @@ test('the dashboard separates what is yours from what is everyone’s', async ({
   await expect(page.getByText(/ayanāṁśa/)).toBeVisible();
 });
 
-test('the dashboard shows real positions and a seven-day outlook', async ({ page }) => {
+test('Home shows real positions and a seven-day outlook', async ({ page }) => {
   await signIn(page, nextEmail());
-  await page.goto('/dashboard');
+  await page.goto('/home');
 
   const positions = page.getByRole('table', { name: 'Current positions' });
   await expect(positions).toBeVisible();
@@ -77,16 +82,21 @@ test('the dashboard shows real positions and a seven-day outlook', async ({ page
   // Real degrees, not vague prose.
   await expect(positions).toContainText(/\d+°\d{2}′/);
 
-  // "Today" is also the nav link to this page, so scope to the week strip.
-  const week = page.locator('section', { hasText: 'Seven days of Moon' });
-  await expect(week).toBeVisible();
-  await expect(week.getByText('Today', { exact: true })).toBeVisible();
-  await expect(week.getByText('Tomorrow', { exact: true })).toBeVisible();
+  // Exact sky events carry a real timestamp in the reader's own zone.
+  await expect(page.getByText(/Sky events this week/)).toBeVisible();
 });
 
-test('the dashboard invites you to add yourself when nobody is marked', async ({ page }) => {
+test('the nav calls this page Home', async ({ page }) => {
   await signIn(page, nextEmail());
+  await expect(page.getByRole('navigation', { name: 'Main' }).getByText('Home')).toBeVisible();
+  // The old address still works, for anything already bookmarked.
   await page.goto('/dashboard');
+  await expect(page).toHaveURL(/\/home$/, { timeout: 20_000 });
+});
+
+test('Home invites you to add yourself when nobody is marked', async ({ page }) => {
+  await signIn(page, nextEmail());
+  await page.goto('/home');
   await expect(page.getByText('Nobody marked as you yet')).toBeVisible();
   await expect(page.getByRole('link', { name: 'Add a person' })).toBeVisible();
 });

@@ -3,7 +3,7 @@ import { devSignOut } from '@/app/actions';
 import { NavLink } from './NavLink';
 
 const LINKS: Array<{ href: string; label: string }> = [
-  { href: '/dashboard', label: 'Today' },
+  { href: '/home', label: 'Home' },
   { href: '/people', label: 'People' },
   { href: '/relationships', label: 'Relationships' },
   { href: '/notes', label: 'Notes' },
@@ -23,7 +23,7 @@ export function Nav({ email }: { email?: string | undefined }): React.ReactEleme
     <header className="mb-8">
       <div className="flex flex-wrap items-baseline gap-x-4 gap-y-2 pb-3">
         <Link
-          href="/dashboard"
+          href="/home"
           className="font-display text-2xl font-semibold tracking-[0.22em] text-[var(--ink)]"
         >
           JADE

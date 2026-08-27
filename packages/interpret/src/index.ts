@@ -23,3 +23,5 @@ export * from './significations/houses.js';
 export * from './significations/signs.js';
 export * from './significations/grahas.js';
 export * from './reading.js';
+export * from './daily.js';
+export * from './synastry.js';

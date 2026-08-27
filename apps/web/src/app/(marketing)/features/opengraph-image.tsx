@@ -10,6 +10,6 @@ export default async function Image() {
     eyebrow: 'FEATURES',
     title: 'Everything is decomposable, or it is not printed.',
     subtitle:
-      'Sixteen vargas, aṣṭakavarga with every contributor named, daśās and bisected transits.',
+      'Sixteen vargas, ashtakavarga with every contributor named, dashas and bisected transits.',
   });
 }

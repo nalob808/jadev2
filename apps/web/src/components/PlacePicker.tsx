@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 
-interface PlaceOption {
+export interface PlaceOption {
   id: string;
   label: string;
   latitude: number;
@@ -17,10 +17,23 @@ interface PlaceOption {
  * name alone is not enough to cast a chart — and the manual escape hatch is
  * always visible, because the atlas will never contain every village.
  */
-export function PlacePicker(): React.ReactElement {
+export function PlacePicker({
+  initial,
+}: {
+  /**
+   * The place already on record, when correcting an existing person.
+   *
+   * Starting the field empty on an edit form is how birth data gets lost:
+   * everything else is pre-filled, so a blank birthplace reads as optional
+   * rather than as "re-enter this or lose it". Seeded here, the picker opens
+   * in its chosen state with a `change` button, exactly as it looks after a
+   * fresh search.
+   */
+  initial?: PlaceOption | null;
+} = {}): React.ReactElement {
   const [query, setQuery] = useState('');
   const [options, setOptions] = useState<PlaceOption[]>([]);
-  const [chosen, setChosen] = useState<PlaceOption | null>(null);
+  const [chosen, setChosen] = useState<PlaceOption | null>(initial ?? null);
   const [manual, setManual] = useState(false);
   const debounce = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 

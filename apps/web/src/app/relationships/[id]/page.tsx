@@ -4,23 +4,36 @@ import { getRelationship, getSettingsProfile, getSubject } from '@jade/db';
 import {
   ashtakuta,
   AstronomyEngineProvider,
+  buildVargaChart,
   compareMangala,
   convergences,
   jdFromUnixMs,
   POINT_DISPLAY_ORDER,
   sharedTimeline,
+  SIGNS,
   synastry,
   transitContacts,
+  unixMsFromJd,
   vimshottari,
   type ComputedChart,
   type Graha,
   type MatchSubject,
 } from '@jade/astro';
-import { ConvergenceTimeline, KutaTable, MangalaCard, OverlayGrid, OverlayWheel } from '@jade/ui';
+import { SYNASTRY_PREAMBLE, synastryReadingFor } from '@jade/interpret';
+import {
+  ConvergenceTimeline,
+  KutaTable,
+  MangalaCard,
+  NorthIndianChart,
+  OverlayGrid,
+  OverlayWheel,
+} from '@jade/ui';
 import { getSession } from '@/lib/auth';
+import { getClock } from '@/lib/clock';
 import { getDatabase } from '@/lib/db';
 import { getOrComputeChart } from '@/lib/chart';
 import { removeRelationship } from '@/app/actions';
+import { Reading } from '@/components/Reading';
 import { Kicker, Panel, Shell } from '@/components/Shell';
 
 export const dynamic = 'force-dynamic';
@@ -44,9 +57,9 @@ function wheelPlacements(
   return out;
 }
 
-/** Julian Day to a year, for the timeline axis. The core never reads a clock. */
-function yearOf(jdUt: number): string {
-  return String(new Date((jdUt - 2440587.5) * 86400000).getUTCFullYear());
+/** A sign name from its index, for the chart captions. */
+function signLabel(index: number): string {
+  return SIGNS[((index % 12) + 12) % 12]!;
 }
 
 function signMapOf(chart: ComputedChart): Record<Graha, number> {
@@ -108,7 +121,11 @@ export default async function RelationshipPage({ params }: { params: Promise<{ i
   const dashaB = vimshottari(chartB.chart.points.Moon!.longitude, birthJd(recordB.birthEvent), {
     levels: 2,
   });
-  const nowJd = jdFromUnixMs(Date.now());
+  const clock = await getClock(session.workspaceId);
+  const nowJd = clock.nowJd;
+  // The axis is labelled in the reader's own calendar. A January boundary read
+  // in UTC puts a period in the wrong year for anyone west of Greenwich.
+  const yearOf = (jdUt: number): string => clock.format(unixMsFromJd(jdUt), { year: 'numeric' });
   // A reading looks at the years around now, not the whole hundred-year
   // overlap. The core will return all of it; the page asks for the part a
   // consultation actually uses.
@@ -150,30 +167,89 @@ export default async function RelationshipPage({ params }: { params: Promise<{ i
     { a: nameA, b: nameB },
   );
 
+  // The prose half. Composed from the same overlays, kūṭas and doṣa the panels
+  // below render — one computation, read two ways, so the words and the tables
+  // can never disagree.
+  const reading = synastryReadingFor({
+    chartA: chartA.chart,
+    chartB: chartB.chart,
+    nameA,
+    nameB,
+    overlays,
+    kutas,
+    mangala,
+  });
+
+  const born = (record: typeof recordA): string =>
+    record.birthEvent ? record.birthEvent.localDatetime.replace('T', ' ').slice(0, 16) : '';
+
   return (
     <Shell email={session.email}>
-      <Kicker>Relationship</Kicker>
-      <div className="flex flex-wrap items-baseline gap-4">
-        <h1 className="font-display text-4xl">
+      {/* ------------------------------------------------------------ the pair */}
+      <div className="jade-rise">
+        <Kicker>Relationship · {pair.kind}</Kicker>
+        <h1 className="font-display text-[2.8rem] font-semibold leading-[1.05]">
           <Link href={`/people/${recordA.subject.id}`} className="hover:underline">
             {nameA}
           </Link>
-          <span className="text-[var(--ink-muted)]"> &amp; </span>
+          <span className="text-[var(--ink-faint)]"> &amp; </span>
           <Link href={`/people/${recordB.subject.id}`} className="hover:underline">
             {nameB}
           </Link>
         </h1>
-        <span className="font-mono text-[11px] uppercase tracking-[0.14em] text-[var(--ink-muted)]">
-          {pair.kind}
-        </span>
+        <p className="mt-3 max-w-[74ch] text-[15px] leading-relaxed text-[var(--ink-muted)]">
+          {SYNASTRY_PREAMBLE}
+        </p>
       </div>
+
+      {/*
+        Both charts, side by side, before any analysis of them. A synastry page
+        that opens with a score has already told the reader what to think; one
+        that opens with the two charts asks them to look first.
+      */}
+      <div className="mt-8 grid gap-px border border-[var(--rule)] bg-[var(--rule)] sm:grid-cols-2">
+        {(
+          [
+            [recordA, chartA, nameA],
+            [recordB, chartB, nameB],
+          ] as const
+        ).map(([record, computed, name]) => (
+          <div
+            key={record.subject.id}
+            className="flex flex-col items-center bg-[var(--surface)] p-5"
+          >
+            <p className="font-display text-xl font-semibold text-[var(--ink)]">{name}</p>
+            <p className="mb-3 font-mono text-[10px] text-[var(--ink-faint)]">
+              {born(record)} · {record.birthEvent?.placeName}
+            </p>
+            <NorthIndianChart varga={buildVargaChart(computed.chart, 'D1')} size={230} />
+            <p className="mt-3 text-center font-mono text-[10px] leading-relaxed text-[var(--ink-muted)]">
+              {signLabel(computed.chart.houses.ascendantSign)} rising ·{' '}
+              {computed.chart.points.Moon!.sign} Moon
+              <br />
+              {computed.chart.points.Moon!.nakshatra.name} pāda{' '}
+              {computed.chart.points.Moon!.nakshatra.pada}
+            </p>
+          </div>
+        ))}
+      </div>
+
+      {/* ---------------------------------------------------------- the reading */}
+      <section className="mt-10">
+        <div className="mb-4 border-b border-[var(--rule)] pb-2">
+          <Kicker>Read against each other</Kicker>
+          <h2 className="font-display text-2xl font-semibold">What these two charts do together</h2>
+        </div>
+        <Reading sections={reading} subjectId={recordA.subject.id} />
+      </section>
 
       <div className="mt-10 grid gap-8 lg:grid-cols-2">
         <Panel>
           <p className="font-display text-2xl">Aṣṭakūṭa</p>
           <p className="mb-4 mt-1 text-sm text-[var(--ink-muted)]">
             Read from {nameA}&rsquo;s Moon in {chartA.chart.points.Moon!.nakshatra.name} and {nameB}
-            &rsquo;s in {chartB.chart.points.Moon!.nakshatra.name}.
+            &rsquo;s in {chartB.chart.points.Moon!.nakshatra.name} — and from nothing else in either
+            chart. The reading above says what that does and does not cover.
           </p>
           <KutaTable result={kutas} />
         </Panel>
@@ -241,13 +317,21 @@ export default async function RelationshipPage({ params }: { params: Promise<{ i
       {overlays.conjunctions.length > 0 ? (
         <Panel className="mt-8">
           <p className="font-display text-2xl">Shared signs</p>
-          <p className="mb-3 mt-1 text-sm text-[var(--ink-muted)]">
-            The plainest contact there is, and the first thing to look at.
+          <p className="mb-4 mt-1 max-w-[70ch] text-sm text-[var(--ink-muted)]">
+            The plainest contact there is, and the first thing to look at. Both grahas are inside
+            the same thirty degrees — there is no orb to argue about and no aspect doctrine to agree
+            on first.
           </p>
-          <ul className="grid gap-1 text-sm sm:grid-cols-2">
+          <ul className="grid gap-px border border-[var(--rule)] bg-[var(--rule)] sm:grid-cols-2">
             {overlays.conjunctions.map((c) => (
-              <li key={`${c.a}-${c.b}-${c.sign}`}>
-                {nameA}&rsquo;s {c.a} with {nameB}&rsquo;s {c.b} in {c.sign}
+              <li
+                key={`${c.a}-${c.b}-${c.sign}`}
+                className="flex items-baseline gap-2 bg-[var(--surface)] px-3 py-2 text-sm"
+              >
+                <span className="font-display text-lg text-[var(--accent)]">{c.sign}</span>
+                <span className="text-[var(--ink-muted)]">
+                  {nameA}&rsquo;s {c.a} · {nameB}&rsquo;s {c.b}
+                </span>
               </li>
             ))}
           </ul>
@@ -256,21 +340,51 @@ export default async function RelationshipPage({ params }: { params: Promise<{ i
 
       <Panel className="mt-8">
         <p className="font-display text-2xl">Dṛṣṭi between the charts</p>
-        <p className="mb-3 mt-1 text-sm text-[var(--ink-muted)]">
-          Whole-sign glances, not orbs. Every graha looks at the 7th from itself; Mars, Jupiter and
-          Saturn have their own extra sight.
+        <p className="mb-4 mt-1 max-w-[74ch] text-sm text-[var(--ink-muted)]">
+          Whole-sign glances, not orbs. Every graha looks at the seventh from itself; Mars adds the
+          fourth and eighth, Jupiter the fifth and ninth, Saturn the third and tenth. A glance is
+          directional — the graha doing the looking is not necessarily looked back at, which is why
+          these are two lists rather than one.
         </p>
-        <div className="grid gap-6 sm:grid-cols-2 text-sm">
-          <ul className="flex flex-col gap-1">
-            {overlays.aOnB.slice(0, 14).map((d) => (
-              <li key={`${d.from}-${d.to}-${d.aspectHouse}`}>{d.description}</li>
-            ))}
-          </ul>
-          <ul className="flex flex-col gap-1">
-            {overlays.bOnA.slice(0, 14).map((d) => (
-              <li key={`${d.from}-${d.to}-${d.aspectHouse}`}>{d.description}</li>
-            ))}
-          </ul>
+        <div className="grid gap-6 sm:grid-cols-2">
+          {(
+            [
+              [overlays.aOnB, nameA, nameB],
+              [overlays.bOnA, nameB, nameA],
+            ] as const
+          ).map(([glances, from, to]) => (
+            <div key={from}>
+              <p className="mb-2 border-b border-[var(--rule)] pb-1 font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--ink-faint)]">
+                {from} looking at {to}
+              </p>
+              {glances.length === 0 ? (
+                <p className="text-sm text-[var(--ink-muted)]">
+                  Nothing of {from}&rsquo;s casts a glance into {to}&rsquo;s chart.
+                </p>
+              ) : (
+                <ul className="flex flex-col gap-1.5 text-sm">
+                  {glances.slice(0, 14).map((d) => (
+                    <li
+                      key={`${d.from}-${d.to}-${d.aspectHouse}`}
+                      className="border-l-2 pl-2.5 leading-snug"
+                      style={{
+                        // The special dṛṣṭis are the ones worth reading first,
+                        // so they are the ones marked.
+                        borderColor: d.aspectHouse === 7 ? 'var(--rule)' : 'var(--accent)',
+                      }}
+                    >
+                      <span className="text-[var(--ink-muted)]">{d.description}</span>
+                      {d.aspectHouse !== 7 ? (
+                        <span className="ml-1.5 font-mono text-[9.5px] uppercase tracking-wider text-[var(--accent)]">
+                          special
+                        </span>
+                      ) : null}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          ))}
         </div>
       </Panel>
 

@@ -1,5 +1,5 @@
 import type { EphemerisProvider } from './ephemeris/provider.js';
-import type { PointId } from './types.js';
+import type { Graha, PointId } from './types.js';
 import { SIGNS } from './types.js';
 import { nakshatraOf } from './nakshatra.js';
 import { karanaOf, nityaYogaOf, tithiOf, varaOf, type Panchanga } from './panchanga.js';
@@ -30,10 +30,19 @@ import {
  */
 
 export interface DayOutlook {
-  /** Midnight-ish sample point for the day, UT. */
+  /** The sample point for the day, UT. See `dayStartsJd` for what sets it. */
   readonly jdUt: number;
   /** Days from the start of the window. 0 is today. */
   readonly offset: number;
+  /**
+   * The Moon's sidereal longitude at the sample point.
+   *
+   * Exposed because personal techniques need the number, not the label — tārā
+   * bala counts nakṣatras from a natal Moon and cannot be recovered from a
+   * nakṣatra *name*. Keeping the longitude here lets those be composed by the
+   * caller instead of dragging one person's chart into an impersonal outlook.
+   */
+  readonly moonLongitude: number;
   readonly moonSign: string;
   readonly moonSignIndex: number;
   readonly moonNakshatra: string;
@@ -42,6 +51,14 @@ export interface DayOutlook {
   readonly vara: Panchanga['vara'];
   /** True when the Moon changes sign at some point during this day. */
   readonly moonChangesSign: boolean;
+  /**
+   * True when the Moon changes nakṣatra during this day, with the one it moves
+   * into. The Moon crosses a nakṣatra boundary roughly once a day, so anything
+   * counted from nakṣatras is a statement about the sample point and not about
+   * the whole day — and a UI that does not say so is overstating it.
+   */
+  readonly moonChangesNakshatra: boolean;
+  readonly moonNakshatraNext: string;
 }
 
 export interface SkyOutlook {
@@ -79,6 +96,20 @@ export interface OutlookOptions {
   readonly days?: number;
   /** Sunrise per day, if known — `vara` is null without it rather than guessed. */
   readonly sunriseFor?: (jdUt: number) => number | null;
+  /**
+   * Explicit sample points, one per day, overriding `fromJd + n`.
+   *
+   * A reader's day starts at their local midnight, and local midnights are not
+   * 24 hours apart — a daylight-saving day is 23 or 25 hours long. Stepping by
+   * a fixed day drifts off midnight and can carry a sample across a tithi
+   * boundary, so the row then describes a moment on the wrong side of it.
+   *
+   * Resolving that needs a zone database, which this package deliberately does
+   * not have (non-negotiable #2 keeps it pure and portable). So the caller —
+   * which knows the reader's zone — computes the midnights and passes them in.
+   * When absent, the window steps by whole days from `fromJd` as before.
+   */
+  readonly dayStartsJd?: readonly number[];
 }
 
 export function skyOutlook(
@@ -87,31 +118,42 @@ export function skyOutlook(
   frame: SiderealFrame,
   options: OutlookOptions = {},
 ): SkyOutlook {
-  const dayCount = Math.max(1, Math.min(options.days ?? 7, 31));
-  const toJd = fromJd + dayCount;
+  const starts = options.dayStartsJd;
+  const dayCount = Math.max(1, Math.min(starts?.length ?? options.days ?? 7, 31));
+  const startAt = (offset: number): number => starts?.[offset] ?? fromJd + offset;
+  // The window has to cover the last sampled day, not stop at its start, or an
+  // ingress on the final day falls outside it and silently goes unreported.
+  const toJd = starts?.length ? startAt(dayCount - 1) + 1 : fromJd + dayCount;
 
   const days: DayOutlook[] = [];
   for (let offset = 0; offset < dayCount; offset += 1) {
-    const jdUt = fromJd + offset;
+    const jdUt = startAt(offset);
+    // The end of this day is the start of the next where the caller gave us
+    // one, so a 23- or 25-hour day is measured as the length it actually was.
+    const endJd = offset + 1 < dayCount ? startAt(offset + 1) : jdUt + 1;
+
     const sun = siderealLongitudeAt(provider, 'Sun', jdUt, frame);
     const moon = siderealLongitudeAt(provider, 'Moon', jdUt, frame);
-    // Sampled a day later, to say whether the sign changes during this day.
-    const moonTomorrow = siderealLongitudeAt(provider, 'Moon', jdUt + 1, frame);
+    const moonAtEnd = siderealLongitudeAt(provider, 'Moon', endJd, frame);
 
     const signIndex = Math.floor(moon / 30);
     const nakshatra = nakshatraOf(moon);
+    const nakshatraAtEnd = nakshatraOf(moonAtEnd);
     const sunrise = options.sunriseFor?.(jdUt) ?? null;
 
     days.push({
       jdUt,
       offset,
+      moonLongitude: moon,
       moonSign: SIGNS[signIndex]!,
       moonSignIndex: signIndex,
       moonNakshatra: nakshatra.name,
       moonNakshatraLord: nakshatra.lord,
       tithi: tithiOf(sun, moon),
       vara: varaOf(jdUt, sunrise),
-      moonChangesSign: Math.floor(moonTomorrow / 30) !== signIndex,
+      moonChangesSign: Math.floor(moonAtEnd / 30) !== signIndex,
+      moonChangesNakshatra: nakshatraAtEnd.index !== nakshatra.index,
+      moonNakshatraNext: nakshatraAtEnd.name,
     });
   }
 
@@ -140,6 +182,8 @@ export interface SkyPosition {
   readonly signIndex: number;
   readonly degreesInSign: number;
   readonly nakshatra: string;
+  /** One of the nine Vimśottarī lords — the link between a transit and a daśā. */
+  readonly nakshatraLord: Graha;
   readonly retrograde: boolean;
 }
 
@@ -173,6 +217,7 @@ export function skyNow(
       signIndex,
       degreesInSign: longitude - signIndex * 30,
       nakshatra: nakshatraOf(longitude).name,
+      nakshatraLord: nakshatraOf(longitude).lord,
       retrograde: id === 'Rahu' || id === 'Ketu' ? true : speed < 0,
     };
   });

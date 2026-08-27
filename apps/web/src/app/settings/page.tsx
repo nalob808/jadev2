@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation';
-import { getSettingsProfile } from '@jade/db';
+import { getHomeZone, getSettingsProfile } from '@jade/db';
+import { availableZones } from '@jade/atlas';
 import {
   IMPLEMENTED_CHART_STYLES,
   IMPLEMENTED_HOUSE_SYSTEMS,
@@ -11,6 +12,7 @@ import { getDatabase } from '@/lib/db';
 import { Kicker, Panel, Shell } from '@/components/Shell';
 import { SubmitButton } from '@/components/SubmitButton';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { ZonePicker } from '@/components/ZonePicker';
 import { updateSettings } from '@/app/actions';
 
 export const dynamic = 'force-dynamic';
@@ -88,7 +90,11 @@ export default async function SettingsPage({
   const session = await getSession();
   if (!session) redirect('/sign-in');
 
-  const profile = await getSettingsProfile(getDatabase(), session.workspaceId, null);
+  const [profile, homeZone] = await Promise.all([
+    getSettingsProfile(getDatabase(), session.workspaceId, null),
+    getHomeZone(getDatabase(), session.workspaceId),
+  ]);
+  const zones = availableZones();
   const saved = searchParams.saved === '1';
   const error = typeof searchParams.error === 'string' ? searchParams.error : null;
 
@@ -182,6 +188,24 @@ export default async function SettingsPage({
                 <option value="apparent">Apparent</option>
                 <option value="true">True (geometric)</option>
               </select>
+            </Field>
+          </div>
+        </Panel>
+
+        <Panel>
+          <h2 className="mb-1 font-display text-2xl">Your clock</h2>
+          <p className="mb-4 max-w-[62ch] text-[13px] text-[var(--ink-muted)]">
+            Where this practice reads its clock. This is not part of the lens — it changes nothing
+            about any chart — but it decides which day Jade calls today, and therefore which day the
+            home page is computed for. Left unset, everything is shown in UTC, which for anywhere
+            west of Greenwich means the date is wrong for part of every day.
+          </p>
+          <div className="grid gap-5 sm:grid-cols-2">
+            <Field
+              label="Time zone"
+              hint="Birth times are unaffected — every birth event stores its own zone and offset, resolved from the birthplace."
+            >
+              <ZonePicker zones={zones} value={homeZone ?? ''} />
             </Field>
           </div>
         </Panel>

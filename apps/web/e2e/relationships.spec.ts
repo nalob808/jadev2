@@ -36,8 +36,8 @@ test('pair two people and read the two charts together', async ({ page }) => {
   await page.goto('/sign-in');
   await page.fill('#email', EMAIL);
   await page.getByRole('button', { name: 'Continue' }).click();
-  // Signing in lands on the dashboard, not the list.
-  await expect(page).toHaveURL(/\/dashboard$/, { timeout: 20_000 });
+  // Signing in lands on Home, not the list.
+  await expect(page).toHaveURL(/\/home$/, { timeout: 20_000 });
 
   await addPerson(page, 'First Person', '2001-11-07', '10:32');
   await addPerson(page, 'Second Person', '1996-03-19', '04:10');
@@ -83,6 +83,39 @@ test('pair two people and read the two charts together', async ({ page }) => {
   ]) {
     expect(text, `page must not say "${forbidden}"`).not.toContain(forbidden);
   }
+
+  // The composed reading, which is the substance of the page. Every statement
+  // must show the placements that produced it — constitution item 5, checked
+  // in the browser because a UI can perfectly well render the text and drop
+  // the factors.
+  const reading = page.locator('section', { hasText: 'What these two charts do together' });
+  await expect(reading).toBeVisible();
+  const statements = reading.locator('article');
+  const statementCount = await statements.count();
+  expect(statementCount).toBeGreaterThan(5);
+  for (let i = 0; i < statementCount; i += 1) {
+    const statement = statements.nth(i);
+    const prose = (await statement.locator('p').first().innerText()).trim();
+    expect(prose.length, `synastry statement ${i} is too short`).toBeGreaterThan(60);
+    expect(prose).not.toContain('undefined');
+    expect(
+      await statement.locator('span.font-mono').count(),
+      `synastry statement ${i} has no factors shown`,
+    ).toBeGreaterThan(0);
+  }
+
+  // It opens by saying what it is not, before anything can be misread as a
+  // result.
+  await expect(body).toContainText('no compatibility score on this page');
+  await expect(body).toContainText('no verdict');
+
+  // Tārā bala is read in both directions rather than averaged — the asymmetry
+  // is the useful part and is what a score throws away.
+  await expect(body).toContainText('First Person from Second Person');
+  await expect(body).toContainText('Second Person from First Person');
+
+  // Both charts are drawn before any analysis of them.
+  await expect(page.getByRole('img', { name: /North Indian style/i })).toHaveCount(2);
 
   // Both overlays, in both directions.
   await expect(page.getByText('First Person in Second Person’s houses')).toBeVisible();

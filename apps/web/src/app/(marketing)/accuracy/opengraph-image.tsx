@@ -9,6 +9,6 @@ export default async function Image() {
     eyebrow: 'THE ACCURACY PROGRAMME',
     title: 'A wrong degree is the highest-severity bug.',
     subtitle:
-      'Checked against Swiss Ephemeris and Jagannātha Hora — with the disagreements published.',
+      'Checked against Swiss Ephemeris and Jagannatha Hora — with the disagreements published.',
   });
 }

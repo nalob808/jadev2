@@ -112,8 +112,14 @@ function list(items: readonly string[], limit = 3): string {
   return `${shown.slice(0, -1).join(', ')} and ${shown[shown.length - 1]}`;
 }
 
-/** Drop anything that violates constitution item 6, whatever produced it. */
-function permitted(statement: GroundedStatement): boolean {
+/**
+ * Drop anything that violates constitution item 6, whatever produced it.
+ *
+ * Exported so that other composers — the daily reading, the synastry one —
+ * run under the same filter rather than reimplementing it. A second copy of
+ * this rule is a second place for it to drift.
+ */
+export function permitted(statement: GroundedStatement): boolean {
   if (statement.factors.length === 0) return false;
   const text = statement.text.toLowerCase();
   return !FORBIDDEN_TOPICS.some((word) => text.includes(word));

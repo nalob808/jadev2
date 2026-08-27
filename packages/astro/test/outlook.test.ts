@@ -118,3 +118,79 @@ describe('panchangaNow', () => {
     expect(panchangaNow(provider, FROM, frame, null).vara).toBeNull();
   });
 });
+
+/**
+ * Sampling at the reader's local midnight rather than at midnight UT.
+ *
+ * `packages/astro` has no zone database and must not grow one — non-negotiable
+ * #2. So the caller resolves the midnights and hands them over, and what is
+ * tested here is that the window honours them exactly, including days that are
+ * not 24 hours long.
+ */
+describe('skyOutlook with explicit day starts', () => {
+  // Seven local midnights in Honolulu, which is UTC−10 all year: 10:00Z.
+  const HAWAII_MIDNIGHTS = Array.from({ length: 7 }, (_, i) => FROM + 10 / 24 + i);
+
+  const zoned = skyOutlook(provider, FROM, frame, { dayStartsJd: HAWAII_MIDNIGHTS });
+
+  it('samples exactly where it was told to', () => {
+    expect(zoned.days.map((d) => d.jdUt)).toEqual([...HAWAII_MIDNIGHTS]);
+    expect(zoned.days).toHaveLength(7);
+  });
+
+  it('takes its length from the array rather than from `days`', () => {
+    const three = skyOutlook(provider, FROM, frame, {
+      days: 7,
+      dayStartsJd: HAWAII_MIDNIGHTS.slice(0, 3),
+    });
+    expect(three.days).toHaveLength(3);
+  });
+
+  it('reports a different sky than the UT-midnight window', () => {
+    // Ten hours of Moon motion is about 5°, so at least one row must differ.
+    // If this ever passes trivially the two windows are the same window.
+    const differing = zoned.days.filter(
+      (d, i) => Math.abs(d.moonLongitude - outlook.days[i]!.moonLongitude) > 1,
+    );
+    expect(differing.length).toBeGreaterThan(0);
+  });
+
+  it('measures each day against the next start, not a fixed 24 hours', () => {
+    // A 25-hour day, as a fall-back gives. The change flags for the first row
+    // must be computed over the real span.
+    const uneven = [FROM, FROM + 25 / 24, FROM + 2];
+    const result = skyOutlook(provider, FROM, frame, { dayStartsJd: uneven });
+    expect(result.days.map((d) => d.jdUt)).toEqual(uneven);
+    expect(result.window.toJd).toBeCloseTo(FROM + 3, 9);
+  });
+
+  it('covers the last sampled day in the event window', () => {
+    // An ingress on the final day must not fall outside the scan range.
+    expect(zoned.window.toJd).toBeGreaterThan(zoned.days[6]!.jdUt);
+  });
+});
+
+describe('DayOutlook carries what personal techniques need', () => {
+  it('exposes the Moon longitude, not just its label', () => {
+    for (const day of outlook.days) {
+      expect(day.moonLongitude).toBeGreaterThanOrEqual(0);
+      expect(day.moonLongitude).toBeLessThan(360);
+      // The label must actually describe the number it sits beside.
+      expect(day.moonSignIndex).toBe(Math.floor(day.moonLongitude / 30));
+    }
+  });
+
+  it('says when the Moon crosses a nakṣatra boundary during the day', () => {
+    // The Moon covers about 13° a day and a nakṣatra is 13°20′, so over a
+    // week this must happen most days — and the successor must be named.
+    const crossing = outlook.days.filter((d) => d.moonChangesNakshatra);
+    expect(crossing.length).toBeGreaterThan(3);
+    for (const day of crossing) {
+      expect(day.moonNakshatraNext).not.toBe(day.moonNakshatra);
+      expect(day.moonNakshatraNext.length).toBeGreaterThan(2);
+    }
+    for (const day of outlook.days.filter((d) => !d.moonChangesNakshatra)) {
+      expect(day.moonNakshatraNext).toBe(day.moonNakshatra);
+    }
+  });
+});

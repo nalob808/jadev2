@@ -51,7 +51,13 @@ export default async function PersonPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ style?: string; varga?: string; view?: string; noteError?: string }>;
+  searchParams: Promise<{
+    style?: string;
+    varga?: string;
+    view?: string;
+    noteError?: string;
+    saved?: string;
+  }>;
 }) {
   const session = await getSession();
   if (!session) redirect('/sign-in');
@@ -158,6 +164,12 @@ export default async function PersonPage({
           </p>
         </div>
         <div className="flex items-center gap-3 font-mono text-[11px]">
+          <Link
+            className="border border-[var(--accent)] px-2.5 py-1 uppercase tracking-wider text-[var(--accent)] no-underline transition-colors hover:bg-[var(--accent)] hover:text-white"
+            href={`${base}/edit`}
+          >
+            edit
+          </Link>
           <a className="underline" href={`/api/people/${subject.id}/export`}>
             export
           </a>
@@ -169,6 +181,12 @@ export default async function PersonPage({
           </form>
         </div>
       </div>
+
+      {query.saved ? (
+        <p className="mb-5 border-l-2 border-[var(--jade)] bg-[var(--surface)] px-4 py-3 text-sm text-[var(--jade)]">
+          Saved. The chart below was recast from the corrected details.
+        </p>
+      ) : null}
 
       {warning ? (
         <p className="mb-5 border-l-2 border-[var(--clay,#9E5B3A)] bg-[var(--surface)] px-4 py-3 text-sm">

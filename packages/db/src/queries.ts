@@ -239,6 +239,42 @@ export async function updateSubject(
   });
 }
 
+/**
+ * Correct a birth moment.
+ *
+ * Birth data is the one thing in Jade that is genuinely precious, and it is
+ * also the thing most often entered wrong — a time misread off a certificate,
+ * a city that turned out to be the wrong Springfield. So this exists, and it
+ * updates the *primary* event in place rather than adding a second one.
+ *
+ * The cached chart is not touched, and does not need to be: a chart's primary
+ * key is a hash of the birth moment, the settings and the astro version, so a
+ * corrected time is simply a different key and a cache miss. The old row stays
+ * valid for the moment it actually describes.
+ *
+ * Rectification is a different feature and will want a *new* labelled event
+ * alongside the recorded one, so that both survive. This is for fixing a typo.
+ */
+export async function updatePrimaryBirthEvent(
+  database: Database,
+  workspaceId: string,
+  subjectId: string,
+  patch: Partial<Omit<NewBirthEvent, 'workspaceId' | 'subjectId' | 'id'>>,
+): Promise<void> {
+  await withWorkspace(database, workspaceId, async (tx) => {
+    await tx
+      .update(birthEvents)
+      .set(patch)
+      .where(
+        and(
+          eq(birthEvents.subjectId, subjectId),
+          eq(birthEvents.workspaceId, workspaceId),
+          eq(birthEvents.isPrimary, true),
+        ),
+      );
+  });
+}
+
 /** Soft delete — recoverable, and what the UI's "remove" does. */
 export async function softDeleteSubject(
   database: Database,
@@ -391,6 +427,42 @@ export async function getSettingsProfile(
           )
           .limit(1);
     return rows[0] ?? null;
+  });
+}
+
+/**
+ * The zone the practice reads its clock in, or null when nobody has said.
+ *
+ * Null is a real answer here, not a missing one. The caller renders UTC and
+ * labels it, rather than picking a plausible zone — a date silently formatted
+ * in the wrong zone is worse than one honestly formatted in UTC, because the
+ * first looks right.
+ */
+export async function getHomeZone(database: Database, workspaceId: string): Promise<string | null> {
+  return withWorkspace(database, workspaceId, async (tx) => {
+    const rows = await tx
+      .select({ homeZoneId: workspaces.homeZoneId })
+      .from(workspaces)
+      .where(eq(workspaces.id, workspaceId))
+      .limit(1);
+    return rows[0]?.homeZoneId ?? null;
+  });
+}
+
+/**
+ * Set the practice's zone.
+ *
+ * Validation of the zone id happens in the caller, against the runtime's own
+ * IANA database — this layer will store whatever string it is handed, and a
+ * bad one would not surface until a page tried to format a date with it.
+ */
+export async function setHomeZone(
+  database: Database,
+  workspaceId: string,
+  zoneId: string | null,
+): Promise<void> {
+  await withWorkspace(database, workspaceId, async (tx) => {
+    await tx.update(workspaces).set({ homeZoneId: zoneId }).where(eq(workspaces.id, workspaceId));
   });
 }
 

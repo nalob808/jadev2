@@ -20,7 +20,7 @@ test('sign in, add a person, and see their chart', async ({ page }) => {
   await page.fill('#email', EMAIL);
   await page.getByRole('button', { name: 'Continue' }).click();
   // Signing in lands on the dashboard, not the list.
-  await expect(page).toHaveURL(/\/dashboard$/, { timeout: 20_000 });
+  await expect(page).toHaveURL(/\/home$/, { timeout: 20_000 });
 
   await page.goto('/people');
   await expect(page.getByText('Nobody here yet')).toBeVisible();
@@ -62,7 +62,7 @@ test('a person appears in the list and can be exported', async ({ page }) => {
   await page.fill('#email', EMAIL);
   await page.getByRole('button', { name: 'Continue' }).click();
   // Signing in lands on the dashboard, not the list.
-  await expect(page).toHaveURL(/\/dashboard$/, { timeout: 20_000 });
+  await expect(page).toHaveURL(/\/home$/, { timeout: 20_000 });
 
   // This test is about the list, so go there explicitly.
   await page.goto('/people');

@@ -125,6 +125,13 @@ export const workspaces = pgTable(
     slug: text('slug').notNull(),
     plan: text('plan').notNull().default('free'),
     defaultSettingsProfileId: uuid('default_settings_profile_id'),
+    /**
+     * IANA zone the practice reads its clock in. NULL means unset — the UI
+     * renders UTC and says so rather than guessing, which is the same rule the
+     * astrology settings follow. Deliberately not on `settings_profiles`: the
+     * lens and the wall clock are unrelated and must not be able to disagree.
+     */
+    homeZoneId: text('home_zone_id'),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => ({
