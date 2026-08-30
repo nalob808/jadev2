@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { setPlan } from './plan';
 
 /**
  * The Phase 4 promise, end to end: pair two people and read them together.
@@ -38,6 +39,9 @@ test('pair two people and read the two charts together', async ({ page }) => {
   await page.getByRole('button', { name: 'Continue' }).click();
   // Signing in lands on Home, not the list.
   await expect(page).toHaveURL(/\/home$/, { timeout: 20_000 });
+  // Relationships are a paid capability now; this spec is about the reading,
+  // not about the gate.
+  await setPlan(EMAIL, 'professional');
 
   await addPerson(page, 'First Person', '2001-11-07', '10:32');
   await addPerson(page, 'Second Person', '1996-03-19', '04:10');

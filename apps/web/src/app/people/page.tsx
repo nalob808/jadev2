@@ -2,10 +2,14 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { listSubjects, type SubjectWithPrimaryEvent } from '@jade/db';
 import { getSession } from '@/lib/auth';
+import { usageOf } from '@/lib/entitlements';
 import { getDatabase } from '@/lib/db';
 import { Kicker, Panel, Shell } from '@/components/Shell';
 import { PeopleControls } from '@/components/PeopleControls';
+import { PlanMeter } from '@/components/PlanMeter';
 import { applyView, readViewState, relationshipsPresent } from '@/lib/peopleView';
+import { planFor } from '@/lib/plans';
+import { getWorkspacePlan } from '@jade/db';
 
 export const dynamic = 'force-dynamic';
 
@@ -36,7 +40,12 @@ export default async function PeoplePage({
   const session = await getSession();
   if (!session) redirect('/sign-in');
 
-  const people = await listSubjects(getDatabase(), session.workspaceId);
+  const [people, usage, stored] = await Promise.all([
+    listSubjects(getDatabase(), session.workspaceId),
+    usageOf(session.workspaceId, 'people'),
+    getWorkspacePlan(getDatabase(), session.workspaceId),
+  ]);
+  const plan = planFor(stored?.plan);
   const state = readViewState(searchParams);
   const shown = applyView(people, state);
 
@@ -51,12 +60,22 @@ export default async function PeoplePage({
               : `${people.length} ${people.length === 1 ? 'person' : 'people'}`}
           </h1>
         </div>
-        <Link
-          href="/people/new"
-          className="bg-[var(--accent)] px-4 py-2 font-display text-lg tracking-wide text-white"
-        >
-          Add person
-        </Link>
+        <div className="flex flex-col items-end gap-1.5">
+          {/* Full sends them to the wall rather than to a form that will
+              refuse them at the end. Same destination the action would have
+              redirected to, reached one step earlier. */}
+          <Link
+            href={usage.room ? '/people/new' : `/upgrade?full=people&used=${usage.used}`}
+            className={
+              usage.room
+                ? 'bg-[var(--accent)] px-4 py-2 font-display text-lg tracking-wide text-white'
+                : 'border border-[var(--rule-strong)] px-4 py-2 font-display text-lg tracking-wide text-[var(--ink-muted)] transition-colors hover:border-[var(--accent)] hover:text-[var(--accent)]'
+            }
+          >
+            Add person
+          </Link>
+          <PlanMeter counted="people" used={usage.used} limit={usage.limit} planName={plan.name} />
+        </div>
       </div>
 
       {people.length === 0 ? (

@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { setPlan } from './plan';
 
 /**
  * The reading, and the constitutional rule it exists under.
@@ -19,6 +20,7 @@ async function signInAndAddPerson(page: Page): Promise<string> {
   await page.getByRole('button', { name: 'Continue' }).click();
   // Signing in lands on the dashboard, not the list.
   await expect(page).toHaveURL(/\/home$/, { timeout: 20_000 });
+  await setPlan(EMAIL, 'professional');
 
   await page.goto('/people/new');
   await page.fill('#displayName', 'Reading Subject');

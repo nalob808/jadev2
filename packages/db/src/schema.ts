@@ -128,6 +128,13 @@ export const workspaces = pgTable(
     name: text('name').notNull(),
     slug: text('slug').notNull(),
     plan: text('plan').notNull().default('free'),
+    /**
+     * Why this workspace is on that tier: 'default', 'grandfathered',
+     * 'stripe', or 'manual'. Billing must consult this before downgrading —
+     * "no active subscription" is not the same fact as "should be free", and
+     * conflating them cancels every comped and grandfathered account at once.
+     */
+    planSource: text('plan_source').notNull().default('default'),
     defaultSettingsProfileId: uuid('default_settings_profile_id'),
     /**
      * IANA zone the practice reads its clock in. NULL means unset — the UI
@@ -540,3 +547,37 @@ export const notes = pgTable(
 
 export type Note = typeof notes.$inferSelect;
 export type NewNote = typeof notes.$inferInsert;
+
+/**
+ * Recorded presses on the upgrade wall.
+ *
+ * Not analytics. Until checkout exists this is the only honest thing a wall
+ * can offer — "tell me when this opens" — and the rows are both the demand
+ * signal that says which gate to build billing around first and the list of
+ * people to write to on the day it opens.
+ */
+export const upgradeIntents = pgTable(
+  'upgrade_intents',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    workspaceId: uuid('workspace_id')
+      .notNull()
+      .references(() => workspaces.id, { onDelete: 'cascade' }),
+    /** The tier they were on when refused. */
+    fromPlan: text('from_plan').notNull(),
+    /** The cheapest tier that would have let them through. */
+    wantedPlan: text('wanted_plan').notNull(),
+    /** Which capability refused them, if it was a capability. */
+    capability: text('capability'),
+    /** Which exhausted count refused them, if it was a count. */
+    counted: text('counted'),
+    createdBy: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({
+    workspaceIdx: index('upgrade_intents_workspace_idx').on(table.workspaceId),
+    wantedIdx: index('upgrade_intents_wanted_idx').on(table.wantedPlan, table.createdAt),
+  }),
+);
+
+export type UpgradeIntent = typeof upgradeIntents.$inferSelect;

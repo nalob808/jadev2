@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { setPlan } from './plan';
 
 /**
  * Home, the coloured week, and the interactive wheel.
@@ -30,6 +31,9 @@ async function signIn(page: Page, email: string): Promise<void> {
   // Wait for the session to actually land. Navigating before this races an
   // unset cookie and every subsequent page bounces back to /sign-in.
   await expect(page).toHaveURL(/\/home$/, { timeout: 20_000 });
+  // Tiers arrived after this spec was written. Without this the workspace
+  // is on Free and half these assertions would be testing the wall.
+  await setPlan(email, 'professional');
 }
 
 async function addPerson(page: Page, name: string): Promise<string> {

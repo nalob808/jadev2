@@ -3,11 +3,24 @@ import Link from 'next/link';
 import { CallToAction, SectionHead } from '@/components/marketing/Site';
 import { FAQ } from '@/components/marketing/FAQ';
 import { JsonLd, breadcrumbSchema, faqSchema, softwareSchema } from '@/components/marketing/JsonLd';
+import { CAPABILITIES, PLANS, SELF_SERVE, bulletsFor, limitOf } from '@/lib/plans';
+
+/**
+ * The tier cards are rendered from `@/lib/plans` — the same table the gate
+ * enforces. They were once a local const, which is how a pricing page ends up
+ * advertising a tier the product does not actually grant: two lists, edited on
+ * different days, by someone who only remembered one of them.
+ *
+ * Two consequences worth keeping. Bullets marked `built: false` render with a
+ * "being built" tag automatically, so an unfinished feature cannot be listed
+ * as though it worked. And the "still being built" panel below is derived from
+ * the same flags rather than typed by hand.
+ */
 
 export const metadata: Metadata = {
   title: 'Pricing — Jade Vedic astrology software',
   description:
-    'Five tiers from free to institute. Unlimited charts from $9/month, the full practice layer at $99/month. One reading a month pays for the year.',
+    'Five tiers from free to institute. Three people with the full calculator, free forever. Unlimited people and the practice layer from $9/month. One reading a month pays for the year.',
   alternates: { canonical: 'https://jadeapp.co/pricing' },
   openGraph: {
     title: 'Pricing — Jade',
@@ -17,80 +30,20 @@ export const metadata: Metadata = {
   },
 };
 
-const TIERS = [
-  {
-    name: 'Free',
-    monthly: 0,
-    yearly: 0,
-    who: 'Curious, or casting your own chart',
-    includes: [
-      'Three people',
-      'Rāśi and navāṁśa',
-      'Today’s transits',
-      'Every ayanāṁśa, stated on the chart',
-    ],
-    cta: 'Start free',
-  },
-  {
-    name: 'Seeker',
-    monthly: 9,
-    yearly: 79,
-    who: 'The astrologically fluent',
-    includes: [
-      'Unlimited people',
-      'All sixteen vargas',
-      'Yogas with their cancellations',
-      'Vimśottarī daśā',
-      'Relationships and synastry',
-      'Anchored study notes',
-    ],
-    cta: 'Start free',
-    featured: true,
-  },
-  {
-    name: 'Practitioner',
-    monthly: 49,
-    yearly: 429,
-    who: 'Serious students and part-time readers',
-    includes: [
-      'Everything in Seeker',
-      'Up to 100 clients',
-      'Sessions and prep sheets',
-      'Reports',
-      'Transit alerts',
-      'Varṣaphala',
-    ],
-    cta: 'Start free',
-  },
-  {
-    name: 'Professional',
-    monthly: 99,
-    yearly: 890,
-    who: 'Working astrologers',
-    includes: [
-      'Everything in Practitioner',
-      'Unlimited clients',
-      'Branded reports',
-      'Client share links',
-      'Muhūrta engine',
-      'Prediction ledger',
-      'API access',
-    ],
-    cta: 'Start free',
-  },
-] as const;
+// (tiers now come from @/lib/plans — see the note above)
 
-/** Features not yet built are named on their tier rather than implied. */
-const IN_PROGRESS = [
-  'Sessions, prep sheets and branded reports',
-  'Varṣaphala (annual charts)',
-  'The muhūrta engine and prediction ledger',
-];
+/**
+ * Named rather than implied — and derived, so this list cannot fall out of
+ * step with what the tier cards above are claiming.
+ */
+const IN_PROGRESS = Object.values(CAPABILITIES)
+  .filter((capability) => !capability.built)
+  .map((capability) => capability.label);
 
 const PRICING_FAQ = [
   {
     q: 'Do I need a card to start?',
-    a: 'No. The free tier needs an email address and nothing else, and it does not expire into a paywall — three people, the rāśi and navāṁśa, and daily transits stay free.',
+    a: 'No. The free tier needs an email address and nothing else, and it does not expire into a paywall. Three people, and for those three the whole calculator — all sixteen vargas, the yogas, the daśās, aṣṭakavarga and ṣaḍbala. What the paid tiers add is scale and the tools for working on other people, not a better chart.',
   },
   {
     q: 'Why is the Professional tier $99?',
@@ -131,7 +84,7 @@ function Price({ monthly, yearly }: { monthly: number; yearly: number }): React.
 export default function PricingPage() {
   return (
     <>
-      <JsonLd data={softwareSchema(TIERS.map((t) => ({ name: t.name, monthly: t.monthly })))} />
+      <JsonLd data={softwareSchema(PLANS.map((t) => ({ name: t.name, monthly: t.monthly })))} />
       <JsonLd data={faqSchema(PRICING_FAQ)} />
       <JsonLd
         data={breadcrumbSchema([
@@ -152,50 +105,65 @@ export default function PricingPage() {
 
       <section className="mx-auto max-w-6xl px-5 sm:px-8">
         <div className="grid gap-4 lg:grid-cols-4">
-          {TIERS.map((tier, index) => (
-            <article
-              key={tier.name}
-              className={`jade-panel jade-rise flex flex-col p-6 ${
-                'featured' in tier && tier.featured ? 'jade-panel--marked' : ''
-              }`}
-              style={{ '--i': index } as React.CSSProperties}
-            >
-              {'featured' in tier && tier.featured ? (
-                <p className="mb-2 font-mono text-[9.5px] uppercase tracking-[0.16em] text-[var(--accent)]">
-                  Most chosen
-                </p>
-              ) : null}
-
-              <h2 className="font-display text-2xl font-semibold">{tier.name}</h2>
-              <p className="mt-1 text-[13px] leading-snug text-[var(--ink-faint)]">{tier.who}</p>
-
-              <div className="mt-4">
-                <Price monthly={tier.monthly} yearly={tier.yearly} />
-              </div>
-
-              <ul className="mt-5 grow space-y-2 text-[14px]">
-                {tier.includes.map((line) => (
-                  <li key={line} className="flex gap-2 text-[var(--ink-muted)]">
-                    <span aria-hidden="true" className="mt-[2px] shrink-0 text-[var(--accent)]">
-                      ·
-                    </span>
-                    <span>{line}</span>
-                  </li>
-                ))}
-              </ul>
-
-              <Link
-                href="/sign-in"
-                className={`mt-6 block border px-4 py-2.5 text-center font-display text-lg tracking-wide transition-colors ${
-                  'featured' in tier && tier.featured
-                    ? 'border-[var(--accent)] bg-[var(--accent)] text-white hover:bg-transparent hover:text-[var(--accent)]'
-                    : 'border-[var(--rule-strong)] hover:border-[var(--accent)] hover:text-[var(--accent)]'
+          {SELF_SERVE.map((tier, index) => {
+            const featured = tier.id === 'seeker';
+            const people = limitOf(tier, 'people');
+            return (
+              <article
+                key={tier.id}
+                className={`jade-panel jade-rise flex flex-col p-6 ${
+                  featured ? 'jade-panel--marked' : ''
                 }`}
+                style={{ '--i': index } as React.CSSProperties}
               >
-                {tier.cta}
-              </Link>
-            </article>
-          ))}
+                {featured ? (
+                  <p className="mb-2 font-mono text-[9.5px] uppercase tracking-[0.16em] text-[var(--accent)]">
+                    Most chosen
+                  </p>
+                ) : null}
+
+                <h2 className="font-display text-2xl font-semibold">{tier.name}</h2>
+                <p className="mt-1 text-[13px] leading-snug text-[var(--ink-faint)]">{tier.who}</p>
+
+                <div className="mt-4">
+                  <Price monthly={tier.monthly} yearly={tier.yearly} />
+                </div>
+
+                <p className="mt-4 font-mono text-[11px] uppercase tracking-[0.14em] text-[var(--ink-faint)]">
+                  {people === null ? 'Unlimited people' : `${people} people`}
+                </p>
+
+                <ul className="mt-3 grow space-y-2 text-[14px]">
+                  {bulletsFor(tier).map((bullet) => (
+                    <li key={bullet.text} className="flex gap-2 text-[var(--ink-muted)]">
+                      <span aria-hidden="true" className="mt-[2px] shrink-0 text-[var(--accent)]">
+                        ·
+                      </span>
+                      <span>
+                        {bullet.text}
+                        {bullet.built ? null : (
+                          <span className="ml-1.5 font-mono text-[9px] uppercase tracking-wider text-[var(--clay)]">
+                            being built
+                          </span>
+                        )}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+
+                <Link
+                  href="/sign-in"
+                  className={`mt-6 block border px-4 py-2.5 text-center font-display text-lg tracking-wide transition-colors ${
+                    featured
+                      ? 'border-[var(--accent)] bg-[var(--accent)] text-white hover:bg-transparent hover:text-[var(--accent)]'
+                      : 'border-[var(--rule-strong)] hover:border-[var(--accent)] hover:text-[var(--accent)]'
+                  }`}
+                >
+                  Start free
+                </Link>
+              </article>
+            );
+          })}
         </div>
 
         <div className="jade-panel mt-4 flex flex-wrap items-center gap-4 p-6">

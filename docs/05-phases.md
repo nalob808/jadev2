@@ -374,6 +374,103 @@ time.
 
 ---
 
+## Phase 10 — Entitlements ✅
+
+**The finding that started it:** nothing in the codebase read `workspaces.plan`. There was no
+gating of any kind, which meant the free tier was the entire product and the pricing page was
+describing a product that did not exist. That reframes the revenue question. It is not "what
+should we build to charge more"; it is **"what should Free stop doing"**.
+
+### The split
+
+Free is your own chart. Paid is doing this work on other people.
+
+|                                                   | Free | Seeker $9 | Practitioner $49 | Professional $99 |
+| ------------------------------------------------- | ---- | --------- | ---------------- | ---------------- |
+| People                                            | 3    | ∞         | ∞                | ∞                |
+| Notes                                             | 10   | ∞         | ∞                | ∞                |
+| All 16 vargas, yogas, daśās, aṣṭakavarga, ṣaḍbala | ✅   | ✅        | ✅               | ✅               |
+| Export                                            | ✅   | ✅        | ✅               | ✅               |
+| Relationships and synastry                        |      | ✅        | ✅               | ✅               |
+| Printable reports                                 |      | ✅        | ✅               | ✅               |
+| Rectification                                     |      | ✅        | ✅               | ✅               |
+| Alerts, sessions, varṣaphala                      |      |           | ⏳               | ⏳               |
+| Branding, share links, muhūrta, ledger, API       |      |           |                  | ⏳               |
+
+Free keeps **full calculation depth**, deliberately. A crippled calculator is the wrong thing to
+give away when the entire market position is "accuracy is the product" — the free tier has to be
+the thing that proves the claim. What Seeker sells is scale and the practice layer.
+
+### What may and may not be gated
+
+The pricing page promises "accuracy is not a paid feature". That is a promise about
+_correctness_, not scope: every tier computes the same chart, with the same ephemeris and the
+same ayanāṁśa maths. Gating which **pages** a workspace may open is fine. Computing a cheaper,
+less accurate chart for a free workspace never is, and `plans.ts` has no vocabulary that could
+express it. Constitution item 1.
+
+**Export is not gateable at all.** Constitution item 4 requires export on every plan, and
+"always" does not mean "on the tiers that paid for it". There is deliberately no capability key
+for it, so the guarantee is structural rather than a matter of remembering. An early draft of
+this phase gated export to Seeker; that was wrong and was removed.
+
+### Design decisions worth keeping
+
+- **One table, two consumers.** `apps/web/src/lib/plans.ts` is read by both the marketing
+  pricing page and the server-side gate. A tier list maintained twice eventually advertises
+  something the product does not grant, and the person who finds the gap is always a customer.
+- **Cumulative by construction.** A tier declares only what it _adds_; "everything in Seeker" is
+  true because `capabilitiesOf` walks the ladder, not because someone copied bullets down.
+- **`built: false` is data, not a footnote.** An unfinished capability renders with a "being
+  built" tag automatically. A test asserts that nothing unbuilt sits on Seeker — the only tier
+  anyone can actually be charged for today.
+- **Enforcement is server-side or it is decoration.** Every gate runs in a page body or a server
+  action. The e2e suite navigates directly to gated URLs, because that is what a bookmark does.
+- **A refusal explains itself.** `/upgrade` always answers four things: what was blocked, what
+  that feature does, which is the _cheapest_ tier with it, and what you are on now.
+- **Unknown tier strings degrade to Free, visibly.** Throwing takes the workspace down; granting
+  everything turns one typo into free Professional. Free is the recoverable direction — and
+  Settings prints the raw stored value so a mis-flagged paying customer can see it.
+- **Grandfathering, in the migration.** Every workspace that existed when 0009 ran is on
+  Professional at no charge, marked `plan_source = 'grandfathered'`. Taking features away from
+  people who signed up when everything was included, to tidy a pricing page, is not a trade
+  worth making.
+- **`plan_source` exists so billing cannot cancel comped accounts.** When the Stripe webhook
+  lands, "no active subscription" and "should be free" are not the same fact. Conflating them
+  downgrades every grandfathered and comped workspace at once.
+
+### The honest state of the ladder
+
+Only **Free → Seeker** is a real, chargeable upgrade today. Everything on Practitioner and
+Professional is `built: false`. Do not open checkout on those tiers until they are not.
+
+### Instead of a fake Buy button
+
+There is no checkout, so the wall does not pretend there is one. It offers "tell me when this
+opens", which writes a row to `upgrade_intents` recording the tier they were on, the tier they
+wanted, and the gate that refused them. That is the only unbiased demand signal this product can
+currently generate, and it doubles as the list of people to email on the day billing opens.
+
+### Acceptance
+
+- 65 web unit tests including 23 on the matrix; 56 e2e including 7 on the gate.
+- Invariant tests, not just value tests: no tier may remove a capability or lower a limit
+  relative to a cheaper one; every capability is sold on exactly one tier; no tier allows zero
+  of anything.
+- `pnpm db:doctor` now checks `life_events` and `upgrade_intents`, **and fails on any
+  workspace-scoped table missing from its own list** — the list had already fallen behind twice.
+- Migration 0009 also normalises 0008's `life_events` policy onto the two helper functions every
+  other policy uses. Written as a new migration rather than an edit, because 0008 is recorded as
+  applied on any database that has run it.
+
+> **For the next agent:** do not add a capability key for export, and do not gate a calculation.
+> If you add a workspace-scoped table, add it to `expected` in `packages/db/scripts/doctor.ts`
+> — the doctor will fail until you do, which is the point. When wiring Stripe, write
+> `plan_source = 'stripe'` and never downgrade a row whose source is `grandfathered` or
+> `manual`.
+
+---
+
 ## Phase 8 — Beyond (ongoing)
 
 Ranked by expected return:

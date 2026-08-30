@@ -14,6 +14,7 @@ import { formatOffset, offsetWarning, TIME_ACCURACY_MINUTES } from '@jade/atlas'
 import { housesForChart, readingFor } from '@jade/interpret';
 import { DashaColumn, GLYPHS, NorthIndianChart, SouthIndianChart, VargaGrid } from '@jade/ui';
 import { getSession } from '@/lib/auth';
+import { requireCapability } from '@/lib/entitlements';
 import { getClock } from '@/lib/clock';
 import { getDatabase } from '@/lib/db';
 import { getOrComputeChart } from '@/lib/chart';
@@ -56,6 +57,9 @@ export default async function ChartReportPage({
 }) {
   const session = await getSession();
   if (!session) redirect('/sign-in');
+  // Enforced here, not by hiding the link. Typing this URL lands on the
+  // wall, which is the only version of a gate that is actually a gate.
+  await requireCapability(session.workspaceId, 'reports');
 
   const { id } = await params;
   const query = await searchParams;

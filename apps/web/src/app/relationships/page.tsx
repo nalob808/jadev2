@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { listRelationships, listSubjects } from '@jade/db';
 import { getSession } from '@/lib/auth';
+import { requireCapability } from '@/lib/entitlements';
 import { getDatabase } from '@/lib/db';
 import { addRelationship } from '@/app/actions';
 import { Kicker, Panel, Shell } from '@/components/Shell';
@@ -12,6 +13,9 @@ export const dynamic = 'force-dynamic';
 export default async function RelationshipsPage() {
   const session = await getSession();
   if (!session) redirect('/sign-in');
+  // Enforced here, not by hiding the link. Typing this URL lands on the
+  // wall, which is the only version of a gate that is actually a gate.
+  await requireCapability(session.workspaceId, 'relationships');
 
   const db = getDatabase();
   const [pairs, people] = await Promise.all([

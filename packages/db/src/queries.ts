@@ -15,6 +15,7 @@ import {
   watches,
   watchHits,
   workspaces,
+  upgradeIntents,
   type NewBirthEvent,
   type NewSubject,
   type Relationship,
@@ -554,6 +555,93 @@ export async function setHomeZone(
 ): Promise<void> {
   await withWorkspace(database, workspaceId, async (tx) => {
     await tx.update(workspaces).set({ homeZoneId: zoneId }).where(eq(workspaces.id, workspaceId));
+  });
+}
+
+/**
+ * The tier this workspace is on, as stored.
+ *
+ * Returns the raw string rather than a parsed plan on purpose. This package
+ * knows how to read a column; it does not know what a tier means, and putting
+ * the pricing matrix behind the database layer would make the marketing page
+ * import a database client to render a list of bullets. The web app parses it.
+ */
+export interface StoredPlan {
+  readonly plan: string;
+  /** 'default' | 'grandfathered' | 'stripe' | 'manual'. */
+  readonly source: string;
+}
+
+export async function getWorkspacePlan(
+  database: Database,
+  workspaceId: string,
+): Promise<StoredPlan | null> {
+  return withWorkspace(database, workspaceId, async (tx) => {
+    const rows = await tx
+      .select({ plan: workspaces.plan, source: workspaces.planSource })
+      .from(workspaces)
+      .where(eq(workspaces.id, workspaceId))
+      .limit(1);
+    return rows[0] ?? null;
+  });
+}
+
+/**
+ * Record that somebody wanted a tier they were not on.
+ *
+ * Deliberately append-only and deliberately not deduplicated — see the
+ * migration. Four presses on the reports wall in a week is a louder fact than
+ * one, and a unique constraint would erase exactly the signal worth having.
+ */
+export async function recordUpgradeIntent(
+  database: Database,
+  workspaceId: string,
+  input: {
+    fromPlan: string;
+    wantedPlan: string;
+    capability?: string | null;
+    counted?: string | null;
+    createdBy?: string | null;
+  },
+): Promise<void> {
+  await withWorkspace(database, workspaceId, async (tx) => {
+    await tx.insert(upgradeIntents).values({
+      workspaceId,
+      fromPlan: input.fromPlan,
+      wantedPlan: input.wantedPlan,
+      capability: input.capability ?? null,
+      counted: input.counted ?? null,
+      createdBy: input.createdBy ?? null,
+    });
+  });
+}
+
+/**
+ * How many people this workspace keeps, excluding deleted ones.
+ *
+ * A count rather than `listSubjects().length` because the gate runs on every
+ * attempt to add somebody, and fetching every subject and its birth event to
+ * discard all of it is a strange way to learn a number. Soft-deleted people do
+ * not count against a limit — deleting somebody has to actually free the slot,
+ * or the limit becomes a ratchet.
+ */
+export async function countSubjects(database: Database, workspaceId: string): Promise<number> {
+  return withWorkspace(database, workspaceId, async (tx) => {
+    const rows = await tx
+      .select({ n: sql<number>`count(*)::int` })
+      .from(subjects)
+      .where(and(eq(subjects.workspaceId, workspaceId), isNull(subjects.deletedAt)));
+    return rows[0]?.n ?? 0;
+  });
+}
+
+export async function countNotes(database: Database, workspaceId: string): Promise<number> {
+  return withWorkspace(database, workspaceId, async (tx) => {
+    const rows = await tx
+      .select({ n: sql<number>`count(*)::int` })
+      .from(notes)
+      .where(eq(notes.workspaceId, workspaceId));
+    return rows[0]?.n ?? 0;
   });
 }
 

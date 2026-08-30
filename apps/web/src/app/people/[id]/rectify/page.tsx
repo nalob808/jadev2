@@ -12,6 +12,7 @@ import {
   type LifeEventKind,
 } from '@jade/astro';
 import { getSession } from '@/lib/auth';
+import { requireCapability } from '@/lib/entitlements';
 import { getClock } from '@/lib/clock';
 import { getDatabase } from '@/lib/db';
 import { Kicker, Panel, Shell } from '@/components/Shell';
@@ -57,6 +58,9 @@ export default async function RectifyPage({
 }) {
   const session = await getSession();
   if (!session) redirect('/sign-in');
+  // Enforced here, not by hiding the link. Typing this URL lands on the
+  // wall, which is the only version of a gate that is actually a gate.
+  await requireCapability(session.workspaceId, 'rectification');
 
   const { id } = await params;
   const query = await searchParams;

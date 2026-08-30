@@ -21,6 +21,7 @@ import {
   updateNote,
   deleteNote,
   getNote,
+  recordUpgradeIntent,
 } from '@jade/db';
 import {
   isValidZone,
@@ -38,6 +39,8 @@ import {
 } from '@jade/astro';
 import { getDatabase } from '@/lib/db';
 import { requireSession, signInDev, signOut } from '@/lib/auth';
+import { getPlan, requireCapability, requireRoomFor } from '@/lib/entitlements';
+import { isKnownPlan } from '@/lib/plans';
 
 /**
  * Create a person and their birth moment.
@@ -48,6 +51,13 @@ import { requireSession, signInDev, signOut } from '@/lib/auth';
  */
 export async function addPerson(formData: FormData): Promise<void> {
   const session = await requireSession();
+
+  // Before any parsing. Validating a form the workspace is not allowed to
+  // submit, and only then refusing it, wastes the reader's typing — and if the
+  // form happened to be valid it would leave them staring at a wall with no
+  // idea which of the two problems they had.
+  await requireRoomFor(session.workspaceId, 'people');
+
   const read = (key: string): string => String(formData.get(key) ?? '').trim();
   const fail = (message: string): never =>
     redirect(`/people/new?error=${encodeURIComponent(message)}`);
@@ -208,6 +218,7 @@ export async function editPerson(formData: FormData): Promise<void> {
  */
 export async function addLifeEvent(formData: FormData): Promise<void> {
   const session = await requireSession();
+  await requireCapability(session.workspaceId, 'rectification');
   const read = (key: string): string => String(formData.get(key) ?? '').trim();
   const subjectId = read('subjectId');
   const back = `/people/${subjectId}/rectify`;
@@ -252,6 +263,7 @@ export async function addLifeEvent(formData: FormData): Promise<void> {
  */
 export async function toggleLifeEvent(formData: FormData): Promise<void> {
   const session = await requireSession();
+  await requireCapability(session.workspaceId, 'rectification');
   const id = String(formData.get('id') ?? '');
   const subjectId = String(formData.get('subjectId') ?? '');
   const enabled = String(formData.get('enabled') ?? '') === 'true';
@@ -263,6 +275,7 @@ export async function toggleLifeEvent(formData: FormData): Promise<void> {
 
 export async function removeLifeEvent(formData: FormData): Promise<void> {
   const session = await requireSession();
+  await requireCapability(session.workspaceId, 'rectification');
   const id = String(formData.get('id') ?? '');
   const subjectId = String(formData.get('subjectId') ?? '');
 
@@ -281,6 +294,7 @@ export async function removeLifeEvent(formData: FormData): Promise<void> {
  */
 export async function adoptRectifiedTime(formData: FormData): Promise<void> {
   const session = await requireSession();
+  await requireCapability(session.workspaceId, 'rectification');
   const read = (key: string): string => String(formData.get(key) ?? '').trim();
   const subjectId = read('subjectId');
 
@@ -331,6 +345,8 @@ export async function removePerson(formData: FormData): Promise<void> {
 }
 
 export async function downloadPerson(formData: FormData): Promise<void> {
+  // Never gated. Constitution item 4 — export is available on every tier,
+  // and there is no capability key that could turn it off.
   const session = await requireSession();
   const id = String(formData.get('id'));
   await exportSubject(getDatabase(), session.workspaceId, id);
@@ -339,6 +355,7 @@ export async function downloadPerson(formData: FormData): Promise<void> {
 
 export async function addRelationship(formData: FormData): Promise<void> {
   const session = await requireSession();
+  await requireCapability(session.workspaceId, 'relationships');
   const a = String(formData.get('subjectAId') ?? '');
   const b = String(formData.get('subjectBId') ?? '');
   if (!a || !b) throw new Error('Choose two people.');
@@ -481,6 +498,7 @@ function safeReturn(raw: string): string {
 
 export async function addNote(formData: FormData): Promise<void> {
   const session = await requireSession();
+  await requireRoomFor(session.workspaceId, 'notes');
   const read = (key: string): string => String(formData.get(key) ?? '').trim();
   const back = safeReturn(read('returnTo'));
 
@@ -582,4 +600,47 @@ export async function devSignIn(formData: FormData): Promise<void> {
 export async function devSignOut(): Promise<void> {
   await signOut();
   redirect('/');
+}
+
+/**
+ * Record that somebody wanted a tier they were not on.
+ *
+ * Writes one row and redirects back to the wall with `noted=1`. No card, no
+ * charge, no external service — and the redirect rather than a client-side
+ * confirmation means the page cannot get stuck showing a spinner if anything
+ * downstream is slow.
+ *
+ * The tier names are validated against the matrix before they are stored.
+ * They arrive from hidden form fields, so they are user input like any other,
+ * and unvalidated strings in this table would poison the one number this
+ * feature exists to produce.
+ */
+export async function recordInterest(formData: FormData): Promise<void> {
+  const session = await requireSession();
+  const read = (key: string): string => String(formData.get(key) ?? '').trim();
+
+  const wantedPlan = read('wantedPlan');
+  const fromPlan = read('fromPlan');
+  if (!isKnownPlan(wantedPlan) || !isKnownPlan(fromPlan)) redirect('/upgrade');
+
+  // The tier the *database* says, not the tier the form says. A form field is
+  // a claim; only the column is a fact, and recording a claim would let a
+  // crafted post inflate the numbers this table exists to inform decisions on.
+  const actual = await getPlan(session.workspaceId);
+
+  const capability = read('capability') || null;
+  const counted = read('counted') || null;
+
+  await recordUpgradeIntent(getDatabase(), session.workspaceId, {
+    fromPlan: actual.id,
+    wantedPlan,
+    capability,
+    counted,
+    createdBy: session.userId,
+  });
+
+  const back = new URLSearchParams({ noted: '1' });
+  if (capability) back.set('need', capability);
+  if (counted) back.set('full', counted);
+  redirect(`/upgrade?${back.toString()}`);
 }

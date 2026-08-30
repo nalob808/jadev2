@@ -8,6 +8,8 @@ import {
   PLANNED_HOUSE_SYSTEMS,
 } from '@jade/astro';
 import { getSession } from '@/lib/auth';
+import { getEntitlement } from '@/lib/entitlements';
+import { PlanPanel } from '@/components/PlanPanel';
 import { getDatabase } from '@/lib/db';
 import { Kicker, Panel, Shell } from '@/components/Shell';
 import { SubmitButton } from '@/components/SubmitButton';
@@ -90,9 +92,10 @@ export default async function SettingsPage({
   const session = await getSession();
   if (!session) redirect('/sign-in');
 
-  const [profile, homeZone] = await Promise.all([
+  const [profile, homeZone, entitlement] = await Promise.all([
     getSettingsProfile(getDatabase(), session.workspaceId, null),
     getHomeZone(getDatabase(), session.workspaceId),
+    getEntitlement(session.workspaceId),
   ]);
   const zones = availableZones();
   const saved = searchParams.saved === '1';
@@ -123,6 +126,8 @@ export default async function SettingsPage({
           anything already computed — it changes what the next chart is computed with.
         </p>
       </div>
+
+      <PlanPanel entitlement={entitlement} />
 
       {saved ? (
         <p className="mb-4 border border-[var(--jade)] bg-[var(--surface)] px-4 py-2 font-mono text-[11px] uppercase tracking-wider text-[var(--jade)]">

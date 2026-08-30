@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { setPlan } from './plan';
 
 /**
  * The list controls and the settings page.
@@ -45,6 +46,9 @@ async function signIn(page: import('@playwright/test').Page): Promise<void> {
   await page.getByRole('button', { name: 'Continue' }).click();
   // Signing in lands on the dashboard, not the list.
   await expect(page).toHaveURL(/\/home$/, { timeout: 20_000 });
+  // Tiers arrived after this spec was written. Without this the workspace
+  // is on Free and half these assertions would be testing the wall.
+  await setPlan(EMAIL, 'professional');
 }
 
 test.beforeAll(async ({ browser }) => {

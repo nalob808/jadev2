@@ -18,6 +18,7 @@ import {
 import { SYNASTRY_PREAMBLE, synastryReadingFor } from '@jade/interpret';
 import { KutaTable, MangalaCard, NorthIndianChart, OverlayGrid, OverlayWheel } from '@jade/ui';
 import { getSession } from '@/lib/auth';
+import { requireCapability } from '@/lib/entitlements';
 import { getClock } from '@/lib/clock';
 import { getDatabase } from '@/lib/db';
 import { getOrComputeChart } from '@/lib/chart';
@@ -70,6 +71,9 @@ export default async function RelationshipReportPage({
 }) {
   const session = await getSession();
   if (!session) redirect('/sign-in');
+  // Enforced here, not by hiding the link. Typing this URL lands on the
+  // wall, which is the only version of a gate that is actually a gate.
+  await requireCapability(session.workspaceId, 'reports');
 
   const { id } = await params;
   const db = getDatabase();

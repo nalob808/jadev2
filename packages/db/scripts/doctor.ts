@@ -88,6 +88,12 @@ try {
   }
 
   // --- 2. RLS enabled AND forced on every workspace-scoped table -----------
+  //
+  // This list is maintained by hand and has already fallen behind twice, so
+  // the check below also fails on any *unlisted* workspace-scoped table. A
+  // new table that nobody adds here is exactly the one whose policy nobody
+  // wrote either, and a doctor that only checks the tables it was told about
+  // reports a clean bill of health for precisely the wrong database.
   const expected = [
     'subjects',
     'birth_events',
@@ -98,6 +104,8 @@ try {
     'watches',
     'watch_hits',
     'notes',
+    'life_events',
+    'upgrade_intents',
   ];
   const tables = await sql<{ relname: string; enabled: boolean; forced: boolean }[]>`
     select relname, relrowsecurity as enabled, relforcerowsecurity as forced
@@ -110,6 +118,30 @@ try {
     else if (!row.forced)
       report(FAIL, `RLS on ${name}`, 'enabled but not FORCED, so the owning role bypasses it');
     else report(PASS, `RLS forced on ${name}`);
+  }
+
+  // Anything carrying a workspace_id that the list above does not mention.
+  // Finding one is not a warning: an unlisted table is a table whose policy
+  // was never reviewed, holding data scoped to a practice.
+  const unlisted = await sql<{ table_name: string }[]>`
+    select c.relname as table_name
+      from pg_class c
+      join pg_namespace n on n.oid = c.relnamespace
+      join information_schema.columns col
+        on col.table_name = c.relname and col.table_schema = n.nspname
+     where n.nspname = 'public'
+       and c.relkind = 'r'
+       and col.column_name = 'workspace_id'
+       and c.relname <> all(${expected})
+     order by c.relname`;
+
+  for (const row of unlisted) {
+    report(
+      FAIL,
+      `table ${row.table_name}`,
+      'is workspace-scoped but is not checked by this script — add it to `expected` in ' +
+        'packages/db/scripts/doctor.ts and confirm its RLS policy exists',
+    );
   }
 
   // --- 3. A live probe, because configuration can lie ----------------------
