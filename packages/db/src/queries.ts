@@ -5,6 +5,7 @@ import {
   birthEvents,
   charts,
   memberships,
+  lifeEvents,
   notes,
   places,
   settingsProfiles,
@@ -319,6 +320,96 @@ export async function exportSubject(
     if (!subject) return null;
     const events = await tx.select().from(birthEvents).where(eq(birthEvents.subjectId, subjectId));
     return { exportedFormat: 'jade.subject.v1', subject, birthEvents: events };
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Life events — the evidence a rectification is fitted to
+// ---------------------------------------------------------------------------
+
+export interface LifeEventInput {
+  readonly subjectId: string;
+  readonly kind: string;
+  /** ISO date, "1997-03-14". A date, never a timestamp — see the migration. */
+  readonly occurredOn: string;
+  readonly precision?: 'day' | 'month' | 'year';
+  readonly note?: string | null;
+  readonly createdBy?: string | null;
+}
+
+/**
+ * Every event on record for one person, oldest first.
+ *
+ * Chronological rather than newest-first on purpose: this list is read as a
+ * biography while a practitioner works through it with a client, and a life
+ * told backwards is hard to follow.
+ */
+export async function listLifeEvents(
+  database: Database,
+  workspaceId: string,
+  subjectId: string,
+): Promise<Array<typeof lifeEvents.$inferSelect>> {
+  return withWorkspace(database, workspaceId, async (tx) =>
+    tx
+      .select()
+      .from(lifeEvents)
+      .where(and(eq(lifeEvents.workspaceId, workspaceId), eq(lifeEvents.subjectId, subjectId)))
+      .orderBy(lifeEvents.occurredOn),
+  );
+}
+
+export async function createLifeEvent(
+  database: Database,
+  workspaceId: string,
+  input: LifeEventInput,
+): Promise<typeof lifeEvents.$inferSelect> {
+  return withWorkspace(database, workspaceId, async (tx) => {
+    const rows = await tx
+      .insert(lifeEvents)
+      .values({
+        workspaceId,
+        subjectId: input.subjectId,
+        kind: input.kind,
+        occurredOn: input.occurredOn,
+        precision: input.precision ?? 'day',
+        note: input.note ?? null,
+        createdBy: input.createdBy ?? null,
+      })
+      .returning();
+    return rows[0]!;
+  });
+}
+
+/**
+ * Toggle an event in or out of the sweep without deleting it.
+ *
+ * The point of this rather than a delete: the most useful question a
+ * practitioner can ask of a rectification is "does the ranking survive
+ * dropping the event I am least sure about". That has to be reversible.
+ */
+export async function setLifeEventEnabled(
+  database: Database,
+  workspaceId: string,
+  id: string,
+  enabled: boolean,
+): Promise<void> {
+  await withWorkspace(database, workspaceId, async (tx) => {
+    await tx
+      .update(lifeEvents)
+      .set({ enabled, updatedAt: new Date() })
+      .where(and(eq(lifeEvents.id, id), eq(lifeEvents.workspaceId, workspaceId)));
+  });
+}
+
+export async function deleteLifeEvent(
+  database: Database,
+  workspaceId: string,
+  id: string,
+): Promise<void> {
+  await withWorkspace(database, workspaceId, async (tx) => {
+    await tx
+      .delete(lifeEvents)
+      .where(and(eq(lifeEvents.id, id), eq(lifeEvents.workspaceId, workspaceId)));
   });
 }
 

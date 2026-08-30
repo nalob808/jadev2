@@ -1,5 +1,6 @@
 import {
   boolean,
+  date,
   doublePrecision,
   index,
   integer,
@@ -48,6 +49,9 @@ export const subjectRelationship = pgEnum('subject_relationship', [
 ]);
 
 export const subjectPrivacy = pgEnum('subject_privacy', ['private', 'workspace', 'shared']);
+
+/** How sharply a reported life event is dated. Drives the transit window. */
+export const lifeEventPrecision = pgEnum('life_event_precision', ['day', 'month', 'year']);
 
 /** Where a UTC offset came from. Never inferred after the fact. */
 export const offsetSource = pgEnum('offset_source', ['tzdb', 'manual', 'lmt']);
@@ -290,6 +294,45 @@ export const birthEvents = pgTable(
   (table) => ({
     subjectIdx: index('birth_events_subject_idx').on(table.subjectId),
     workspaceIdx: index('birth_events_workspace_idx').on(table.workspaceId),
+  }),
+);
+
+/**
+ * Life events, the evidence a rectification is fitted to.
+ *
+ * Attached to the subject rather than to a birth event, because they outlive
+ * any particular candidate: you rectify, adopt a new birth event, gather two
+ * more events, and rectify again against the same log.
+ *
+ * `occurredOn` is a date and `precision` says how much of it to believe. A
+ * client reports a day, a month or a year — never a time — and recording that
+ * honestly is what stops the scorer treating "sometime in 1997" as sharp
+ * evidence.
+ */
+export const lifeEvents = pgTable(
+  'life_events',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    workspaceId: uuid('workspace_id')
+      .notNull()
+      .references(() => workspaces.id, { onDelete: 'cascade' }),
+    subjectId: uuid('subject_id')
+      .notNull()
+      .references(() => subjects.id, { onDelete: 'cascade' }),
+    /** Matches LifeEventKind in @jade/astro. Text so the vocabulary can grow. */
+    kind: text('kind').notNull(),
+    occurredOn: date('occurred_on').notNull(),
+    precision: lifeEventPrecision('precision').notNull().default('day'),
+    note: text('note'),
+    /** Excluded from a sweep without being deleted. */
+    enabled: boolean('enabled').notNull().default(true),
+    createdBy: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({
+    subjectIdx: index('life_events_subject_idx').on(table.subjectId, table.occurredOn),
+    workspaceIdx: index('life_events_workspace_idx').on(table.workspaceId),
   }),
 );
 

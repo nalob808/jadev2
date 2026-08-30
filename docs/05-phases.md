@@ -301,6 +301,79 @@ professional licence purchased and its receipt filed**.
 
 ---
 
+## Phase 9 — Rectification 🔵 IN PROGRESS
+
+**Goal:** the feature a professional switches software for.
+
+Birth time rectification is the most valuable unsolved problem in this market.
+Every practitioner meets clients with "sometime in the morning" on the birth
+record, the ascendant is the one thing the whole chart hangs from, and the
+existing tools either do not attempt it or produce a single confident number
+with no working shown. Astrologers already pay for rectification help. Nothing
+good exists.
+
+**Shipped so far: the engine.** A pure sweep over candidate birth times,
+scoring each against reported life events by named classical rules. Sixteen
+event kinds, each mapped to its houses and kārakas with a citation; seven
+scoring rules with fixed, exported weights; every point traceable to the
+placements that produced it. The `life_events` table, RLS forced, and the
+workspace at `/people/[id]/rectify`.
+
+**The two signals, and why they are the only ones.** Over a window of hours the
+ascendant moves about a degree every four minutes and rotates the houses; the
+Moon moves half a degree an hour and fixes the balance of the first mahādaśā,
+which shifts every daśā boundary in the life. Everything else is still —
+Saturn moves two arcseconds an hour. A rule resting on a slow graha's sign
+alone fires identically for every candidate and ranks nothing.
+
+**Which is the thing this implementation does that others do not.** The sweep
+reports, per rule, the fraction of candidates it fired for, and marks any rule
+above 98% or below 2% as non-discriminating. Those rules are shown greyed,
+with their firing rate, beneath the ones that actually separated the field. A
+rule that fires for everything contributed to every score equally; including it
+in a confident-looking spread without saying so is how a tool starts lying
+politely. The page also reports **separation** — the best candidate against the
+median — and says plainly when the supplied events do not distinguish the
+window, which is a fact about the evidence rather than about the chart.
+
+**Deliberately not shipped: an answer.** There is no `bestTime` field on the
+result type and no "rectified birth time" anywhere in the UI. The output is a
+ranked shortlist, every candidate carries its rules, and `RECTIFICATION_CAVEAT`
+travels with it. Adopting a candidate is a separate, labelled act that writes
+`min5` accuracy and a source note recording that the time came from a sweep —
+because a year later nobody remembers whether an ascendant came from a
+certificate or from an inference, and the two deserve very different
+confidence.
+
+**On the difficult event kinds.** Bereavement, illness and accident are among
+the best rectification anchors there are: precisely dated, unambiguous, and
+they engage houses nothing else engages. They are included as _events the
+person reports having already happened_ — data, not prophecy. Constitution item
+6 forbids predicting death, disease and legal outcomes; it does not forbid
+recording that a bereavement occurred in 1998 and asking which birth time is
+consistent with it. Nothing in the module produces a forward-looking statement,
+and a test asserts it.
+
+**Still to come in this phase:** more rules (Aṣṭottarī cross-check once that
+daśā exists, Tājika annual returns once varṣaphala does), a printable
+rectification report, and the ability to hold two candidate birth events side
+by side rather than adopting one.
+
+**Done when:** the sweep runs over a configurable window and step; events are
+stored, excludable and re-runnable; every candidate shows its rules and their
+placements; non-discriminating rules are reported as such; a candidate can be
+adopted with its provenance recorded; and no output anywhere claims a corrected
+time.
+
+> **Prompt:**
+> "Read packages/astro/src/rectification. Add the remaining rules behind named
+> options, and build the printable rectification report from the same
+> components as the chart report. Every rule must return the placements that
+> made it fire, weights stay exported, and the discrimination reporting must
+> cover any rule you add. Do not add a field that names a single best time."
+
+---
+
 ## Phase 8 — Beyond (ongoing)
 
 Ranked by expected return:
@@ -310,8 +383,7 @@ Ranked by expected return:
 2. **Import from competitors** — Solar Fire, JHora, AstroSage, Parashara's Light. Every import
    format you support is a professional who can switch in an afternoon.
 3. **The interpretation layer** — the grounded AI assistant, plus the forkable text library.
-4. **Rectification workspace** — life-event log + candidate ascendant search + scoring. Charge
-   for it; astrologers pay for rectification tooling and nothing good exists.
+4. ~~**Rectification workspace**~~ — promoted to Phase 9 and started; see above.
 5. **Western tropical as a first-class second tradition** — Placidus, progressions, solar arc,
    returns, Hellenistic (zodiacal releasing, annual profections). Doubles the market.
 6. **The API product** — the calculation core is already a clean library; expose it. Competing

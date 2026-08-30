@@ -24,3 +24,4 @@ export * from './outlook.js';
 export * from './dayQuality.js';
 export * from './watches/index.js';
 export * from './notes/index.js';
+export * from './rectification/index.js';

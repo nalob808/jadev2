@@ -9,10 +9,14 @@ import {
   exportSubject,
   hardDeleteSubject,
   softDeleteSubject,
+  getSubject,
   updateSettingsProfile,
   updateSubject,
   updatePrimaryBirthEvent,
   setHomeZone,
+  createLifeEvent,
+  deleteLifeEvent,
+  setLifeEventEnabled,
   createNote,
   updateNote,
   deleteNote,
@@ -26,7 +30,12 @@ import {
   toUtcMillis,
   type LocalDateTime,
 } from '@jade/atlas';
-import { isAnchorKind, isImplementedChartStyle, isImplementedHouseSystem } from '@jade/astro';
+import {
+  isAnchorKind,
+  isImplementedChartStyle,
+  isImplementedHouseSystem,
+  isLifeEventKind,
+} from '@jade/astro';
 import { getDatabase } from '@/lib/db';
 import { requireSession, signInDev, signOut } from '@/lib/auth';
 
@@ -187,6 +196,125 @@ export async function editPerson(formData: FormData): Promise<void> {
   revalidatePath('/relationships');
   revalidatePath('/home');
   redirect(`/people/${id}?saved=1`);
+}
+
+/**
+ * Record a life event for rectification.
+ *
+ * The date is stored as characters, not parsed into an instant. A client says
+ * "March 1997"; turning that into a timestamp would invent a day, an hour and a
+ * time zone that nobody reported, and the whole discipline of this feature is
+ * refusing to manufacture precision.
+ */
+export async function addLifeEvent(formData: FormData): Promise<void> {
+  const session = await requireSession();
+  const read = (key: string): string => String(formData.get(key) ?? '').trim();
+  const subjectId = read('subjectId');
+  const back = `/people/${subjectId}/rectify`;
+
+  const fail: (message: string) => never = (message) =>
+    redirect(`${back}?error=${encodeURIComponent(message)}`);
+
+  const kind = read('kind');
+  if (!isLifeEventKind(kind)) fail('Choose what kind of event this was.');
+
+  const occurredOn = read('occurredOn');
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(occurredOn)) fail('Enter the date the event happened.');
+
+  const precisionRaw = read('precision');
+  const precision =
+    precisionRaw === 'month' || precisionRaw === 'year' ? precisionRaw : ('day' as const);
+
+  const created = await createLifeEvent(getDatabase(), session.workspaceId, {
+    subjectId,
+    kind,
+    occurredOn,
+    precision,
+    note: read('note') || null,
+    createdBy: session.userId,
+  });
+
+  revalidatePath(back);
+  // Redirect to a *different* URL than the one submitted from, carrying the new
+  // row's id. Redirecting back to the identical path is a soft navigation that
+  // React can satisfy without remounting the client subtree, which leaves the
+  // submit button stuck reading "Adding…" — and then a second event cannot be
+  // added at all without a manual reload. A changing query string makes it a
+  // real navigation, and the id is worth having anyway.
+  redirect(`${back}?added=${created.id}`);
+}
+
+/**
+ * Include or exclude one event from the sweep.
+ *
+ * Reads the current value and flips it rather than trusting the form, so a
+ * stale page cannot re-enable something by submitting what it saw earlier.
+ */
+export async function toggleLifeEvent(formData: FormData): Promise<void> {
+  const session = await requireSession();
+  const id = String(formData.get('id') ?? '');
+  const subjectId = String(formData.get('subjectId') ?? '');
+  const enabled = String(formData.get('enabled') ?? '') === 'true';
+
+  await setLifeEventEnabled(getDatabase(), session.workspaceId, id, !enabled);
+  revalidatePath(`/people/${subjectId}/rectify`);
+  redirect(`/people/${subjectId}/rectify`);
+}
+
+export async function removeLifeEvent(formData: FormData): Promise<void> {
+  const session = await requireSession();
+  const id = String(formData.get('id') ?? '');
+  const subjectId = String(formData.get('subjectId') ?? '');
+
+  await deleteLifeEvent(getDatabase(), session.workspaceId, id);
+  revalidatePath(`/people/${subjectId}/rectify`);
+  redirect(`/people/${subjectId}/rectify`);
+}
+
+/**
+ * Adopt a rectified time as the person's birth event.
+ *
+ * Deliberately overwrites the primary event and records why in `sourceNote`.
+ * A rectified time that does not say it is rectified is the worst outcome
+ * here: a year later nobody remembers whether the ascendant came from a
+ * certificate or from a sweep, and the two deserve very different confidence.
+ */
+export async function adoptRectifiedTime(formData: FormData): Promise<void> {
+  const session = await requireSession();
+  const read = (key: string): string => String(formData.get(key) ?? '').trim();
+  const subjectId = read('subjectId');
+
+  const record = await getSubject(getDatabase(), session.workspaceId, subjectId);
+  if (!record?.birthEvent) redirect(`/people/${subjectId}`);
+
+  const localTime = read('localTime');
+  if (!/^\d{2}:\d{2}$/.test(localTime)) {
+    redirect(`/people/${subjectId}/rectify?error=${encodeURIComponent('That is not a time.')}`);
+  }
+
+  const event = record.birthEvent;
+  const datePart = event.localDatetime.split('T')[0]!;
+  const [year, month, day] = datePart.split('-').map(Number) as [number, number, number];
+  const [hour, minute] = localTime.split(':').map(Number) as [number, number];
+  const local: LocalDateTime = { year, month, day, hour, minute, second: 0 };
+
+  const resolved = resolveOffset(local, event.timezoneId);
+
+  await updatePrimaryBirthEvent(getDatabase(), session.workspaceId, subjectId, {
+    localDatetime: `${datePart}T${localTime}:00`,
+    utcDatetime: new Date(toUtcMillis(local, resolved.offsetMinutes)),
+    utcOffsetMinutes: resolved.offsetMinutes,
+    offsetSource: resolved.source,
+    offsetAmbiguous: resolved.ambiguous,
+    offsetNote: resolved.note ?? null,
+    // The provenance is the point. "exact" would be a lie about a sweep.
+    timeAccuracy: 'min5',
+    sourceNote: `Rectified in Jade against ${read('eventCount') || 'recorded'} life events on ${read('today') || 'a sweep'}`,
+  });
+
+  revalidatePath(`/people/${subjectId}`);
+  revalidatePath(`/people/${subjectId}/rectify`);
+  redirect(`/people/${subjectId}?saved=1`);
 }
 
 export async function removePerson(formData: FormData): Promise<void> {

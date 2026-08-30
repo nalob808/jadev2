@@ -186,6 +186,9 @@ export default async function PersonPage({
           >
             edit
           </Link>
+          <Link className="underline" href={`${base}/rectify`}>
+            rectify
+          </Link>
           <Link className="underline" href={`${base}/report`}>
             report
           </Link>
