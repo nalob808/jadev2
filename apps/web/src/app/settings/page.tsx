@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation';
-import { getHomeZone, getSettingsProfile } from '@jade/db';
+import { getHomeZone, getSettingsProfile, getWorkspaceBilling } from '@jade/db';
 import { availableZones } from '@jade/atlas';
 import {
   IMPLEMENTED_CHART_STYLES,
@@ -92,10 +92,11 @@ export default async function SettingsPage({
   const session = await getSession();
   if (!session) redirect('/sign-in');
 
-  const [profile, homeZone, entitlement] = await Promise.all([
+  const [profile, homeZone, entitlement, billing] = await Promise.all([
     getSettingsProfile(getDatabase(), session.workspaceId, null),
     getHomeZone(getDatabase(), session.workspaceId),
     getEntitlement(session.workspaceId),
+    getWorkspaceBilling(getDatabase(), session.workspaceId),
   ]);
   const zones = availableZones();
   const saved = searchParams.saved === '1';
@@ -127,7 +128,14 @@ export default async function SettingsPage({
         </p>
       </div>
 
-      <PlanPanel entitlement={entitlement} />
+      <PlanPanel
+        entitlement={entitlement}
+        subscription={{
+          status: billing?.subscriptionStatus ?? null,
+          periodEnd: billing?.subscriptionPeriodEnd ?? null,
+          hasCustomer: Boolean(billing?.stripeCustomerId),
+        }}
+      />
 
       {saved ? (
         <p className="mb-4 border border-[var(--jade)] bg-[var(--surface)] px-4 py-2 font-mono text-[11px] uppercase tracking-wider text-[var(--jade)]">

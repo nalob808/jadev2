@@ -22,6 +22,8 @@ import {
   deleteNote,
   getNote,
   recordUpgradeIntent,
+  getWorkspaceBilling,
+  setStripeCustomer,
 } from '@jade/db';
 import {
   isValidZone,
@@ -38,6 +40,7 @@ import {
   isLifeEventKind,
 } from '@jade/astro';
 import { getDatabase } from '@/lib/db';
+import { env } from '@/lib/env';
 import { requireSession, signInDev, signOut } from '@/lib/auth';
 import { getPlan, requireCapability, requireRoomFor } from '@/lib/entitlements';
 import { isKnownPlan } from '@/lib/plans';
@@ -643,4 +646,90 @@ export async function recordInterest(formData: FormData): Promise<void> {
   if (capability) back.set('need', capability);
   if (counted) back.set('full', counted);
   redirect(`/upgrade?${back.toString()}`);
+}
+
+/**
+ * Start a Stripe Checkout session.
+ *
+ * The tier and interval arrive from a form and are therefore untrusted: both
+ * are re-derived against the configured price map before anything is charged,
+ * so a crafted post cannot buy Professional at the Seeker price. The amount is
+ * never in the form at all — only the price id decides what is charged, and
+ * that comes from the environment.
+ *
+ * A Stripe customer is created and attached to the workspace *before* the
+ * session, so the webhook that arrives seconds later can find the workspace.
+ * Creating the customer inside checkout instead is the classic way to receive
+ * a payment you cannot match to an account.
+ */
+export async function startCheckout(formData: FormData): Promise<void> {
+  const session = await requireSession();
+  const planId = String(formData.get('plan') ?? '');
+  const intervalRaw = String(formData.get('interval') ?? 'monthly');
+  const interval = intervalRaw === 'yearly' ? 'yearly' : 'monthly';
+
+  if (!isKnownPlan(planId)) redirect('/upgrade');
+
+  const { getStripe, priceMap } = await import('@/lib/stripe');
+  const stripe = getStripe();
+  const priceId = priceMap(planId, interval);
+  if (!stripe || !priceId) {
+    // Billing not configured, or that tier has no price. The wall handles
+    // this state; it should never have rendered a button that lands here.
+    redirect(`/upgrade?unavailable=${planId}`);
+  }
+
+  const database = getDatabase();
+  const billing = await getWorkspaceBilling(database, session.workspaceId);
+
+  let customerId = billing?.stripeCustomerId ?? null;
+  if (!customerId) {
+    const customer = await stripe.customers.create({
+      email: session.email,
+      // The workspace id travels with the customer so that a human staring at
+      // the Stripe dashboard at midnight can tell which account this is.
+      metadata: { workspaceId: session.workspaceId },
+    });
+    customerId = customer.id;
+    await setStripeCustomer(database, session.workspaceId, customerId);
+  }
+
+  const origin = env.appUrl;
+  const checkout = await stripe.checkout.sessions.create({
+    mode: 'subscription',
+    customer: customerId,
+    line_items: [{ price: priceId, quantity: 1 }],
+    success_url: `${origin}/settings?subscribed=1`,
+    cancel_url: `${origin}/upgrade?cancelled=1`,
+    // Lets Stripe collect the tax it is obliged to; harmless if not enabled
+    // on the account.
+    allow_promotion_codes: true,
+    subscription_data: { metadata: { workspaceId: session.workspaceId } },
+  });
+
+  if (!checkout.url) redirect('/upgrade?unavailable=session');
+  redirect(checkout.url);
+}
+
+/**
+ * Open Stripe's billing portal.
+ *
+ * Card changes, cancellation, invoices and receipts all live there rather than
+ * being rebuilt here. That is not laziness: card details must never touch this
+ * application, and every screen we do not build is a screen that cannot leak.
+ */
+export async function openBillingPortal(): Promise<void> {
+  const session = await requireSession();
+  const { getStripe } = await import('@/lib/stripe');
+  const stripe = getStripe();
+  if (!stripe) redirect('/settings');
+
+  const billing = await getWorkspaceBilling(getDatabase(), session.workspaceId);
+  if (!billing?.stripeCustomerId) redirect('/upgrade');
+
+  const portal = await stripe.billingPortal.sessions.create({
+    customer: billing.stripeCustomerId,
+    return_url: `${env.appUrl}/settings`,
+  });
+  redirect(portal.url);
 }

@@ -16,6 +16,7 @@ import {
   watchHits,
   workspaces,
   upgradeIntents,
+  stripeEvents,
   type NewBirthEvent,
   type NewSubject,
   type Relationship,
@@ -613,6 +614,149 @@ export async function recordUpgradeIntent(
       counted: input.counted ?? null,
       createdBy: input.createdBy ?? null,
     });
+  });
+}
+
+/**
+ * Find a workspace by its Stripe customer id.
+ *
+ * Runs outside `withWorkspace` because the webhook has no workspace to bind —
+ * finding out which one this is *is* the question. The lookup is by a unique
+ * indexed column, so it cannot fan out across tenants the way a search on an
+ * email address could.
+ */
+export async function workspaceByStripeCustomer(
+  database: Database,
+  customerId: string,
+): Promise<{ id: string; plan: string; planSource: string } | null> {
+  const rows = await database.transaction(async (tx) => {
+    await tx.execute(sql`select set_config('app.bypass_rls', 'on', true)`);
+    return tx
+      .select({ id: workspaces.id, plan: workspaces.plan, planSource: workspaces.planSource })
+      .from(workspaces)
+      .where(eq(workspaces.stripeCustomerId, customerId))
+      .limit(1);
+  });
+  return rows[0] ?? null;
+}
+
+export async function getWorkspaceBilling(
+  database: Database,
+  workspaceId: string,
+): Promise<{
+  plan: string;
+  planSource: string;
+  stripeCustomerId: string | null;
+  subscriptionStatus: string | null;
+  subscriptionPeriodEnd: Date | null;
+} | null> {
+  return withWorkspace(database, workspaceId, async (tx) => {
+    const rows = await tx
+      .select({
+        plan: workspaces.plan,
+        planSource: workspaces.planSource,
+        stripeCustomerId: workspaces.stripeCustomerId,
+        subscriptionStatus: workspaces.subscriptionStatus,
+        subscriptionPeriodEnd: workspaces.subscriptionPeriodEnd,
+      })
+      .from(workspaces)
+      .where(eq(workspaces.id, workspaceId))
+      .limit(1);
+    return rows[0] ?? null;
+  });
+}
+
+/** Attach a Stripe customer to a workspace, before any checkout is started. */
+export async function setStripeCustomer(
+  database: Database,
+  workspaceId: string,
+  customerId: string,
+): Promise<void> {
+  await withWorkspace(database, workspaceId, async (tx) => {
+    await tx
+      .update(workspaces)
+      .set({ stripeCustomerId: customerId })
+      .where(eq(workspaces.id, workspaceId));
+  });
+}
+
+/**
+ * Apply a billing decision.
+ *
+ * Bypasses RLS for the same reason as the lookup above: the caller is Stripe,
+ * not a signed-in person. The `planSource` in the WHERE clause is the
+ * belt-and-braces half of the guard already enforced in `resolvePlanChange` —
+ * even a caller that skipped the pure rule cannot overwrite a grandfathered or
+ * comped account through this function.
+ */
+export async function applyBillingState(
+  database: Database,
+  workspaceId: string,
+  next: {
+    plan: string;
+    planSource: 'stripe';
+    subscriptionId: string | null;
+    status: string | null;
+    periodEnd: Date | null;
+  },
+): Promise<boolean> {
+  const rows = await database.transaction(async (tx) => {
+    await tx.execute(sql`select set_config('app.bypass_rls', 'on', true)`);
+    return tx
+      .update(workspaces)
+      .set({
+        plan: next.plan,
+        planSource: next.planSource,
+        stripeSubscriptionId: next.subscriptionId,
+        subscriptionStatus: next.status,
+        subscriptionPeriodEnd: next.periodEnd,
+      })
+      .where(
+        and(eq(workspaces.id, workspaceId), sql`${workspaces.planSource} in ('default', 'stripe')`),
+      )
+      .returning({ id: workspaces.id });
+  });
+  return rows.length > 0;
+}
+
+/**
+ * Claim a Stripe event id, or report that it has already been seen.
+ *
+ * Returns false when the event is a redelivery. Insert-then-act: the row is
+ * written before the handler does anything, so a crash mid-handling leaves the
+ * event recorded but unhandled rather than silently applied twice.
+ */
+export async function claimStripeEvent(
+  database: Database,
+  event: { id: string; type: string },
+): Promise<boolean> {
+  const rows = await database.transaction(async (tx) => {
+    await tx.execute(sql`select set_config('app.bypass_rls', 'on', true)`);
+    return tx
+      .insert(stripeEvents)
+      .values({ id: event.id, type: event.type })
+      .onConflictDoNothing({ target: stripeEvents.id })
+      .returning({ id: stripeEvents.id });
+  });
+  return rows.length > 0;
+}
+
+/** Record what the handler decided, for reading back months later. */
+export async function finishStripeEvent(
+  database: Database,
+  eventId: string,
+  result: { workspaceId?: string | null; outcome: string },
+): Promise<void> {
+  await database.transaction(async (tx) => {
+    await tx.execute(sql`select set_config('app.bypass_rls', 'on', true)`);
+    await tx
+      .update(stripeEvents)
+      .set({
+        handledAt: new Date(),
+        outcome: result.outcome,
+        ...(result.workspaceId ? { workspaceId: result.workspaceId } : {}),
+      })
+      .where(eq(stripeEvents.id, eventId));
   });
 }
 

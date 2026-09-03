@@ -142,7 +142,9 @@ test('wanting a tier is recorded rather than pretended', async ({ page }) => {
   for (const phrase of ['card number', 'pay now', 'buy now', 'start your subscription']) {
     expect(body, `the wall said "${phrase}"`).not.toContain(phrase);
   }
-  expect(body).toContain('checkout is not open yet');
+  // Worded per-tier ("not open for Seeker yet"), so match the claim rather
+  // than the sentence — the copy is allowed to change, the promise is not.
+  expect(body).toContain('checkout is not open');
 
   await ask.click();
   await expect(page.getByText(/Noted\./)).toBeVisible({ timeout: 20_000 });

@@ -135,6 +135,17 @@ export const workspaces = pgTable(
      * conflating them cancels every comped and grandfathered account at once.
      */
     planSource: text('plan_source').notNull().default('default'),
+    /** Stripe's customer id. One customer, one workspace — enforced by a unique index. */
+    stripeCustomerId: text('stripe_customer_id'),
+    stripeSubscriptionId: text('stripe_subscription_id'),
+    /**
+     * Stripe's own status word, stored verbatim: 'active', 'trialing',
+     * 'past_due', 'canceled', 'incomplete', 'unpaid'. Not a boolean — a card
+     * that failed once is not a cancelled subscription, and collapsing the two
+     * either cuts off someone about to pay or keeps a lapsed account in.
+     */
+    subscriptionStatus: text('subscription_status'),
+    subscriptionPeriodEnd: timestamp('subscription_period_end', { withTimezone: true }),
     defaultSettingsProfileId: uuid('default_settings_profile_id'),
     /**
      * IANA zone the practice reads its clock in. NULL means unset — the UI
@@ -581,3 +592,33 @@ export const upgradeIntents = pgTable(
 );
 
 export type UpgradeIntent = typeof upgradeIntents.$inferSelect;
+
+/**
+ * Every Stripe webhook we have received.
+ *
+ * The primary key is Stripe's own event id, and that is the whole idempotency
+ * mechanism: Stripe retries until it gets a 2xx and delivers out of order under
+ * load, so the same event *will* arrive twice. Insert first, act second — a
+ * crash between the two must leave the event unprocessed rather than recorded
+ * as done.
+ *
+ * Not workspace-scoped under RLS, deliberately: the webhook has no session to
+ * bind, and the table holds no personal data. See migration 0010.
+ */
+export const stripeEvents = pgTable(
+  'stripe_events',
+  {
+    id: text('id').primaryKey(),
+    type: text('type').notNull(),
+    workspaceId: uuid('workspace_id').references(() => workspaces.id, { onDelete: 'set null' }),
+    receivedAt: timestamp('received_at', { withTimezone: true }).notNull().defaultNow(),
+    handledAt: timestamp('handled_at', { withTimezone: true }),
+    /** What the handler decided, in words, for reading back months later. */
+    outcome: text('outcome'),
+  },
+  (table) => ({
+    receivedIdx: index('stripe_events_received_idx').on(table.receivedAt),
+  }),
+);
+
+export type StripeEvent = typeof stripeEvents.$inferSelect;

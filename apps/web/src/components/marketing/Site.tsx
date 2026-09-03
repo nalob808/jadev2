@@ -120,6 +120,27 @@ export function SiteFooter(): React.ReactElement {
             Lahiri by default, every ayanāṁśa selectable, and the chart always records which one
             produced it.
           </p>
+          <p className="mb-2 mt-6 font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--ink-faint)]">
+            Legal
+          </p>
+          <ul className="flex flex-col gap-1.5 text-sm">
+            <li>
+              <Link
+                href="/terms"
+                className="text-[var(--ink-muted)] transition-colors hover:text-[var(--ink)]"
+              >
+                Terms of Service
+              </Link>
+            </li>
+            <li>
+              <Link
+                href="/privacy"
+                className="text-[var(--ink-muted)] transition-colors hover:text-[var(--ink)]"
+              >
+                Privacy Policy
+              </Link>
+            </li>
+          </ul>
         </div>
       </div>
 

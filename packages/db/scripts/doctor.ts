@@ -120,9 +120,17 @@ try {
     else report(PASS, `RLS forced on ${name}`);
   }
 
-  // Anything carrying a workspace_id that the list above does not mention.
-  // Finding one is not a warning: an unlisted table is a table whose policy
-  // was never reviewed, holding data scoped to a practice.
+  // Tables that carry a workspace_id but are deliberately NOT workspace-scoped
+  // under RLS. Each needs a reason, and the reason is printed, so this cannot
+  // become a quiet dumping ground for tables somebody could not get working.
+  const EXEMPT: Record<string, string> = {
+    stripe_events:
+      'written by the Stripe webhook, which has no session to bind; holds no personal data',
+  };
+
+  // Anything else carrying a workspace_id that the list above does not
+  // mention. Finding one is not a warning: an unlisted table is a table whose
+  // policy was never reviewed, holding data scoped to a practice.
   const unlisted = await sql<{ table_name: string }[]>`
     select c.relname as table_name
       from pg_class c
@@ -136,11 +144,17 @@ try {
      order by c.relname`;
 
   for (const row of unlisted) {
+    const reason = EXEMPT[row.table_name];
+    if (reason) {
+      report(WARN, `table ${row.table_name}`, `intentionally not workspace-scoped — ${reason}`);
+      continue;
+    }
     report(
       FAIL,
       `table ${row.table_name}`,
       'is workspace-scoped but is not checked by this script — add it to `expected` in ' +
-        'packages/db/scripts/doctor.ts and confirm its RLS policy exists',
+        'packages/db/scripts/doctor.ts and confirm its RLS policy exists, or to `EXEMPT` ' +
+        'with a reason if it genuinely should not be isolated',
     );
   }
 

@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { openBillingPortal } from '@/app/actions';
 import type { Entitlement } from '@/lib/entitlements';
 import { COUNTED, capabilitiesOf, limitOf, type CountedId } from '@/lib/plans';
 
@@ -13,7 +14,33 @@ import { COUNTED, capabilitiesOf, limitOf, type CountedId } from '@/lib/plans';
  * to billing rather than to ayanāṁśa, and it is the same argument: a tool that
  * hides which setting it used is unusable.
  */
-export function PlanPanel({ entitlement }: { entitlement: Entitlement }): React.ReactElement {
+/**
+ * Stripe's status words, said in English.
+ *
+ * `past_due` in particular has to be said carefully: the customer still has
+ * access and Stripe is still retrying, so the message is "we will try again",
+ * not "your account is suspended".
+ */
+const SUBSCRIPTION_WORDS: Record<string, string> = {
+  active: 'Active',
+  trialing: 'Trial',
+  past_due: 'Payment failed — we will retry, and nothing is switched off in the meantime',
+  unpaid: 'Unpaid — access has returned to Free',
+  canceled: 'Cancelled',
+  incomplete: 'Not finished — the first payment did not complete',
+  incomplete_expired: 'Expired before the first payment completed',
+  paused: 'Paused',
+};
+
+export function PlanPanel({
+  entitlement,
+  subscription,
+}: {
+  entitlement: Entitlement;
+  /** Present only when this workspace has ever been through Stripe. */
+  subscription?:
+    { status: string | null; periodEnd: Date | null; hasCustomer: boolean } | undefined;
+}): React.ReactElement {
   const { plan, stored, recognised, source } = entitlement;
   const limits = (['people', 'notes'] as CountedId[])
     .map((id) => ({ id, limit: limitOf(plan, id) }))
@@ -53,6 +80,34 @@ export function PlanPanel({ entitlement }: { entitlement: Entitlement }): React.
         {' · '}
         export is available on every tier
       </p>
+
+      {subscription?.hasCustomer ? (
+        <div className="mt-2 flex flex-wrap items-baseline gap-x-3 gap-y-1 border-t border-[var(--rule)] pt-2">
+          <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--ink-faint)]">
+            Subscription
+          </span>
+          <span className="text-[12.5px]">
+            {SUBSCRIPTION_WORDS[subscription.status ?? ''] ?? subscription.status ?? 'none'}
+          </span>
+          {subscription.periodEnd ? (
+            <span className="font-mono text-[10px] text-[var(--ink-muted)]">
+              {subscription.status === 'canceled' ? 'access until' : 'renews'}{' '}
+              {subscription.periodEnd.toISOString().slice(0, 10)}
+            </span>
+          ) : null}
+          {/* Cards, cancellation, invoices and receipts all live in Stripe's
+              own portal. Every billing screen we do not build is one that
+              cannot leak a card detail. */}
+          <form action={openBillingPortal} className="ml-auto">
+            <button
+              type="submit"
+              className="font-mono text-[10px] uppercase tracking-wider text-[var(--accent)] underline underline-offset-2"
+            >
+              Manage billing
+            </button>
+          </form>
+        </div>
+      ) : null}
 
       {!recognised && stored ? (
         <p className="mt-2 border-l-2 border-[var(--clay)] px-3 py-1.5 text-[12.5px] leading-relaxed">

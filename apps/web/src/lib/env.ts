@@ -35,4 +35,33 @@ export const env = {
   get databaseConfigured(): boolean {
     return Boolean(process.env.DATABASE_URL);
   },
+
+  /**
+   * Billing.
+   *
+   * Every one of these is optional, and the app is fully functional without
+   * them — `billingConfigured` is false, the upgrade wall keeps offering to
+   * record interest instead of taking a card, and nothing imports the Stripe
+   * SDK. That is deliberate: this code has to be deployable before the Stripe
+   * account exists, or the pressure is to paste keys in a hurry to see whether
+   * any of it works.
+   *
+   * The price ids are read per tier and per interval rather than as a blob, so
+   * a half-configured account (monthly created, yearly not) degrades to
+   * offering only what it can actually charge for.
+   */
+  get stripeSecretKey(): string | null {
+    return process.env.STRIPE_SECRET_KEY ?? null;
+  },
+  get stripeWebhookSecret(): string | null {
+    return process.env.STRIPE_WEBHOOK_SECRET ?? null;
+  },
+  get billingConfigured(): boolean {
+    return Boolean(process.env.STRIPE_SECRET_KEY && process.env.STRIPE_WEBHOOK_SECRET);
+  },
+  /** e.g. priceId('seeker', 'monthly') → STRIPE_PRICE_SEEKER_MONTHLY. */
+  priceId(plan: string, interval: 'monthly' | 'yearly'): string | null {
+    const key = `STRIPE_PRICE_${plan.toUpperCase()}_${interval.toUpperCase()}`;
+    return process.env[key] ?? null;
+  },
 };

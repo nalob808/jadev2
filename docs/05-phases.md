@@ -471,6 +471,86 @@ currently generate, and it doubles as the list of people to email on the day bil
 
 ---
 
+## Phase 11 — Billing, and the two pages that must ship with it ✅
+
+Phase 10 built the gate. This makes it possible to pay to pass, and writes the
+two documents you should not take a card without.
+
+### Stripe
+
+- **Checkout** creates the customer _before_ the session and attaches it to the
+  workspace, so the webhook arriving seconds later can find the account. A
+  payment you cannot match to an account is the classic version of this bug.
+- **The webhook** verifies the signature against the raw body (`request.text()`,
+  never `request.json()` — re-serialising changes the bytes), answers 200 to
+  events it deliberately ignores so Stripe does not retry-storm the endpoint,
+  and claims the event id in `stripe_events` _before_ acting.
+- **The billing portal** is Stripe's, not ours. Cards, cancellation, invoices
+  and receipts all live there. Every billing screen not built is one that
+  cannot leak a card number.
+- **All of it is optional.** With no keys set, `billingConfigured` is false, the
+  Stripe SDK is never loaded, and the wall keeps offering to record interest.
+  This is a tested state, not a degraded one — see `legal-and-billing.spec.ts`.
+
+### The decision is pure, and that is the point
+
+`lib/billing.ts` has no network, no database and no Stripe import. It is the
+piece of the system that can take somebody's product away, and a rule that can
+only be exercised by replaying live webhooks is a rule nobody exercises.
+
+Two guarantees it enforces, both tested exhaustively:
+
+1. **Billing may only change what billing created.** A workspace whose
+   `plan_source` is `grandfathered` or `manual` is untouchable by any Stripe
+   event — including an upgrade, because a guard that works in one direction
+   only is not a guard. "No active subscription" and "should be Free" are
+   different facts, and conflating them cancels every comped account at once,
+   silently, starting with the people who trusted you earliest.
+2. **`past_due` keeps access.** The card failed and Stripe is retrying for
+   about a fortnight. Cutting a paying customer off on the first failed retry
+   loses both the customer and the payment that would have recovered.
+
+An unrecognised price resolves to nothing rather than to a guess — a live-mode
+price arriving at a test-mode deployment looks exactly like that, and guessing
+either gives the product away or removes something just paid for.
+
+### Terms and Privacy
+
+`/terms` carries the never-predict rule in writing, which is the half of
+constitution item 6 that was never built. `/privacy` says what Jade actually
+holds, who processes it, and how to get it all back.
+
+**The privacy policy states plainly that birth data is not yet encrypted at the
+field level.** Storage is encrypted by the host; the fields are not, so anyone
+with a live connection string can read a birth time. Writing "your data is
+encrypted" and letting the reader infer the stronger meaning would have been
+the most quotable false sentence on the site, in the document people read when
+deciding whether to trust us with somebody else's birth certificate. An e2e
+test asserts that sentence is absent and the honest one is present.
+
+### Acceptance
+
+- 83 web unit tests (18 new, on the billing rules); 63 e2e (7 new).
+- `pnpm db:doctor` gained a reasoned exemption list — `stripe_events` carries a
+  `workspace_id` but is deliberately not RLS-scoped, because the webhook has no
+  session to bind, and the doctor now _prints that reason_ rather than staying
+  silent about it.
+- `docs/09-stripe.md` is the setup checklist for the part only a human can do.
+
+> **For the next agent:** never let a Stripe event write to a workspace whose
+> `plan_source` is not `default` or `stripe`. The guard is in
+> `resolvePlanChange` _and_ repeated in the SQL `WHERE` clause of
+> `applyBillingState`; keep both. And do not update the encryption paragraph in
+> `/privacy` until field-level encryption actually ships.
+
+### Still true, and still the constraint
+
+Only **Free → Seeker** is chargeable. Everything above it is `built: false`.
+Create the Seeker prices in Stripe and leave the rest — a tier with no price id
+falls back to "tell me when this opens" on its own.
+
+---
+
 ## Phase 8 — Beyond (ongoing)
 
 Ranked by expected return:

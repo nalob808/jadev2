@@ -77,6 +77,9 @@ importers:
       react-dom:
         specifier: ^18.3.1
         version: 18.3.1(react@18.3.1)
+      stripe:
+        specifier: ^22.6.0
+        version: 22.6.0(@types/node@22.20.1)
     devDependencies:
       '@playwright/test':
         specifier: ^1.62.1
@@ -2201,6 +2204,15 @@ packages:
     resolution: {integrity: sha512-6fPc+R4ihwqP6N/aIv2f1gMH8lOVtWQHoqC4yK6oSDVVocumAsfCqjkXnqiYMhmMwS/mEHLp7Vehlt3ql6lEig==}
     engines: {node: '>=8'}
 
+  stripe@22.6.0:
+    resolution: {integrity: sha512-Ezk+WYEEwX2DLxFrKfb6coznlCMZvCaCYMNPXNHFSZkBIEzF5Hgm7RLb38q/0h9Ol5jsUJGJRorvhzAvckgfhw==}
+    engines: {node: '>=18'}
+    peerDependencies:
+      '@types/node': '>=18'
+    peerDependenciesMeta:
+      '@types/node':
+        optional: true
+
   styled-jsx@5.1.1:
     resolution: {integrity: sha512-pW7uC1l4mBZ8ugbiZrcIsiIvVx1UmTfw7UkC3Um2tmfUq9Bhk8IiyEIPl6F8agHgjzku6j0xQEZbfA5uSgSaCw==}
     engines: {node: '>= 12.0.0'}
@@ -3947,6 +3959,10 @@ snapshots:
   streamsearch@1.1.0: {}
 
   strip-json-comments@3.1.1: {}
+
+  stripe@22.6.0(@types/node@22.20.1):
+    optionalDependencies:
+      '@types/node': 22.20.1
 
   styled-jsx@5.1.1(react@18.3.1):
     dependencies:

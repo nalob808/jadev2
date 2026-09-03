@@ -6,9 +6,11 @@ coverage/
 *.tsbuildinfo
 
 # secrets — never commit
+# Every env file except the template. The narrower rules this replaces let
+# .env.testpaste — which held a live DATABASE_URL — be committed.
 .env
-.env.local
-.env.*.local
+.env.*
+!.env.example
 
 # ephemeris data files are fetched by scripts/fetch-ephe.ts, never committed (~100MB)
 .ephe/

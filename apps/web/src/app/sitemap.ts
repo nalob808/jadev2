@@ -22,6 +22,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${SITE_URL}/pricing`, lastModified, changeFrequency: 'monthly', priority: 0.9 },
     { url: `${SITE_URL}/about`, lastModified, changeFrequency: 'yearly', priority: 0.6 },
     { url: `${SITE_URL}/learn`, lastModified, changeFrequency: 'monthly', priority: 0.8 },
+    { url: `${SITE_URL}/terms`, lastModified, changeFrequency: 'yearly', priority: 0.3 },
+    { url: `${SITE_URL}/privacy`, lastModified, changeFrequency: 'yearly', priority: 0.3 },
 
     // Every reference entry, individually. These are the pages that answer a
     // search like "7th house in vedic astrology", and a crawler will not find

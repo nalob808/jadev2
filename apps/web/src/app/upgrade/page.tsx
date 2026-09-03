@@ -16,6 +16,9 @@ import {
 } from '@/lib/plans';
 import { Kicker, Shell } from '@/components/Shell';
 import { NotifyButton } from '@/components/NotifyButton';
+import { BuyButtons } from '@/components/BuyButtons';
+import { env } from '@/lib/env';
+import { purchasablePlans } from '@/lib/billing';
 
 export const dynamic = 'force-dynamic';
 
@@ -83,6 +86,16 @@ export default async function UpgradePage({
 
   const headline = capability?.locked ?? counted?.locked ?? 'What each tier includes';
   const held = capabilitiesOf(current);
+
+  // Whether *this* tier can actually be bought right now. Billing being
+  // configured is not enough — the tier also needs a price id, so a deployment
+  // that has sold Seeker but never created a Practitioner price shows a real
+  // button for one and the honest fallback for the other.
+  const forSale = env.billingConfigured
+    ? (purchasablePlans((plan, interval) => env.priceId(plan, interval)).find(
+        (row) => row.plan.id === wanted?.id,
+      ) ?? null)
+    : null;
 
   return (
     <Shell email={session.email}>
@@ -155,24 +168,52 @@ export default async function UpgradePage({
         {wanted ? (
           <div className="jade-panel mt-6 p-5">
             <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--ink-faint)]">
-              Paying for this
+              {forSale ? 'Paying for this' : 'Paying for this — not open yet'}
             </p>
-            <p className="mt-2 max-w-[64ch] text-[14px] leading-relaxed">
-              Checkout is not open yet. Rather than pretend otherwise, the button below records that
-              you wanted {wanted.name} and what you were trying to do when you hit this — which is
-              what decides the order things get built in, and who gets written to first when billing
-              opens.
-            </p>
-            <div className="mt-4">
-              <NotifyButton
-                wantedPlan={wanted.id}
-                fromPlan={current.id}
-                capability={capability?.id ?? null}
-                counted={counted?.id ?? null}
-                label={`Tell me when ${wanted.name} opens`}
-                noted={one('noted') === '1'}
-              />
-            </div>
+
+            {forSale ? (
+              <>
+                <p className="mt-2 max-w-[64ch] text-[14px] leading-relaxed">
+                  {wanted.name} unlocks this and everything below it. You can cancel from Settings
+                  at any time, and dropping a tier hides features rather than deleting anything.
+                </p>
+                <div className="mt-4">
+                  <BuyButtons
+                    planId={wanted.id}
+                    planName={wanted.name}
+                    monthly={wanted.monthly}
+                    yearly={wanted.yearly}
+                    hasMonthlyPrice={forSale.monthly !== null}
+                    hasYearlyPrice={forSale.yearly !== null}
+                  />
+                </div>
+              </>
+            ) : (
+              <>
+                <p className="mt-2 max-w-[64ch] text-[14px] leading-relaxed">
+                  Checkout is not open for {wanted.name} yet. Rather than pretend otherwise, the
+                  button below records that you wanted it and what you were trying to do when you
+                  hit this — which is what decides the order things get built in, and who gets
+                  written to first when billing opens.
+                </p>
+                <div className="mt-4">
+                  <NotifyButton
+                    wantedPlan={wanted.id}
+                    fromPlan={current.id}
+                    capability={capability?.id ?? null}
+                    counted={counted?.id ?? null}
+                    label={`Tell me when ${wanted.name} opens`}
+                    noted={one('noted') === '1'}
+                  />
+                </div>
+              </>
+            )}
+
+            {one('cancelled') === '1' ? (
+              <p className="mt-3 text-[13px] text-[var(--ink-muted)]">
+                Checkout was cancelled — nothing was charged.
+              </p>
+            ) : null}
           </div>
         ) : null}
 
