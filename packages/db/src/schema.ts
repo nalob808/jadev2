@@ -540,6 +540,12 @@ export const notes = pgTable(
     body: text('body').notNull(),
     tags: text('tags').array().notNull().default([]),
     pinned: boolean('pinned').notNull().default(false),
+    /**
+     * Which consultation this was written during. A LINK, not an anchor —
+     * `anchorKind` names a stable factor ("Mars", "the 7th"), and a row id is
+     * not one. See migration 0011.
+     */
+    sessionId: uuid('session_id'),
     createdBy: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
@@ -622,3 +628,80 @@ export const stripeEvents = pgTable(
 );
 
 export type StripeEvent = typeof stripeEvents.$inferSelect;
+
+/**
+ * A consultation.
+ *
+ * `scheduledFor` is a real instant, unlike birth data — which stores a wall
+ * clock as text because the characters on the certificate are the record. A
+ * consultation is the opposite: an instant two people must both turn up for.
+ * The two differ on purpose.
+ */
+export const sessions = pgTable(
+  'sessions',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    workspaceId: uuid('workspace_id')
+      .notNull()
+      .references(() => workspaces.id, { onDelete: 'cascade' }),
+    subjectId: uuid('subject_id')
+      .notNull()
+      .references(() => subjects.id, { onDelete: 'cascade' }),
+    scheduledFor: timestamp('scheduled_for', { withTimezone: true }).notNull(),
+    durationMinutes: integer('duration_minutes').notNull().default(60),
+    /** 'first' | 'follow_up' | 'muhurta' | 'other' */
+    kind: text('kind').notNull().default('follow_up'),
+    /** 'scheduled' | 'held' | 'cancelled' */
+    status: text('status').notNull().default('scheduled'),
+    location: text('location'),
+    feeCents: integer('fee_cents'),
+    currency: text('currency').notNull().default('USD'),
+    /** The practitioner's own jottings. Never shown to a client. */
+    prepNote: text('prep_note'),
+    summary: text('summary'),
+    createdBy: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({
+    whenIdx: index('sessions_workspace_when_idx').on(table.workspaceId, table.scheduledFor),
+    subjectIdx: index('sessions_subject_when_idx').on(table.subjectId, table.scheduledFor),
+  }),
+);
+
+export type Session = typeof sessions.$inferSelect;
+
+/**
+ * Something to come back to.
+ *
+ * `sessionId` is nullable and SET NULL on delete: the thing to revisit
+ * outlives the consultation that raised it, and losing it because a session
+ * record was tidied away would be the most annoying loss this feature could
+ * produce.
+ */
+export const followUps = pgTable(
+  'follow_ups',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    workspaceId: uuid('workspace_id')
+      .notNull()
+      .references(() => workspaces.id, { onDelete: 'cascade' }),
+    subjectId: uuid('subject_id')
+      .notNull()
+      .references(() => subjects.id, { onDelete: 'cascade' }),
+    sessionId: uuid('session_id').references(() => sessions.id, { onDelete: 'set null' }),
+    body: text('body').notNull(),
+    /** Nullable: plenty of follow-ups are "next time" rather than a date. */
+    dueOn: date('due_on'),
+    doneAt: timestamp('done_at', { withTimezone: true }),
+    createdBy: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({
+    subjectIdx: index('follow_ups_subject_idx').on(table.subjectId, table.doneAt, table.dueOn),
+    workspaceIdx: index('follow_ups_workspace_idx').on(table.workspaceId),
+  }),
+);
+
+export type FollowUp = typeof followUps.$inferSelect;

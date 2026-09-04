@@ -108,8 +108,9 @@ export const CAPABILITIES: Readonly<Record<CapabilityId, Capability>> = {
     id: 'sessions',
     label: 'Sessions and prep sheets',
     locked: 'Sessions are a Practitioner feature',
-    blurb: 'The consultation itself — prep, notes taken during, and follow-ups.',
-    built: false,
+    blurb:
+      'The consultation itself. A prep sheet assembled before you sit down — where they are in the daśā and when it next turns, the dated transit contacts either side of the appointment, and what you wrote last time — then notes during, and follow-ups that surface at the next one.',
+    built: true,
   },
   varshaphala: {
     id: 'varshaphala',

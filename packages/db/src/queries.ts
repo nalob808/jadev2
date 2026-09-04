@@ -17,6 +17,8 @@ import {
   workspaces,
   upgradeIntents,
   stripeEvents,
+  sessions,
+  followUps,
   type NewBirthEvent,
   type NewSubject,
   type Relationship,
@@ -757,6 +759,204 @@ export async function finishStripeEvent(
         ...(result.workspaceId ? { workspaceId: result.workspaceId } : {}),
       })
       .where(eq(stripeEvents.id, eventId));
+  });
+}
+
+// ---------------------------------------------------------------- sessions
+
+export interface SessionWithSubject {
+  readonly session: typeof sessions.$inferSelect;
+  readonly subjectName: string;
+}
+
+/**
+ * Sessions, newest first, optionally for one person.
+ *
+ * Joined to the subject because every place a session is listed also shows
+ * whose it is, and a second query per row to find that out is the classic way
+ * a list page becomes slow at exactly forty clients.
+ */
+export async function listSessions(
+  database: Database,
+  workspaceId: string,
+  filter: { subjectId?: string; limit?: number } = {},
+): Promise<SessionWithSubject[]> {
+  return withWorkspace(database, workspaceId, async (tx) => {
+    const conditions = [eq(sessions.workspaceId, workspaceId)];
+    if (filter.subjectId) conditions.push(eq(sessions.subjectId, filter.subjectId));
+    const rows = await tx
+      .select({ session: sessions, subjectName: subjects.displayName })
+      .from(sessions)
+      .innerJoin(subjects, eq(subjects.id, sessions.subjectId))
+      .where(and(...conditions))
+      .orderBy(desc(sessions.scheduledFor))
+      .limit(Math.min(filter.limit ?? 200, 500));
+    return rows;
+  });
+}
+
+/**
+ * Named `getSessionById` rather than `getSession` on purpose. "Session" means
+ * two different things in this codebase — the signed-in user's session and a
+ * consultation — and the page that renders a consultation necessarily imports
+ * both. One `getSession` in scope resolving to the wrong one is a bug that
+ * typechecks.
+ */
+export async function getSessionById(
+  database: Database,
+  workspaceId: string,
+  id: string,
+): Promise<SessionWithSubject | null> {
+  return withWorkspace(database, workspaceId, async (tx) => {
+    const rows = await tx
+      .select({ session: sessions, subjectName: subjects.displayName })
+      .from(sessions)
+      .innerJoin(subjects, eq(subjects.id, sessions.subjectId))
+      .where(and(eq(sessions.id, id), eq(sessions.workspaceId, workspaceId)))
+      .limit(1);
+    return rows[0] ?? null;
+  });
+}
+
+export async function createSession(
+  database: Database,
+  workspaceId: string,
+  input: {
+    subjectId: string;
+    scheduledFor: Date;
+    durationMinutes: number;
+    kind: string;
+    location?: string | null;
+    prepNote?: string | null;
+    createdBy?: string | null;
+  },
+): Promise<typeof sessions.$inferSelect> {
+  return withWorkspace(database, workspaceId, async (tx) => {
+    const [row] = await tx
+      .insert(sessions)
+      .values({
+        workspaceId,
+        subjectId: input.subjectId,
+        scheduledFor: input.scheduledFor,
+        durationMinutes: input.durationMinutes,
+        kind: input.kind,
+        location: input.location ?? null,
+        prepNote: input.prepNote ?? null,
+        createdBy: input.createdBy ?? null,
+      })
+      .returning();
+    return row!;
+  });
+}
+
+export async function updateSession(
+  database: Database,
+  workspaceId: string,
+  id: string,
+  patch: Partial<{
+    scheduledFor: Date;
+    durationMinutes: number;
+    kind: string;
+    status: string;
+    location: string | null;
+    prepNote: string | null;
+    summary: string | null;
+    feeCents: number | null;
+  }>,
+): Promise<void> {
+  await withWorkspace(database, workspaceId, async (tx) => {
+    await tx
+      .update(sessions)
+      .set({ ...patch, updatedAt: new Date() })
+      .where(and(eq(sessions.id, id), eq(sessions.workspaceId, workspaceId)));
+  });
+}
+
+export async function deleteSession(
+  database: Database,
+  workspaceId: string,
+  id: string,
+): Promise<void> {
+  await withWorkspace(database, workspaceId, async (tx) => {
+    await tx
+      .delete(sessions)
+      .where(and(eq(sessions.id, id), eq(sessions.workspaceId, workspaceId)));
+  });
+}
+
+// -------------------------------------------------------------- follow-ups
+
+/**
+ * Follow-ups for a person.
+ *
+ * Open ones first and undated ones last within that — "revisit when Saturn
+ * stations" is real work but it does not belong above something due on
+ * Thursday.
+ */
+export async function listFollowUps(
+  database: Database,
+  workspaceId: string,
+  filter: { subjectId?: string; openOnly?: boolean } = {},
+): Promise<Array<typeof followUps.$inferSelect>> {
+  return withWorkspace(database, workspaceId, async (tx) => {
+    const conditions = [eq(followUps.workspaceId, workspaceId)];
+    if (filter.subjectId) conditions.push(eq(followUps.subjectId, filter.subjectId));
+    if (filter.openOnly) conditions.push(isNull(followUps.doneAt));
+    return tx
+      .select()
+      .from(followUps)
+      .where(and(...conditions))
+      .orderBy(sql`${followUps.doneAt} nulls first`, sql`${followUps.dueOn} nulls last`)
+      .limit(200);
+  });
+}
+
+export async function createFollowUp(
+  database: Database,
+  workspaceId: string,
+  input: {
+    subjectId: string;
+    sessionId?: string | null;
+    body: string;
+    dueOn?: string | null;
+    createdBy?: string | null;
+  },
+): Promise<void> {
+  await withWorkspace(database, workspaceId, async (tx) => {
+    await tx.insert(followUps).values({
+      workspaceId,
+      subjectId: input.subjectId,
+      sessionId: input.sessionId ?? null,
+      body: input.body,
+      dueOn: input.dueOn ?? null,
+      createdBy: input.createdBy ?? null,
+    });
+  });
+}
+
+export async function setFollowUpDone(
+  database: Database,
+  workspaceId: string,
+  id: string,
+  done: boolean,
+): Promise<void> {
+  await withWorkspace(database, workspaceId, async (tx) => {
+    await tx
+      .update(followUps)
+      .set({ doneAt: done ? new Date() : null, updatedAt: new Date() })
+      .where(and(eq(followUps.id, id), eq(followUps.workspaceId, workspaceId)));
+  });
+}
+
+export async function deleteFollowUp(
+  database: Database,
+  workspaceId: string,
+  id: string,
+): Promise<void> {
+  await withWorkspace(database, workspaceId, async (tx) => {
+    await tx
+      .delete(followUps)
+      .where(and(eq(followUps.id, id), eq(followUps.workspaceId, workspaceId)));
   });
 }
 

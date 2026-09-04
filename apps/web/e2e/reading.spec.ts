@@ -84,7 +84,12 @@ test('the house table teaches, and links to the reference', async ({ page }) => 
   await expect(table.locator('tbody tr')).toHaveCount(12);
 
   await table.getByRole('link', { name: '7', exact: true }).click();
-  await expect(page).toHaveURL(/\/learn\/houses\/7$/);
+  // 20s, not the 5s default. This is the first navigation to a /learn route in
+  // the run, and `next dev` compiles it on demand — under a full suite that
+  // regularly takes longer than five seconds. It passed in isolation and
+  // failed in the full run, which is exactly what a too-short timeout looks
+  // like, and re-running until it goes green is how a real flake gets kept.
+  await expect(page).toHaveURL(/\/learn\/houses\/7$/, { timeout: 20_000 });
   await expect(page.getByRole('heading', { level: 1 })).toContainText('Partnership');
 });
 

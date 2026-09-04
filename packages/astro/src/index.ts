@@ -25,3 +25,4 @@ export * from './dayQuality.js';
 export * from './watches/index.js';
 export * from './notes/index.js';
 export * from './rectification/index.js';
+export * from './sessionTransits.js';

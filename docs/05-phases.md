@@ -551,6 +551,86 @@ falls back to "tell me when this opens" on its own.
 
 ---
 
+## Phase 12 — Sessions and prep sheets ✅
+
+**The first Practitioner capability that stops being a promise.** Everything on
+that tier was `built: false`; this one is now true, and the pricing card and
+the upgrade wall pick that up from the same flag automatically.
+
+### Why this one and not another technique
+
+The $100 test asks whether a feature saves a working astrologer an hour a week.
+A prep sheet is the only thing in the backlog that answers it directly: an hour
+before every reading currently goes on assembling by hand what the software
+already knows.
+
+The obvious version of this feature is worthless — it prints the chart again,
+and the practitioner already knows the chart. What they cannot get in five
+minutes is:
+
+1. **When the daśā next turns.** Not "Venus–Saturn", which they remember — the
+   date the antara ends, which they are asked in almost every reading and work
+   out by hand almost every time.
+2. **The dated transit contacts either side of the appointment**, with every
+   pass of a retrograde loop, because those are the dates that get written down
+   and handed over.
+3. **What was said last time**, which after forty clients is genuinely
+   unrecoverable.
+
+### The line this feature must not cross
+
+A prep sheet lists what is _there_. It never says what a period means for the
+person, never rates one, and never suggests what to tell them. The moment it
+does it stops being preparation and becomes a script — and a script read out by
+a practitioner who has not checked it is exactly what makes generated astrology
+worthless. Both the unit and e2e suites assert the absence of that vocabulary
+on a page a practitioner reads aloud from.
+
+### Decisions worth keeping
+
+- **Aspects are deliberately absent from the diary.** Vedic aspect is primarily
+  rāśi dṛṣṭi, so "Saturn aspects her Moon" stays true for about two and a half
+  years. It is a standing condition, not a dated event, and listing it under
+  "around 12 September" would misrepresent it as news. Standing conditions
+  belong in the chart reading, which already covers them.
+- **Only slow bodies.** The Moon changes sign every two days; listing its
+  contacts would bury the four that matter under sixty that do not.
+- **The prep sheet is computed, never stored.** A stored sheet silently rots —
+  correct the birth time or change the ayanāṁśa and last month's sheet still
+  shows last month's answer.
+- **`notes.session_id` is a LINK, not an anchor.** Anchors name stable factors
+  ("Mars", "the 7th") precisely so a note can be found from any chart sharing
+  that factor. A row id is not a factor, and adding `session` to the anchor
+  vocabulary would have broken that invariant for a convenience.
+- **A follow-up outlives its session** — nullable `session_id`, ON DELETE SET
+  NULL. "Revisit the 10th when Saturn stations" is still true after the
+  consultation record is tidied away.
+- **`scheduledFor` is a real instant**, unlike birth data, which stores a wall
+  clock as text. A birth certificate's characters are the record; a
+  consultation is a moment two people must both turn up for. The difference is
+  deliberate, and booking runs through the same offset resolver birth data uses
+  rather than a second, simpler conversion.
+- **`getSessionById`, not `getSession`.** "Session" means both the signed-in
+  user's session and a consultation, and the page rendering one imports both.
+  One `getSession` in scope resolving to the wrong one is a bug that typechecks.
+
+### Acceptance
+
+- 56 interpret tests (13 new) and 585 astro; 69 e2e (6 new). `pnpm verify` green.
+- The multi-pass test is **pinned to a window where a retrograde loop is a fact**
+  — over the 180 days a prep sheet covers, the reference chart happens to have
+  none, so asserting there would have tested the calendar rather than the code.
+- `pnpm db:doctor` caught `sessions` and `follow_ups` as unlisted
+  workspace-scoped tables before they shipped. That check was added in Phase 10
+  for exactly this, and it worked on its first real opportunity.
+
+> **For the next agent:** do not let the prep sheet start advising. If you add
+> graha dṛṣṭi by degree, give it its own section with its own stated orb rather
+> than mixing it into the contact diary — the diary's whole value is that every
+> line in it is an exact date.
+
+---
+
 ## Phase 8 — Beyond (ongoing)
 
 Ranked by expected return:

@@ -24,6 +24,12 @@ import {
   recordUpgradeIntent,
   getWorkspaceBilling,
   setStripeCustomer,
+  getHomeZone,
+  createSession,
+  updateSession,
+  deleteSession,
+  createFollowUp,
+  setFollowUpDone,
 } from '@jade/db';
 import {
   isValidZone,
@@ -732,4 +738,139 @@ export async function openBillingPortal(): Promise<void> {
     return_url: `${env.appUrl}/settings`,
   });
   redirect(portal.url);
+}
+
+// ------------------------------------------------------------------ sessions
+
+/**
+ * Book a consultation.
+ *
+ * The wall clock typed into the form is read *in the practice's zone*, not the
+ * server's. Booking "2pm" and having it stored as 2pm UTC is the same class of
+ * bug the whole clock module exists to prevent, and it would put a Hawaii
+ * practitioner's afternoon appointment at 4am.
+ */
+export async function addSession(formData: FormData): Promise<void> {
+  const session = await requireSession();
+  await requireCapability(session.workspaceId, 'sessions');
+  const read = (key: string): string => String(formData.get(key) ?? '').trim();
+  const fail = (message: string): never =>
+    redirect(`/sessions/new?error=${encodeURIComponent(message)}`);
+
+  const subjectId = read('subjectId');
+  if (!subjectId) fail('Choose who the consultation is with.');
+
+  const date = read('date');
+  const time = read('time') || '10:00';
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) fail('Enter a date.');
+
+  // Read in the practice's own zone, through the same offset resolver birth
+  // data uses. A second, simpler conversion here is how "2pm" becomes 2pm UTC
+  // and a Hawaii practitioner's afternoon appointment lands at 4am.
+  const zone = (await getHomeZone(getDatabase(), session.workspaceId)) ?? 'UTC';
+  const [y, mo, d] = date.split('-').map(Number);
+  const [hh, mm] = time.split(':').map(Number);
+  if (
+    !Number.isFinite(y) ||
+    !Number.isFinite(mo) ||
+    !Number.isFinite(d) ||
+    !Number.isFinite(hh) ||
+    !Number.isFinite(mm)
+  ) {
+    fail('That date and time could not be read.');
+  }
+  const local: LocalDateTime = {
+    year: y!,
+    month: mo!,
+    day: d!,
+    hour: hh!,
+    minute: mm!,
+    second: 0,
+  };
+  const resolved = resolveOffset(local, zone);
+  const scheduledFor = toUtcMillis(local, resolved.offsetMinutes);
+
+  const duration = Number(read('durationMinutes') || '60');
+  if (!Number.isFinite(duration) || duration <= 0 || duration > 1440) {
+    fail('Give a length between 1 and 1440 minutes.');
+  }
+
+  const kindRaw = read('kind');
+  const kind = ['first', 'follow_up', 'muhurta', 'other'].includes(kindRaw) ? kindRaw : 'follow_up';
+
+  const created = await createSession(getDatabase(), session.workspaceId, {
+    subjectId,
+    scheduledFor: new Date(scheduledFor),
+    durationMinutes: Math.round(duration),
+    kind,
+    location: read('location') || null,
+    prepNote: read('prepNote') || null,
+    createdBy: session.userId,
+  });
+
+  revalidatePath('/sessions');
+  redirect(`/sessions/${created.id}`);
+}
+
+export async function editSession(formData: FormData): Promise<void> {
+  const session = await requireSession();
+  await requireCapability(session.workspaceId, 'sessions');
+  const read = (key: string): string => String(formData.get(key) ?? '').trim();
+  const id = read('id');
+  if (!id) redirect('/sessions');
+
+  const patch: Parameters<typeof updateSession>[3] = {};
+
+  const status = read('status');
+  if (['scheduled', 'held', 'cancelled'].includes(status)) patch.status = status;
+
+  if (formData.has('summary')) patch.summary = read('summary') || null;
+  if (formData.has('prepNote')) patch.prepNote = read('prepNote') || null;
+
+  await updateSession(getDatabase(), session.workspaceId, id, patch);
+  revalidatePath(`/sessions/${id}`);
+  revalidatePath('/sessions');
+  redirect(`/sessions/${id}?saved=1`);
+}
+
+export async function removeSession(formData: FormData): Promise<void> {
+  const session = await requireSession();
+  await requireCapability(session.workspaceId, 'sessions');
+  await deleteSession(getDatabase(), session.workspaceId, String(formData.get('id')));
+  revalidatePath('/sessions');
+  redirect('/sessions');
+}
+
+export async function addFollowUp(formData: FormData): Promise<void> {
+  const session = await requireSession();
+  await requireCapability(session.workspaceId, 'sessions');
+  const read = (key: string): string => String(formData.get(key) ?? '').trim();
+  const body = read('body');
+  const sessionId = read('sessionId');
+  if (!body) redirect(`/sessions/${sessionId}?followUpError=Write+something+first.`);
+
+  await createFollowUp(getDatabase(), session.workspaceId, {
+    subjectId: read('subjectId'),
+    sessionId: sessionId || null,
+    body,
+    dueOn: read('dueOn') || null,
+    createdBy: session.userId,
+  });
+
+  revalidatePath(`/sessions/${sessionId}`);
+  redirect(`/sessions/${sessionId}`);
+}
+
+export async function toggleFollowUp(formData: FormData): Promise<void> {
+  const session = await requireSession();
+  await requireCapability(session.workspaceId, 'sessions');
+  await setFollowUpDone(
+    getDatabase(),
+    session.workspaceId,
+    String(formData.get('id')),
+    String(formData.get('done')) === '1',
+  );
+  const back = safeReturn(String(formData.get('returnTo') ?? '/sessions'));
+  revalidatePath(back);
+  redirect(back);
 }

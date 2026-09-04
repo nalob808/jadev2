@@ -25,3 +25,4 @@ export * from './significations/grahas.js';
 export * from './reading.js';
 export * from './daily.js';
 export * from './synastry.js';
+export * from './prep.js';

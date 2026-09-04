@@ -6,6 +6,9 @@ const LINKS: Array<{ href: string; label: string }> = [
   { href: '/home', label: 'Home' },
   { href: '/people', label: 'People' },
   { href: '/relationships', label: 'Relationships' },
+  // Shown to everyone, including tiers that cannot open it. Clicking through
+  // to a wall that explains the feature sells it; a padlock teaches nothing.
+  { href: '/sessions', label: 'Sessions' },
   { href: '/notes', label: 'Notes' },
   { href: '/settings', label: 'Settings' },
 ];

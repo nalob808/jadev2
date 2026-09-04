@@ -106,6 +106,8 @@ try {
     'notes',
     'life_events',
     'upgrade_intents',
+    'sessions',
+    'follow_ups',
   ];
   const tables = await sql<{ relname: string; enabled: boolean; forced: boolean }[]>`
     select relname, relrowsecurity as enabled, relforcerowsecurity as forced
