@@ -648,3 +648,209 @@ h3 {
     break-before: page;
   }
 }
+
+/* ---------------------------------------------------------------------------
+   Explained words.
+
+   The trigger has to be findable without being loud. A dotted underline in
+   the accent colour is the oldest convention on the web for "there is more
+   here", it survives at small sizes, and — unlike a colour change alone — it
+   is visible to a reader who cannot distinguish the accent from the body
+   text. It must not shift layout on hover, so the underline is always drawn
+   and only its weight and the text colour change.
+   ------------------------------------------------------------------------ */
+
+.term {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  cursor: help;
+  text-decoration: underline dotted var(--accent-soft);
+  text-underline-offset: 0.18em;
+  text-decoration-thickness: 1px;
+  border-radius: 2px;
+}
+
+.term:hover,
+.term:focus-visible {
+  color: var(--accent);
+  text-decoration-color: var(--accent);
+  text-decoration-thickness: 2px;
+}
+
+.term:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.term--plain {
+  text-decoration: none;
+}
+
+.termcard {
+  position: fixed;
+  z-index: 60;
+  width: min(21rem, calc(100vw - 1.5rem));
+  /* Tall enough that a typical entry shows its cross-references without
+     scrolling — those chips are how the vocabulary is explored, and a reader
+     who never sees them never learns the card is a way in rather than a
+     dead end. Longer entries still scroll. */
+  max-height: min(30rem, 78vh);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 0.85rem 0.95rem 0.95rem;
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow:
+    0 1px 2px rgb(0 0 0 / 0.04),
+    0 12px 32px rgb(0 0 0 / 0.14);
+  /* These words live inside table labels, kickers and chart legends, which are
+     small-caps monospace with wide tracking. A popover that inherits all of
+     that renders a paragraph of prose in shouting letterspaced uppercase, so
+     the card resets the lot rather than assuming anything about where it was
+     opened from. */
+  font-family: var(--font-body), 'Barlow', system-ui, sans-serif;
+  font-size: 0.86rem;
+  font-weight: 400;
+  font-style: normal;
+  line-height: 1.5;
+  letter-spacing: normal;
+  text-transform: none;
+  text-align: left;
+  white-space: normal;
+}
+
+.termcard__head {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.termcard__term {
+  font-size: 1rem;
+}
+
+.termcard__plain {
+  color: var(--ink-faint);
+  font-size: 0.78rem;
+}
+
+.termcard__back {
+  font: inherit;
+  font-size: 0.74rem;
+  background: none;
+  border: 0;
+  padding: 0;
+  color: var(--accent);
+  cursor: pointer;
+  flex-basis: 100%;
+  text-align: left;
+}
+
+.termcard__literal {
+  margin: 0.15rem 0 0;
+  color: var(--ink-faint);
+  font-size: 0.78rem;
+}
+
+.termcard__short {
+  margin: 0.5rem 0 0;
+  font-weight: 500;
+}
+
+.termcard__body {
+  margin: 0.45rem 0 0;
+  color: var(--ink-muted);
+}
+
+/* The chart-specific lines. Given their own ground because they are the part
+   a reader cannot get from any other astrology glossary, and should not be
+   mistaken for more of the definition. */
+.termcard__here {
+  margin-top: 0.7rem;
+  padding: 0.5rem 0.6rem;
+  border-radius: 7px;
+  background: var(--accent-wash);
+  border: 1px solid var(--accent-soft);
+}
+
+.termcard__here ul {
+  margin: 0.3rem 0 0;
+  padding-left: 1rem;
+}
+
+.termcard__here li + li {
+  margin-top: 0.2rem;
+}
+
+.termcard__herelabel {
+  display: block;
+  font-size: 0.68rem;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.termcard__where {
+  margin: 0.6rem 0 0;
+  font-size: 0.78rem;
+  color: var(--ink-faint);
+  font-style: italic;
+}
+
+.termcard__related {
+  margin-top: 0.7rem;
+}
+
+.termcard__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  margin-top: 0.3rem;
+}
+
+.termcard__chip {
+  font: inherit;
+  font-size: 0.76rem;
+  padding: 0.15rem 0.5rem;
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  background: var(--surface-alt);
+  color: inherit;
+  cursor: pointer;
+}
+
+.termcard__chip:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* Touch: the trigger needs a real target, and `cursor: help` means nothing. */
+@media (hover: none) {
+  .term {
+    cursor: pointer;
+    text-decoration-thickness: 1.5px;
+  }
+}
+
+.termcard__close {
+  margin-left: auto;
+  font: inherit;
+  font-size: 1.1rem;
+  line-height: 1;
+  background: none;
+  border: 0;
+  padding: 0 0.15rem;
+  color: var(--ink-faint);
+  cursor: pointer;
+}
+
+.termcard__close:hover {
+  color: var(--ink);
+}

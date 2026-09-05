@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { devSignOut } from '@/app/actions';
 import { NavLink } from './NavLink';
+import { AutoTerms } from './Glossary';
 
 const LINKS: Array<{ href: string; label: string }> = [
   { href: '/home', label: 'Home' },
@@ -117,10 +118,24 @@ export function Panel({
   );
 }
 
+/**
+ * The small label above a section.
+ *
+ * Where the label is plain text, it is scanned for glossary vocabulary and the
+ * known words become explainable. This is deliberately done here rather than at
+ * every call site: nearly every technical word on a chart page is a section
+ * heading — Pañcāṅga, Daśā, Ṣoḍaśavarga, Aṣṭakavarga — and marking them up one
+ * by one is the sort of pass that gets 80% done and then rots. Doing it in the
+ * one component every section already uses means a heading added next year is
+ * covered without anyone remembering to.
+ *
+ * Non-string children pass through untouched, because those callers have
+ * composed their own markup and should not have it rewritten.
+ */
 export function Kicker({ children }: { children: React.ReactNode }) {
   return (
     <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--ink-faint)]">
-      {children}
+      {typeof children === 'string' ? <AutoTerms>{children}</AutoTerms> : children}
     </p>
   );
 }

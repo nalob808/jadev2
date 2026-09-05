@@ -135,3 +135,57 @@ test('an uncertain birth time is said out loud beside the wheel', async ({ page 
     timeout: 40_000,
   });
 });
+
+/**
+ * The glossary.
+ *
+ * Worth a browser for the same reason the glyphs are: the whole feature is a
+ * hover-and-tap affordance, and neither gesture exists outside one. What is
+ * asserted is the part that makes it more than a dictionary — that the card
+ * carries lines about the chart on screen, and that the cross-references
+ * actually walk.
+ */
+test('technical words explain themselves, with this chart in the explanation', async ({ page }) => {
+  await signIn(page);
+  await addPerson(page, 'Glossary Subject', '1988-09-02', '14:20');
+  await page.goto('/wheel');
+
+  // The lens line under the wheel names the ayanāṁśa, which is the most
+  // load-bearing setting in the app and the least self-explanatory word in it.
+  const trigger = page.getByRole('button', { name: 'ayanāṁśa', exact: true }).first();
+  await expect(trigger).toBeVisible();
+  await trigger.click();
+
+  const card = page.getByRole('dialog', { name: 'Ayanāṁśa' });
+  await expect(card).toBeVisible();
+  await expect(card).toContainText('portion of the solstice');
+  // The live half: the number this chart was actually cast with.
+  await expect(card.getByText('In this chart')).toBeVisible();
+  await expect(card).toContainText(/lahiri/i);
+
+  // The cross-reference walks, and comes back.
+  await card.getByRole('button', { name: 'Sidereal' }).click();
+  await expect(page.getByRole('dialog', { name: 'Sidereal' })).toBeVisible();
+  await page.getByRole('button', { name: '← back' }).click();
+  await expect(page.getByRole('dialog', { name: 'Ayanāṁśa' })).toBeVisible();
+
+  // Escape closes it.
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('dialog', { name: 'Ayanāṁśa' })).toBeHidden();
+});
+
+test('the focus panel labels are explained, and say what they mean here', async ({ page }) => {
+  await signIn(page);
+  await addPerson(page, 'Panel Subject', '1979-06-21', '09:05');
+  await page.goto('/wheel');
+
+  await page.getByRole('button', { name: 'Saturn', exact: true }).first().click();
+  await page.getByRole('button', { name: 'Nakṣatra', exact: true }).first().click();
+
+  const card = page.getByRole('dialog', { name: 'Nakṣatra' });
+  await expect(card).toContainText('does not decay');
+  // The chart-specific line names this person's Moon nakṣatra and its lord —
+  // the thing a generic glossary cannot say.
+  await expect(card.getByText('In this chart')).toBeVisible();
+  await expect(card).toContainText(/Moon is in .+ pāda \d, ruled by/);
+});

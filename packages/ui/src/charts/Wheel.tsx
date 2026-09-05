@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { GLYPHS } from '../tokens.js';
-import { GlyphGroup, GRAHA_NATURE, SIGN_NAMES as GLYPH_SIGN_NAMES } from '../glyphs.js';
+import { GlyphGroup, GRAHA_NATURE, hasGlyph, SIGN_NAMES as GLYPH_SIGN_NAMES } from '../glyphs.js';
 import { angleFor, annulusSector, degreesLabel, polar, spread } from './wheelGeometry.js';
 
 /**
@@ -383,7 +383,6 @@ export function Wheel({
                   x={mx}
                   y={my}
                   size={4.6}
-                  weight={1.9}
                   color={ELEMENT_TINT[element]}
                 />
               ) : null}
@@ -510,14 +509,15 @@ export function Wheel({
                     stroke="var(--clay, #9E5B3A)"
                     strokeWidth={0.25}
                   />
-                  <GlyphGroup
-                    name={point.id as never}
-                    x={gx}
-                    y={gy}
-                    size={3.9}
-                    weight={2}
-                    color="var(--clay, #9E5B3A)"
-                  />
+                  {hasGlyph(point.id) ? (
+                    <GlyphGroup
+                      name={point.id}
+                      x={gx}
+                      y={gy}
+                      size={3.9}
+                      color="var(--clay, #9E5B3A)"
+                    />
+                  ) : null}
                 </g>
               );
             })
@@ -571,14 +571,15 @@ export function Wheel({
                   the ring carries a reading at a glance rather than being
                   nine identical marks. The selection colour still wins, since
                   what is focused matters more than what it is. */}
-              <GlyphGroup
-                name={point.id as never}
-                x={gx}
-                y={gy}
-                size={4.8}
-                weight={1.9}
-                color={point.id === selected ? 'var(--accent, #33668F)' : tintOf(point.id)}
-              />
+              {hasGlyph(point.id) ? (
+                <GlyphGroup
+                  name={point.id}
+                  x={gx}
+                  y={gy}
+                  size={4.8}
+                  color={point.id === selected ? 'var(--accent, #33668F)' : tintOf(point.id)}
+                />
+              ) : null}
               {point.retrograde ? (
                 <text
                   x={gx + 2.6}

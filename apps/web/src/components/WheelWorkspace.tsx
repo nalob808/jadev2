@@ -3,7 +3,8 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Wheel, Glyph, type WheelPoint, type WheelAspect } from '@jade/ui';
+import { Wheel, Glyph, hasGlyph, type WheelPoint, type WheelAspect } from '@jade/ui';
+import { AutoTerms, T } from './Glossary';
 import type { FocusFacts } from '@/lib/focusIndex';
 
 /**
@@ -152,7 +153,7 @@ export function WheelWorkspace({
         />
 
         <p className="mt-2 font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--ink-faint)]">
-          {lens}
+          <AutoTerms>{lens}</AutoTerms>
         </p>
         {timeCaveat ? (
           <p className="mt-1 border-l-2 border-[var(--clay)] py-1 pl-2 text-[12px] leading-relaxed text-[var(--ink-muted)]">
@@ -186,7 +187,7 @@ export function WheelWorkspace({
                       title={id}
                       className="flex h-9 w-9 items-center justify-center border border-[var(--rule)] text-[var(--ink-muted)] transition-colors hover:border-[var(--accent)] hover:text-[var(--accent)]"
                     >
-                      <Glyph name={id as never} size={18} title={id} />
+                      {hasGlyph(id) ? <Glyph name={id} size={18} title={id} /> : null}
                     </button>
                   </li>
                 ))}
@@ -236,7 +237,7 @@ function FocusPanel({
     <div className="border border-[var(--accent)] bg-[var(--surface)]">
       <div className="flex items-center gap-2 border-b border-[var(--rule)] px-4 py-3">
         <span className="text-[var(--accent)]">
-          <Glyph name={facts.id as never} size={26} weight={1.8} title={facts.id} />
+          {hasGlyph(facts.id) ? <Glyph name={facts.id} size={26} title={facts.id} /> : null}
         </span>
         <span className="font-display text-2xl leading-none">{facts.id}</span>
         {facts.runningNow ? (
@@ -254,15 +255,17 @@ function FocusPanel({
       </div>
 
       <dl className="grid grid-cols-2 gap-px bg-[var(--rule)]">
-        <Cell label="Sign" value={`${degrees(facts.degreesInSign)} ${facts.sign}`} />
+        <Cell term="rasi" label="Sign" value={`${degrees(facts.degreesInSign)} ${facts.sign}`} />
         <Cell
+          term="bhava"
           label="House"
           value={facts.house != null ? ORDINALS[facts.house - 1]! : 'not counted'}
         />
-        <Cell label="Nakṣatra" value={`${facts.nakshatra} · ${facts.pada}`} />
-        <Cell label="Nakṣatra lord" value={facts.nakshatraLord} />
-        <Cell label="Dignity" value={facts.dignity ?? 'none stated'} />
+        <Cell term="nakshatra" label="Nakṣatra" value={`${facts.nakshatra} · ${facts.pada}`} />
+        <Cell term="vimshottari" label="Nakṣatra lord" value={facts.nakshatraLord} />
+        <Cell term="dignity" label="Dignity" value={facts.dignity ?? 'none stated'} />
         <Cell
+          term="bindu"
           label="Bindus"
           value={
             facts.bindusInOwnSign != null
@@ -274,14 +277,16 @@ function FocusPanel({
 
       {facts.combustion || facts.retrograde ? (
         <p className="border-t border-[var(--rule)] px-4 py-2 font-mono text-[11px] text-[var(--clay)]">
-          {[facts.retrograde ? 'retrograde' : null, facts.combustion].filter(Boolean).join(' · ')}
+          {facts.retrograde ? <span>retrograde</span> : null}
+          {facts.retrograde && facts.combustion ? ' · ' : null}
+          {facts.combustion ? <T id="combustion">{facts.combustion}</T> : null}
         </p>
       ) : null}
 
       {facts.yogas.length > 0 ? (
         <section className="border-t border-[var(--rule)] px-4 py-3">
           <p className="font-mono text-[9.5px] uppercase tracking-[0.14em] text-[var(--ink-faint)]">
-            Yogas it forms
+            <T id="yoga">Yogas</T> it forms
           </p>
           <ul className="mt-1.5 flex flex-col gap-2">
             {facts.yogas.map((yoga) => (
@@ -304,7 +309,7 @@ function FocusPanel({
       {facts.periods.length > 0 ? (
         <section className="border-t border-[var(--rule)] px-4 py-3">
           <p className="font-mono text-[9.5px] uppercase tracking-[0.14em] text-[var(--ink-faint)]">
-            Periods it rules
+            <T id="dasha">Periods</T> it rules
           </p>
           <ul className="mt-1.5 flex flex-col gap-0.5 font-mono text-[11px] text-[var(--ink-muted)]">
             {facts.periods.slice(0, 6).map((period, index) => (
@@ -332,11 +337,20 @@ function FocusPanel({
   );
 }
 
-function Cell({ label, value }: { label: string; value: string }): React.ReactElement {
+function Cell({
+  label,
+  value,
+  term,
+}: {
+  label: string;
+  value: string;
+  /** Glossary id, when the label is a technical word rather than a plain one. */
+  term?: string;
+}): React.ReactElement {
   return (
     <div className="bg-[var(--surface)] px-3 py-2">
       <dt className="font-mono text-[9px] uppercase tracking-[0.13em] text-[var(--ink-faint)]">
-        {label}
+        {term ? <T id={term}>{label}</T> : label}
       </dt>
       <dd className="mt-0.5 text-[13px]">{value}</dd>
     </div>

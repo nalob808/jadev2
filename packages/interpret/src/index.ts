@@ -26,3 +26,5 @@ export * from './reading.js';
 export * from './daily.js';
 export * from './synastry.js';
 export * from './prep.js';
+export * from './glossary.js';
+export * from './glossaryContext.js';

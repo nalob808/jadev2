@@ -7,6 +7,8 @@ import { getClock } from '@/lib/clock';
 import { getDatabase } from '@/lib/db';
 import { getOrComputeChart } from '@/lib/chart';
 import { buildFocusIndex } from '@/lib/focusIndex';
+import { glossaryContextFor } from '@jade/interpret';
+import { GlossaryProvider } from '@/components/Glossary';
 import { Kicker, Panel, Shell } from '@/components/Shell';
 import { WheelWorkspace, type WorkspacePerson } from '@/components/WheelWorkspace';
 
@@ -129,6 +131,18 @@ export default async function WheelPage({
     notes,
   });
 
+  /**
+   * The glossary's live half. Computed here rather than in the browser so a
+   * tooltip costs nothing to open — and so the chart maths stays on the
+   * server, where the rest of it already is.
+   */
+  const glossary = glossaryContextFor({
+    chart,
+    dasha: dashas,
+    nowJd: clock.nowJd,
+    subject: current.subject.displayName,
+  });
+
   const aspects = (['Sun', 'Moon', 'Mars', 'Mercury', 'Jupiter', 'Venus', 'Saturn'] as const)
     .filter((id) => chart.points[id])
     .flatMap((id) => signsAspectedBy(id, chart.points[id]!.signIndex));
@@ -154,21 +168,23 @@ export default async function WheelPage({
         </Link>
       </div>
 
-      <WheelWorkspace
-        people={roster}
-        currentId={current.subject.id}
-        overlayId={overlay?.subject.id ?? null}
-        points={wheelPointsFor(chart)}
-        aspects={aspects}
-        overlayPoints={overlayChart ? wheelPointsFor(overlayChart) : []}
-        overlayName={overlay?.subject.displayName ?? null}
-        ascendant={chart.points.Ascendant!.longitude}
-        ascendantSign={chart.houses.ascendantSign}
-        sarva={chart.ashtakavarga.sarva}
-        facts={facts}
-        lens={`${profile.ayanamsa} ayanāṁśa · ${chart.houses.system.replace('_', ' ')} houses · ${profile.nodeType} nodes`}
-        timeCaveat={ACCURACY_CAVEAT[current.birthEvent!.timeAccuracy] ?? null}
-      />
+      <GlossaryProvider lines={glossary.lines}>
+        <WheelWorkspace
+          people={roster}
+          currentId={current.subject.id}
+          overlayId={overlay?.subject.id ?? null}
+          points={wheelPointsFor(chart)}
+          aspects={aspects}
+          overlayPoints={overlayChart ? wheelPointsFor(overlayChart) : []}
+          overlayName={overlay?.subject.displayName ?? null}
+          ascendant={chart.points.Ascendant!.longitude}
+          ascendantSign={chart.houses.ascendantSign}
+          sarva={chart.ashtakavarga.sarva}
+          facts={facts}
+          lens={`${profile.ayanamsa} ayanāṁśa · ${chart.houses.system.replace('_', ' ')} houses · ${profile.nodeType} nodes`}
+          timeCaveat={ACCURACY_CAVEAT[current.birthEvent!.timeAccuracy] ?? null}
+        />
+      </GlossaryProvider>
     </Shell>
   );
 }

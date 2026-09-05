@@ -13,6 +13,7 @@ export const NAV: ReadonlyArray<{ href: string; label: string }> = [
   { href: '/charts', label: 'Public charts' },
   { href: '/features', label: 'Features' },
   { href: '/learn', label: 'Learn' },
+  { href: '/glossary', label: 'Glossary' },
   { href: '/accuracy', label: 'Accuracy' },
   { href: '/pricing', label: 'Pricing' },
   { href: '/about', label: 'About' },
