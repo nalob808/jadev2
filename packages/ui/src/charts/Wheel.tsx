@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { GLYPHS } from '../tokens.js';
+import { GlyphGroup, GRAHA_NATURE, SIGN_NAMES as GLYPH_SIGN_NAMES } from '../glyphs.js';
 import { angleFor, annulusSector, degreesLabel, polar, spread } from './wheelGeometry.js';
 
 /**
@@ -78,6 +79,18 @@ export interface WheelProps {
   readonly bhavaLabel?: string;
   readonly size?: number;
   readonly title?: string;
+  /**
+   * The focused graha, when a page wants to drive selection.
+   *
+   * Optional on purpose. Three surfaces render this wheel and only one of them
+   * is a workspace — the printable report and the public library want a wheel
+   * that manages its own selection and needs no state above it. Passing
+   * `focus` switches to controlled; omitting it keeps the original behaviour
+   * exactly. `undefined` means uncontrolled, `null` means controlled and
+   * nothing selected, and the difference matters.
+   */
+  readonly focus?: string | null;
+  readonly onFocusChange?: (id: string | null) => void;
 }
 
 const SIGN_NAMES = [
@@ -95,16 +108,38 @@ const SIGN_NAMES = [
   'Pisces',
 ];
 
-const SIGN_GLYPHS = ['♈', '♉', '♊', '♋', '♌', '♍', '♎', '♏', '♐', '♑', '♒', '♓'];
+// The Unicode signs (♈ ♉ ♊ …) used to live here. They are gone because iOS
+// gives several of them an emoji presentation, so a chart rendered on an
+// iPhone mixed flat type with full-colour emoji at a different optical size —
+// and no CSS could reach it, because the glyph came from a font the page never
+// chose. Drawn now; see packages/ui/src/glyphs.tsx.
 
 const ELEMENT_OF_SIGN = ['fire', 'earth', 'air', 'water'] as const;
 
+/**
+ * Element and nature colour.
+ *
+ * Their own tokens rather than --accent and --jade, which carry interface
+ * meaning: a chart that borrows them makes Fire mean the same thing as a
+ * button. Muted rather than saturated, because twelve strong wedges around a
+ * circle stop being information and become a colour wheel.
+ */
 const ELEMENT_TINT: Record<string, string> = {
-  fire: 'var(--jade, #2C7A64)',
-  earth: 'var(--ink-muted, #4A5C6B)',
-  air: 'var(--accent, #33668F)',
-  water: 'var(--clay, #9E5B3A)',
+  fire: 'var(--elem-fire, #B0553C)',
+  earth: 'var(--elem-earth, #7A6636)',
+  air: 'var(--elem-air, #46738F)',
+  water: 'var(--elem-water, #3D6C6E)',
 };
+
+const NATURE_TINT: Record<string, string> = {
+  benefic: 'var(--nature-benefic, #2C7A64)',
+  malefic: 'var(--nature-malefic, #9E5B3A)',
+  neutral: 'var(--nature-neutral, #55606B)',
+  angle: 'var(--accent, #33668F)',
+};
+
+const tintOf = (id: string): string =>
+  NATURE_TINT[GRAHA_NATURE[id] ?? 'neutral'] ?? NATURE_TINT.neutral!;
 
 type Toggle =
   | 'houses'
@@ -140,6 +175,8 @@ export function Wheel({
   bhavaLabel = 'equal from the lagna degree',
   size = 520,
   title,
+  focus,
+  onFocusChange,
 }: WheelProps): React.ReactElement {
   const [on, setOn] = useState<Record<Toggle, boolean>>({
     houses: true,
@@ -152,7 +189,13 @@ export function Wheel({
     sarva: false,
     chalit: false,
   });
-  const [selected, setSelected] = useState<string | null>(null);
+  const [ownSelection, setOwnSelection] = useState<string | null>(null);
+  const controlled = focus !== undefined;
+  const selected = controlled ? focus : ownSelection;
+  const setSelected = (next: string | null): void => {
+    if (!controlled) setOwnSelection(next);
+    onFocusChange?.(next);
+  };
 
   const toggle = (key: Toggle): void => setOn((state) => ({ ...state, [key]: !state[key] }));
 
@@ -323,7 +366,7 @@ export function Wheel({
                 <path
                   d={annulusSector(cx, cy, rSign, rOuter, start, end)}
                   fill={ELEMENT_TINT[element]}
-                  opacity={0.07}
+                  opacity={0.13}
                 />
               ) : null}
               <line
@@ -335,17 +378,14 @@ export function Wheel({
                 strokeWidth={0.3}
               />
               {on.signs ? (
-                <text
+                <GlyphGroup
+                  name={GLYPH_SIGN_NAMES[signIndex]!}
                   x={mx}
                   y={my}
-                  textAnchor="middle"
-                  dominantBaseline="central"
-                  fontSize={3.6}
-                  fill={ELEMENT_TINT[element]}
-                >
-                  {SIGN_GLYPHS[signIndex]}
-                  {'︎'}
-                </text>
+                  size={4.6}
+                  weight={1.9}
+                  color={ELEMENT_TINT[element]}
+                />
               ) : null}
             </g>
           );
@@ -470,17 +510,14 @@ export function Wheel({
                     stroke="var(--clay, #9E5B3A)"
                     strokeWidth={0.25}
                   />
-                  <text
+                  <GlyphGroup
+                    name={point.id as never}
                     x={gx}
                     y={gy}
-                    textAnchor="middle"
-                    dominantBaseline="central"
-                    fontSize={3.2}
-                    fill="var(--clay, #9E5B3A)"
-                  >
-                    {GLYPHS[point.id as keyof typeof GLYPHS] ?? point.id.slice(0, 2)}
-                    {'︎'}
-                  </text>
+                    size={3.9}
+                    weight={2}
+                    color="var(--clay, #9E5B3A)"
+                  />
                 </g>
               );
             })
@@ -525,18 +562,23 @@ export function Wheel({
                 unclickable for a test. This circle is invisible and catches
                 the whole neighbourhood.
               */}
-              <circle cx={gx} cy={gy} r={3.4} fill="transparent" />
-              <text
+              {/* r=4.6 in a 100-unit box is ~9% of the wheel's width, which
+                  lands near the 44px minimum touch target on a phone-sized
+                  chart. 3.4 was comfortable with a mouse and fiddly with a
+                  thumb. */}
+              <circle cx={gx} cy={gy} r={4.6} fill="transparent" />
+              {/* Tinted by classical nature — benefic, malefic, neutral — so
+                  the ring carries a reading at a glance rather than being
+                  nine identical marks. The selection colour still wins, since
+                  what is focused matters more than what it is. */}
+              <GlyphGroup
+                name={point.id as never}
                 x={gx}
                 y={gy}
-                textAnchor="middle"
-                dominantBaseline="central"
-                fontSize={4}
-                fill={point.id === selected ? 'var(--accent, #33668F)' : 'var(--ink, #16222E)'}
-              >
-                {GLYPHS[point.id as keyof typeof GLYPHS] ?? point.id.slice(0, 2)}
-                {'︎'}
-              </text>
+                size={4.8}
+                weight={1.9}
+                color={point.id === selected ? 'var(--accent, #33668F)' : tintOf(point.id)}
+              />
               {point.retrograde ? (
                 <text
                   x={gx + 2.6}

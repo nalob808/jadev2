@@ -301,7 +301,7 @@ professional licence purchased and its receipt filed**.
 
 ---
 
-## Phase 9 — Rectification 🔵 IN PROGRESS
+## Phase 9 — Rectification ✅
 
 **Goal:** the feature a professional switches software for.
 
@@ -732,6 +732,103 @@ would look for it.
 The roster is small and heavily untimed. Growing it is research, not code —
 every entry needs its date and place checked and its time either sourced or
 honestly marked absent.
+
+---
+
+## Phase 14 — The wheel, given a room of its own ✅
+
+The wheel used to be a figure part-way down a person's page, below the
+positions table and above the reading. It is the thing an astrologer actually
+looks at, so it now has `/wheel`: the chart centre stage, the people to switch
+between on one side, and everything about the selected graha on the other.
+
+### The glyphs are drawn now, and that was a real bug
+
+The wheel printed the Unicode zodiac block — ♈ ♉ ♊ — which is the obvious
+implementation and is wrong on exactly the devices this most needs to look
+right on. Those code points have **emoji presentations on iOS**, so an iPhone
+rendered some signs as flat monochrome type and others as full-colour emoji, at
+a different optical size and baseline, varying by OS version. Android
+substituted from whatever fallback font it had. None of it was reachable from
+CSS, because the glyph came from a font the page never chose.
+
+`packages/ui/src/glyphs.tsx` draws all twenty-two — twelve signs, nine grahas,
+plus a mark for the lagna — from primitives: circles, arcs and strokes, which is
+how these glyphs are actually built typographically. Venus is a circle over a
+cross; Aquarius is two waves. Written that way each one can be read and adjusted
+by a person, where a 400-character `d` attribute cannot. They render identically
+everywhere, scale without hinting artefacts, and inherit `currentColor`.
+
+An e2e test asserts no Unicode sign character appears anywhere on the page.
+
+### Colour that encodes rather than decorates
+
+Signs tint by classical element, grahas by classical nature — benefic, malefic,
+neutral. Both got **their own tokens** rather than reusing `--accent` and
+`--jade`, which carry interface meaning: a chart that borrows them makes Fire
+mean the same thing as a button. Muted rather than saturated, because twelve
+strong wedges around a circle stop being information and become a colour wheel.
+
+### One selection, shared
+
+Click-to-isolate, coordinated highlighting and the people rail are three views
+of one piece of state. Selecting Saturn dims the wheel, filters the dṛṣṭi, and
+fills the panel together — and the e2e test asserts it in **both** directions,
+because a selection that only travels one way is two widgets, not an
+instrument.
+
+Selection was **lifted, not built**: the wheel already had internal `selected`
+state with click and keyboard handling. `focus` and `onFocusChange` are optional
+props that switch it to controlled, so the printable report and the public
+library keep their self-managing wheel untouched. `undefined` means
+uncontrolled and `null` means controlled-with-nothing-selected, and the
+difference matters.
+
+### The focus index
+
+Everything about a graha — dignity, combustion, bindus, the yogas it forms with
+their cancellations, the periods it rules, the notes anchored to it — gathered
+server-side into one object per chart. None of that data is new; it was spread
+across six sections of the person page that did not know about each other, so a
+practitioner asking "what about Saturn?" answered it by scrolling and
+remembering.
+
+Yoga membership matches against the yoga's computed `factors`, not its prose
+summary — the summary mentions grahas it is only contrasting with, so matching
+it would report "Saturn is mentioned" as "Saturn is involved".
+
+### Overlay
+
+A second person rides the outer ring, reusing the main wheel's existing transit
+ring rather than swapping to `OverlayWheel`. The workspace wants one wheel that
+behaves the same way whether or not a second chart is on it. `OverlayWheel`
+stays for the relationship page, where two charts are read as equals rather than
+one against the other's houses.
+
+### Honesty carried through
+
+The wheel prints its lens, and prints a caveat when the birth time is uncertain
+— "uncertain by a couple of hours, which is long enough for the lagna to have
+changed sign". A drawing implies precision that a table does not, so the wheel
+needs the warning more, not less.
+
+### Acceptance
+
+- 798 unit tests; 83 e2e (5 new). `pnpm verify` green.
+- Touch targets went from r=3.4 to r=4.6 in the 100-unit box — roughly the 44px
+  minimum on a phone-sized chart. Comfortable with a mouse was fiddly with a
+  thumb.
+
+> **For the next agent:** keep `focus` optional on the Wheel — three surfaces
+> render it and only one is a workspace. And do not reintroduce Unicode glyphs
+> for "simplicity"; the test that forbids them is guarding a real iOS failure.
+
+### Not done, carried forward
+
+The **time scrubber** was planned for this phase and is not in it — the wheel
+page, the glyph system and the focus model filled it. The groundwork is laid:
+selection is lifted, the transit ring already accepts arbitrary points, and
+`packages/astro` runs in the browser.
 
 ---
 

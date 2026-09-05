@@ -28,6 +28,21 @@
   --accent-wash: #e1e9ef;
   --jade: #2c7a64;
   --clay: #9e5b3a;
+
+  /* ---------------------------------------------------- the chart palette
+     Four hues for the classical elements and three for graha nature.
+     Deliberately their own tokens rather than reusing --accent and --jade:
+     those carry interface meaning (this is a link, this succeeded), and a
+     chart that borrows them makes Fire mean the same thing as a button.
+     Muted rather than primary, because twelve saturated wedges around a
+     circle stop being information and become a colour wheel. */
+  --elem-fire: #b0553c;
+  --elem-earth: #7a6636;
+  --elem-air: #46738f;
+  --elem-water: #3d6c6e;
+  --nature-benefic: #2c7a64;
+  --nature-malefic: #9e5b3a;
+  --nature-neutral: #55606b;
   --benefic: #2c7a64;
   --malefic: #9e5b3a;
 
@@ -79,6 +94,13 @@
     --accent-wash: #1c2a36;
     --jade: #5cbba0;
     --clay: #cd8964;
+    --elem-fire: #d9866a;
+    --elem-earth: #b9a06a;
+    --elem-air: #7fadd4;
+    --elem-water: #6faaa8;
+    --nature-benefic: #5cbba0;
+    --nature-malefic: #cd8964;
+    --nature-neutral: #97a2ad;
     --benefic: #5cbba0;
     --malefic: #cd8964;
 
@@ -113,6 +135,13 @@
   --accent-wash: #1c2a36;
   --jade: #5cbba0;
   --clay: #cd8964;
+  --elem-fire: #d9866a;
+  --elem-earth: #b9a06a;
+  --elem-air: #7fadd4;
+  --elem-water: #6faaa8;
+  --nature-benefic: #5cbba0;
+  --nature-malefic: #cd8964;
+  --nature-neutral: #97a2ad;
   --benefic: #5cbba0;
   --malefic: #cd8964;
 

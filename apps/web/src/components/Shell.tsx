@@ -5,6 +5,7 @@ import { NavLink } from './NavLink';
 const LINKS: Array<{ href: string; label: string }> = [
   { href: '/home', label: 'Home' },
   { href: '/people', label: 'People' },
+  { href: '/wheel', label: 'Wheel' },
   { href: '/relationships', label: 'Relationships' },
   // Shown to everyone, including tiers that cannot open it. Clicking through
   // to a wall that explains the feature sells it; a padlock teaches nothing.
