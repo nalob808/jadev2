@@ -19,6 +19,7 @@ import {
   stripeEvents,
   sessions,
   followUps,
+  publicFigures,
   type NewBirthEvent,
   type NewSubject,
   type Relationship,
@@ -958,6 +959,84 @@ export async function deleteFollowUp(
       .delete(followUps)
       .where(and(eq(followUps.id, id), eq(followUps.workspaceId, workspaceId)));
   });
+}
+
+// ------------------------------------------------------ the public library
+//
+// None of these run inside `withWorkspace`, and that is the point rather than
+// an omission: `public_figures` has no workspace column and no isolation
+// policy because every row in it is a published fact. These queries also never
+// mention `subjects`, which is what makes leaking a client into a public page
+// impossible rather than merely guarded against.
+
+export async function listPublicFigures(
+  database: Database,
+  filter: { search?: string; tag?: string; limit?: number } = {},
+): Promise<Array<typeof publicFigures.$inferSelect>> {
+  const conditions = [];
+
+  const text = filter.search?.trim();
+  if (text) {
+    // Written the same way as the index expression, or the planner ignores it.
+    conditions.push(
+      sql`to_tsvector('simple', ${publicFigures.displayName} || ' ' || ${publicFigures.summary})
+          @@ plainto_tsquery('simple', ${text})`,
+    );
+  }
+  if (filter.tag) conditions.push(sql`${publicFigures.tags} @> ARRAY[${filter.tag}]::text[]`);
+
+  const query = database.select().from(publicFigures);
+  return (conditions.length > 0 ? query.where(and(...conditions)) : query)
+    .orderBy(publicFigures.sortName)
+    .limit(Math.min(filter.limit ?? 200, 500));
+}
+
+export async function getPublicFigure(
+  database: Database,
+  slug: string,
+): Promise<typeof publicFigures.$inferSelect | null> {
+  const rows = await database
+    .select()
+    .from(publicFigures)
+    .where(eq(publicFigures.slug, slug))
+    .limit(1);
+  return rows[0] ?? null;
+}
+
+/**
+ * Everybody born on one day of the year, any year.
+ *
+ * Matches the expression index in migration 0012 — month and day extracted,
+ * year discarded. Ordered oldest first, which reads better than alphabetical
+ * for a page that is essentially a timeline of one date.
+ */
+export async function figuresBornOn(
+  database: Database,
+  month: number,
+  day: number,
+): Promise<Array<typeof publicFigures.$inferSelect>> {
+  return database
+    .select()
+    .from(publicFigures)
+    .where(
+      and(
+        sql`extract(month from ${publicFigures.birthDate}) = ${month}`,
+        sql`extract(day from ${publicFigures.birthDate}) = ${day}`,
+      ),
+    )
+    .orderBy(publicFigures.birthDate);
+}
+
+/** Every tag in the library with how many figures carry it, commonest first. */
+export async function publicFigureTags(
+  database: Database,
+): Promise<Array<{ tag: string; count: number }>> {
+  const rows = await database.execute<{ tag: string; count: number }>(sql`
+    select unnest(tags) as tag, count(*)::int as count
+      from public_figures
+     group by 1
+     order by count desc, tag asc`);
+  return [...rows];
 }
 
 /**

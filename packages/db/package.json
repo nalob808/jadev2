@@ -15,7 +15,8 @@
     "studio": "drizzle-kit studio",
     "seed": "tsx scripts/seed.ts",
     "doctor": "tsx scripts/doctor.ts",
-    "app-role": "tsx scripts/create-app-role.ts"
+    "app-role": "tsx scripts/create-app-role.ts",
+    "seed:figures": "tsx scripts/seed-figures.ts"
   },
   "dependencies": {
     "drizzle-orm": "^0.45.2",

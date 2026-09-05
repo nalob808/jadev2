@@ -129,6 +129,12 @@ try {
     stripe_events:
       'written by the Stripe webhook, which has no session to bind; holds no personal data',
   };
+  //
+  // `public_figures` is deliberately absent from both lists. It carries no
+  // workspace_id at all — it is a library of published facts, not tenant data —
+  // so the probe below has nothing to find and needs no exemption. If it ever
+  // grows a workspace column, that is a design change worth stopping for, and
+  // the probe will stop for it.
 
   // Anything else carrying a workspace_id that the list above does not
   // mention. Finding one is not a warning: an unlisted table is a table whose

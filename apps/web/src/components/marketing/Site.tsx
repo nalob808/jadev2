@@ -10,6 +10,7 @@ import Link from 'next/link';
  */
 
 export const NAV: ReadonlyArray<{ href: string; label: string }> = [
+  { href: '/charts', label: 'Public charts' },
   { href: '/features', label: 'Features' },
   { href: '/learn', label: 'Learn' },
   { href: '/accuracy', label: 'Accuracy' },

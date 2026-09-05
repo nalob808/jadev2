@@ -9,6 +9,7 @@ import {
   pgTable,
   primaryKey,
   text,
+  time,
   timestamp,
   uniqueIndex,
   uuid,
@@ -705,3 +706,47 @@ export const followUps = pgTable(
 );
 
 export type FollowUp = typeof followUps.$inferSelect;
+
+/**
+ * The public chart library.
+ *
+ * Deliberately not workspace-scoped and deliberately not a flag on `subjects`
+ * — see migration 0012. The library's queries never mention the subjects
+ * table, which is what makes leaking a client into a public page
+ * unexpressible rather than merely unlikely.
+ */
+export const publicFigures = pgTable(
+  'public_figures',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    slug: text('slug').notNull(),
+    displayName: text('display_name').notNull(),
+    sortName: text('sort_name').notNull(),
+    alsoKnownAs: text('also_known_as'),
+    /** Written for Jade. Never pasted from a source with its own licence. */
+    summary: text('summary').notNull(),
+    birthDate: date('birth_date').notNull(),
+    /** NULL when no time is attested. Never a noon placeholder. */
+    birthTime: time('birth_time'),
+    /** Rodden scale: AA, A, B, C, DD, X (no time), XX (date uncertain). */
+    rodden: text('rodden').notNull(),
+    timeSource: text('time_source'),
+    placeName: text('place_name').notNull(),
+    latitude: doublePrecision('latitude').notNull(),
+    longitude: doublePrecision('longitude').notNull(),
+    timezoneId: text('timezone_id').notNull(),
+    diedOn: date('died_on'),
+    tags: text('tags').array().notNull().default([]),
+    sourceUrl: text('source_url'),
+    provenanceNote: text('provenance_note'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({
+    slugIdx: uniqueIndex('public_figures_slug_idx').on(table.slug),
+    sortIdx: index('public_figures_sort_idx').on(table.sortName),
+  }),
+);
+
+export type PublicFigure = typeof publicFigures.$inferSelect;
+export type NewPublicFigure = typeof publicFigures.$inferInsert;

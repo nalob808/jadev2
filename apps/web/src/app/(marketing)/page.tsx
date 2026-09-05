@@ -94,7 +94,7 @@ export default function LandingPage() {
           </div>
 
           <p className="mt-4 font-mono text-[11px] text-[var(--ink-faint)]">
-            Free tier: 3 people · rāśi and navāṁśa · today’s transits
+            Free tier: 3 people · all sixteen vargas · yogas · daśās · today’s transits
           </p>
         </div>
 

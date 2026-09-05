@@ -631,6 +631,110 @@ on a page a practitioner reads aloud from.
 
 ---
 
+## Phase 13 — The public chart library ✅
+
+A front door that shows the product before asking for anything. Jade previously
+asked you to sign up and _then_ to type a birth certificate before it would show
+you a single chart.
+
+### The finding that shaped the whole feature
+
+The roster is 19 figures. **Exactly one has an attested birth time.**
+
+That is not a seeding shortcut, it is what the evidence supports.
+Encyclopaedias record the date and place of a birth and almost never the hour.
+Times for famous people circulate widely in astrological literature, usually
+with no primary source and frequently disagreeing with each other by hours —
+Gandhi has several in circulation that differ by more than an hour, and the
+astrologers publishing Ramanujan's own call it tentative.
+
+So the _dominant_ case in any honest public library is the untimed one, and the
+whole design follows from taking that seriously rather than papering over it.
+
+### What an untimed chart shows
+
+`positionsAcrossDay` computes what a date alone actually determines, by
+evaluating both ends of the local day and reporting whether they agree:
+
+- **The ascendant is unknowable** — it travels the whole zodiac in a day, and so
+  does every house counted from it. The result type contains no ascendant and no
+  houses, so a caller cannot read one out by accident.
+- **The Moon usually is too** — about 13° a day against a 13°20′ nakṣatra, so it
+  changes nakṣatra almost daily.
+- **The slow grahas are fine** — Saturn moves about two arcminutes. Reporting it
+  as uncertain would be as wrong as inventing a lagna.
+
+A graha that holds its sign all day is reported as certain; one that crosses a
+boundary is reported as _both_ signs, which is the true answer and more useful
+than either half.
+
+Most software resolves this tension by dropping the refusal: assume noon, draw a
+confident ascendant, print it identically to a chart from a birth register. A
+student cannot tell the two apart, which makes the software actively harmful for
+the one thing they are trying to learn. An e2e test asserts no lagna appears on
+an untimed page — and asserts it on the _labels_, not on the word "ascendant",
+because the honest disclosure legitimately uses that word and a substring check
+would be satisfied by deleting the honesty.
+
+**The missing time is then framed as a question rather than a dead end**, linking
+to rectification — which turns our weakest data into the one feature no
+competitor has.
+
+### Why `public_figures` is its own table
+
+The obvious design is `subjects.is_public`. It is wrong for a safety reason.
+
+`subjects` holds clients' birth data behind row-level security. The library
+reads with no session and no workspace binding, so putting public figures there
+means either poking a hole in the isolation policy or running library queries
+with RLS bypassed — both of which put one bad predicate between a private client
+and a page indexed by Google.
+
+With two tables the library's queries never mention `subjects` at all, so the
+leak is **unexpressible rather than merely guarded against**. A test asserts it
+through the front door anyway.
+
+The table also carries no `workspace_id`, so `db:doctor`'s unlisted-table probe
+has nothing to find and needs no exemption — noted in the doctor where somebody
+would look for it.
+
+### Decisions worth keeping
+
+- **The Rodden rating is NOT NULL, and `X` is a legitimate answer.** A CHECK
+  constraint enforces that a row rated X or XX has no time and a rated row does,
+  so the invariant holds against a hand-written INSERT.
+- **The lens is fixed and printed on every page.** No session means no settings
+  profile; constitution item 3 forbids a _silent_ default, not a default.
+- **Zones resolve through the tz database.** Calcutta kept Howrah Mean Time at
+  +05:53:20 until 1941 — software assuming +05:30 puts every 19th-century Indian
+  birth twenty-three minutes out.
+- **Newton is stored as 4 January 1643**, the Gregorian equivalent of the Julian
+  25 December 1642 England was still using, with the note printed beside the
+  chart.
+- **Summaries are written for Jade, never pasted.** The encyclopaedias they would
+  otherwise come from are variously licensed, and a library built on copied prose
+  is one that has to be taken down.
+
+### Acceptance
+
+- 593 astro tests (8 new on the untimed day); 78 e2e (9 new). `pnpm verify` green.
+- `pnpm --filter @jade/db seed:figures` upserts on slug, so correcting a record
+  is editing `packages/db/data/publicFigures.ts` and re-running.
+
+> **For the next agent:** never add a birth time to `publicFigures.ts` without a
+> source in `timeSource`, and never lower a rating to make a chart look better.
+> If you add a figure whose time you found on an astrology site with no primary
+> source, that is `C` at best and probably `X`. The library's only real asset is
+> that its ratings can be trusted.
+
+### Still open
+
+The roster is small and heavily untimed. Growing it is research, not code —
+every entry needs its date and place checked and its time either sourced or
+honestly marked absent.
+
+---
+
 ## Phase 8 — Beyond (ongoing)
 
 Ranked by expected return:
