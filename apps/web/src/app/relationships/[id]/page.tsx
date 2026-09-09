@@ -19,7 +19,12 @@ import {
   type Graha,
   type MatchSubject,
 } from '@jade/astro';
-import { SYNASTRY_PREAMBLE, synastryReadingFor } from '@jade/interpret';
+import {
+  SYNASTRY_PREAMBLE,
+  buildScopeIndex,
+  glossaryContextFor,
+  synastryReadingFor,
+} from '@jade/interpret';
 import {
   ConvergenceTimeline,
   KutaTable,
@@ -36,6 +41,7 @@ import { getOrComputeChart } from '@/lib/chart';
 import { removeRelationship } from '@/app/actions';
 import { Reading } from '@/components/Reading';
 import { Kicker, Panel, Shell } from '@/components/Shell';
+import { GlossaryProvider } from '@/components/Glossary';
 
 export const dynamic = 'force-dynamic';
 
@@ -189,223 +195,237 @@ export default async function RelationshipPage({ params }: { params: Promise<{ i
 
   return (
     <Shell email={session.email}>
-      {/* ------------------------------------------------------------ the pair */}
-      <div className="jade-rise">
-        <Kicker>Relationship · {pair.kind}</Kicker>
-        <h1 className="font-display text-[2.8rem] font-semibold leading-[1.05]">
-          <Link href={`/people/${recordA.subject.id}`} className="hover:underline">
-            {nameA}
-          </Link>
-          <span className="text-[var(--ink-faint)]"> &amp; </span>
-          <Link href={`/people/${recordB.subject.id}`} className="hover:underline">
-            {nameB}
-          </Link>
-        </h1>
-        <p className="mt-3 max-w-[74ch] text-[15px] leading-relaxed text-[var(--ink-muted)]">
-          {SYNASTRY_PREAMBLE}
-        </p>
-        <p className="mt-3">
-          <Link
-            className="font-mono text-[11px] uppercase tracking-wider text-[var(--accent)] underline underline-offset-2"
-            href={`/relationships/${pair.id}/report`}
-          >
-            Printable report →
-          </Link>
-        </p>
-      </div>
+      <GlossaryProvider
+        lines={
+          glossaryContextFor({
+            chart: chartA.chart,
+            dasha: dashaA,
+            subject: recordA.subject.displayName,
+          }).lines
+        }
+        scopes={buildScopeIndex(chartA.chart, { dasha: dashaA })}
+      >
+        {/* ------------------------------------------------------------ the pair */}
+        <div className="jade-rise">
+          <Kicker>Relationship · {pair.kind}</Kicker>
+          <h1 className="font-display text-[2.8rem] font-semibold leading-[1.05]">
+            <Link href={`/people/${recordA.subject.id}`} className="hover:underline">
+              {nameA}
+            </Link>
+            <span className="text-[var(--ink-faint)]"> &amp; </span>
+            <Link href={`/people/${recordB.subject.id}`} className="hover:underline">
+              {nameB}
+            </Link>
+          </h1>
+          <p className="mt-3 max-w-[74ch] text-[15px] leading-relaxed text-[var(--ink-muted)]">
+            {SYNASTRY_PREAMBLE}
+          </p>
+          <p className="mt-3">
+            <Link
+              className="font-mono text-[11px] uppercase tracking-wider text-[var(--accent)] underline underline-offset-2"
+              href={`/relationships/${pair.id}/report`}
+            >
+              Printable report →
+            </Link>
+          </p>
+        </div>
 
-      {/*
+        {/*
         Both charts, side by side, before any analysis of them. A synastry page
         that opens with a score has already told the reader what to think; one
         that opens with the two charts asks them to look first.
       */}
-      <div className="mt-8 grid gap-px border border-[var(--rule)] bg-[var(--rule)] sm:grid-cols-2">
-        {(
-          [
-            [recordA, chartA, nameA],
-            [recordB, chartB, nameB],
-          ] as const
-        ).map(([record, computed, name]) => (
-          <div
-            key={record.subject.id}
-            className="flex flex-col items-center bg-[var(--surface)] p-5"
-          >
-            <p className="font-display text-xl font-semibold text-[var(--ink)]">{name}</p>
-            <p className="mb-3 font-mono text-[10px] text-[var(--ink-faint)]">
-              {born(record)} · {record.birthEvent?.placeName}
-            </p>
-            <NorthIndianChart varga={buildVargaChart(computed.chart, 'D1')} size={230} />
-            <p className="mt-3 text-center font-mono text-[10px] leading-relaxed text-[var(--ink-muted)]">
-              {signLabel(computed.chart.houses.ascendantSign)} rising ·{' '}
-              {computed.chart.points.Moon!.sign} Moon
-              <br />
-              {computed.chart.points.Moon!.nakshatra.name} pāda{' '}
-              {computed.chart.points.Moon!.nakshatra.pada}
-            </p>
-          </div>
-        ))}
-      </div>
-
-      {/* ---------------------------------------------------------- the reading */}
-      <section className="mt-10">
-        <div className="mb-4 border-b border-[var(--rule)] pb-2">
-          <Kicker>Read against each other</Kicker>
-          <h2 className="font-display text-2xl font-semibold">What these two charts do together</h2>
-        </div>
-        <Reading sections={reading} subjectId={recordA.subject.id} />
-      </section>
-
-      <div className="mt-10 grid gap-8 lg:grid-cols-2">
-        <Panel>
-          <p className="font-display text-2xl">Aṣṭakūṭa</p>
-          <p className="mb-4 mt-1 text-sm text-[var(--ink-muted)]">
-            Read from {nameA}&rsquo;s Moon in {chartA.chart.points.Moon!.nakshatra.name} and {nameB}
-            &rsquo;s in {chartB.chart.points.Moon!.nakshatra.name} — and from nothing else in either
-            chart. The reading above says what that does and does not cover.
-          </p>
-          <KutaTable result={kutas} />
-        </Panel>
-
-        <Panel>
-          <p className="font-display text-2xl">Maṅgala doṣa</p>
-          <p className="mb-4 mt-1 text-sm text-[var(--ink-muted)]">
-            Cancellations first, because a doṣa handed over bare is not a finding.
-          </p>
-          <MangalaCard comparison={mangala} nameA={nameA} nameB={nameB} />
-        </Panel>
-      </div>
-
-      <Panel className="mt-8">
-        <p className="font-display text-2xl">The overlay</p>
-        <p className="mb-4 mt-1 text-sm text-[var(--ink-muted)]">
-          Both charts on one round, laid on {nameA}&rsquo;s houses.
-        </p>
-        <div className="flex justify-center">
-          <OverlayWheel
-            ascendantSign={chartA.chart.houses.ascendantSign}
-            a={wheelPlacements(chartA.chart)}
-            b={wheelPlacements(chartB.chart)}
-            labelA={nameA}
-            labelB={nameB}
-          />
-        </div>
-      </Panel>
-
-      <Panel className="mt-8">
-        <p className="font-display text-2xl">Shared timeline</p>
-        <p className="mb-4 mt-1 text-sm text-[var(--ink-muted)]">
-          Both Vimśottarī daśās on one axis, from five years back to twenty ahead, then the slow
-          transits arriving over the next four. Every entry below names the rule or the contact that
-          produced it — nothing is highlighted for a reason the page will not tell you.
-        </p>
-        <ConvergenceTimeline
-          segments={segments}
-          convergences={meetings}
-          contacts={contacts}
-          labelA={nameA}
-          labelB={nameB}
-          formatJd={yearOf}
-          nowJd={nowJd}
-        />
-      </Panel>
-
-      <div className="mt-8 grid gap-8 lg:grid-cols-2">
-        <Panel>
-          <OverlayGrid
-            overlays={overlays.aInB}
-            title={`${nameA} in ${nameB}’s houses`}
-            caption={`Where ${nameA}’s grahas land on ${nameB}’s chart.`}
-          />
-        </Panel>
-        <Panel>
-          <OverlayGrid
-            overlays={overlays.bInA}
-            title={`${nameB} in ${nameA}’s houses`}
-            caption={`Where ${nameB}’s grahas land on ${nameA}’s chart.`}
-          />
-        </Panel>
-      </div>
-
-      {overlays.conjunctions.length > 0 ? (
-        <Panel className="mt-8">
-          <p className="font-display text-2xl">Shared signs</p>
-          <p className="mb-4 mt-1 max-w-[70ch] text-sm text-[var(--ink-muted)]">
-            The plainest contact there is, and the first thing to look at. Both grahas are inside
-            the same thirty degrees — there is no orb to argue about and no aspect doctrine to agree
-            on first.
-          </p>
-          <ul className="grid gap-px border border-[var(--rule)] bg-[var(--rule)] sm:grid-cols-2">
-            {overlays.conjunctions.map((c) => (
-              <li
-                key={`${c.a}-${c.b}-${c.sign}`}
-                className="flex items-baseline gap-2 bg-[var(--surface)] px-3 py-2 text-sm"
-              >
-                <span className="font-display text-lg text-[var(--accent)]">{c.sign}</span>
-                <span className="text-[var(--ink-muted)]">
-                  {nameA}&rsquo;s {c.a} · {nameB}&rsquo;s {c.b}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </Panel>
-      ) : null}
-
-      <Panel className="mt-8">
-        <p className="font-display text-2xl">Dṛṣṭi between the charts</p>
-        <p className="mb-4 mt-1 max-w-[74ch] text-sm text-[var(--ink-muted)]">
-          Whole-sign glances, not orbs. Every graha looks at the seventh from itself; Mars adds the
-          fourth and eighth, Jupiter the fifth and ninth, Saturn the third and tenth. A glance is
-          directional — the graha doing the looking is not necessarily looked back at, which is why
-          these are two lists rather than one.
-        </p>
-        <div className="grid gap-6 sm:grid-cols-2">
+        <div className="mt-8 grid gap-px border border-[var(--rule)] bg-[var(--rule)] sm:grid-cols-2">
           {(
             [
-              [overlays.aOnB, nameA, nameB],
-              [overlays.bOnA, nameB, nameA],
+              [recordA, chartA, nameA],
+              [recordB, chartB, nameB],
             ] as const
-          ).map(([glances, from, to]) => (
-            <div key={from}>
-              <p className="mb-2 border-b border-[var(--rule)] pb-1 font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--ink-faint)]">
-                {from} looking at {to}
+          ).map(([record, computed, name]) => (
+            <div
+              key={record.subject.id}
+              className="flex flex-col items-center bg-[var(--surface)] p-5"
+            >
+              <p className="font-display text-xl font-semibold text-[var(--ink)]">{name}</p>
+              <p className="mb-3 font-mono text-[10px] text-[var(--ink-faint)]">
+                {born(record)} · {record.birthEvent?.placeName}
               </p>
-              {glances.length === 0 ? (
-                <p className="text-sm text-[var(--ink-muted)]">
-                  Nothing of {from}&rsquo;s casts a glance into {to}&rsquo;s chart.
-                </p>
-              ) : (
-                <ul className="flex flex-col gap-1.5 text-sm">
-                  {glances.slice(0, 14).map((d) => (
-                    <li
-                      key={`${d.from}-${d.to}-${d.aspectHouse}`}
-                      className="border-l-2 pl-2.5 leading-snug"
-                      style={{
-                        // The special dṛṣṭis are the ones worth reading first,
-                        // so they are the ones marked.
-                        borderColor: d.aspectHouse === 7 ? 'var(--rule)' : 'var(--accent)',
-                      }}
-                    >
-                      <span className="text-[var(--ink-muted)]">{d.description}</span>
-                      {d.aspectHouse !== 7 ? (
-                        <span className="ml-1.5 font-mono text-[9.5px] uppercase tracking-wider text-[var(--accent)]">
-                          special
-                        </span>
-                      ) : null}
-                    </li>
-                  ))}
-                </ul>
-              )}
+              <NorthIndianChart varga={buildVargaChart(computed.chart, 'D1')} size={230} />
+              <p className="mt-3 text-center font-mono text-[10px] leading-relaxed text-[var(--ink-muted)]">
+                {signLabel(computed.chart.houses.ascendantSign)} rising ·{' '}
+                {computed.chart.points.Moon!.sign} Moon
+                <br />
+                {computed.chart.points.Moon!.nakshatra.name} pāda{' '}
+                {computed.chart.points.Moon!.nakshatra.pada}
+              </p>
             </div>
           ))}
         </div>
-      </Panel>
 
-      <form action={removeRelationship} className="mt-10">
-        <input type="hidden" name="id" value={pair.id} />
-        <button type="submit" className="font-mono text-[11px] text-[var(--ink-muted)] underline">
-          unpair — this removes the relationship, not either person
-        </button>
-      </form>
+        {/* ---------------------------------------------------------- the reading */}
+        <section className="mt-10">
+          <div className="mb-4 border-b border-[var(--rule)] pb-2">
+            <Kicker>Read against each other</Kicker>
+            <h2 className="font-display text-2xl font-semibold">
+              What these two charts do together
+            </h2>
+          </div>
+          <Reading sections={reading} subjectId={recordA.subject.id} />
+        </section>
+
+        <div className="mt-10 grid gap-8 lg:grid-cols-2">
+          <Panel>
+            <p className="font-display text-2xl">Aṣṭakūṭa</p>
+            <p className="mb-4 mt-1 text-sm text-[var(--ink-muted)]">
+              Read from {nameA}&rsquo;s Moon in {chartA.chart.points.Moon!.nakshatra.name} and{' '}
+              {nameB}
+              &rsquo;s in {chartB.chart.points.Moon!.nakshatra.name} — and from nothing else in
+              either chart. The reading above says what that does and does not cover.
+            </p>
+            <KutaTable result={kutas} />
+          </Panel>
+
+          <Panel>
+            <p className="font-display text-2xl">Maṅgala doṣa</p>
+            <p className="mb-4 mt-1 text-sm text-[var(--ink-muted)]">
+              Cancellations first, because a doṣa handed over bare is not a finding.
+            </p>
+            <MangalaCard comparison={mangala} nameA={nameA} nameB={nameB} />
+          </Panel>
+        </div>
+
+        <Panel className="mt-8">
+          <p className="font-display text-2xl">The overlay</p>
+          <p className="mb-4 mt-1 text-sm text-[var(--ink-muted)]">
+            Both charts on one round, laid on {nameA}&rsquo;s houses.
+          </p>
+          <div className="flex justify-center">
+            <OverlayWheel
+              ascendantSign={chartA.chart.houses.ascendantSign}
+              a={wheelPlacements(chartA.chart)}
+              b={wheelPlacements(chartB.chart)}
+              labelA={nameA}
+              labelB={nameB}
+            />
+          </div>
+        </Panel>
+
+        <Panel className="mt-8">
+          <p className="font-display text-2xl">Shared timeline</p>
+          <p className="mb-4 mt-1 text-sm text-[var(--ink-muted)]">
+            Both Vimśottarī daśās on one axis, from five years back to twenty ahead, then the slow
+            transits arriving over the next four. Every entry below names the rule or the contact
+            that produced it — nothing is highlighted for a reason the page will not tell you.
+          </p>
+          <ConvergenceTimeline
+            segments={segments}
+            convergences={meetings}
+            contacts={contacts}
+            labelA={nameA}
+            labelB={nameB}
+            formatJd={yearOf}
+            nowJd={nowJd}
+          />
+        </Panel>
+
+        <div className="mt-8 grid gap-8 lg:grid-cols-2">
+          <Panel>
+            <OverlayGrid
+              overlays={overlays.aInB}
+              title={`${nameA} in ${nameB}’s houses`}
+              caption={`Where ${nameA}’s grahas land on ${nameB}’s chart.`}
+            />
+          </Panel>
+          <Panel>
+            <OverlayGrid
+              overlays={overlays.bInA}
+              title={`${nameB} in ${nameA}’s houses`}
+              caption={`Where ${nameB}’s grahas land on ${nameA}’s chart.`}
+            />
+          </Panel>
+        </div>
+
+        {overlays.conjunctions.length > 0 ? (
+          <Panel className="mt-8">
+            <p className="font-display text-2xl">Shared signs</p>
+            <p className="mb-4 mt-1 max-w-[70ch] text-sm text-[var(--ink-muted)]">
+              The plainest contact there is, and the first thing to look at. Both grahas are inside
+              the same thirty degrees — there is no orb to argue about and no aspect doctrine to
+              agree on first.
+            </p>
+            <ul className="grid gap-px border border-[var(--rule)] bg-[var(--rule)] sm:grid-cols-2">
+              {overlays.conjunctions.map((c) => (
+                <li
+                  key={`${c.a}-${c.b}-${c.sign}`}
+                  className="flex items-baseline gap-2 bg-[var(--surface)] px-3 py-2 text-sm"
+                >
+                  <span className="font-display text-lg text-[var(--accent)]">{c.sign}</span>
+                  <span className="text-[var(--ink-muted)]">
+                    {nameA}&rsquo;s {c.a} · {nameB}&rsquo;s {c.b}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </Panel>
+        ) : null}
+
+        <Panel className="mt-8">
+          <p className="font-display text-2xl">Dṛṣṭi between the charts</p>
+          <p className="mb-4 mt-1 max-w-[74ch] text-sm text-[var(--ink-muted)]">
+            Whole-sign glances, not orbs. Every graha looks at the seventh from itself; Mars adds
+            the fourth and eighth, Jupiter the fifth and ninth, Saturn the third and tenth. A glance
+            is directional — the graha doing the looking is not necessarily looked back at, which is
+            why these are two lists rather than one.
+          </p>
+          <div className="grid gap-6 sm:grid-cols-2">
+            {(
+              [
+                [overlays.aOnB, nameA, nameB],
+                [overlays.bOnA, nameB, nameA],
+              ] as const
+            ).map(([glances, from, to]) => (
+              <div key={from}>
+                <p className="mb-2 border-b border-[var(--rule)] pb-1 font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--ink-faint)]">
+                  {from} looking at {to}
+                </p>
+                {glances.length === 0 ? (
+                  <p className="text-sm text-[var(--ink-muted)]">
+                    Nothing of {from}&rsquo;s casts a glance into {to}&rsquo;s chart.
+                  </p>
+                ) : (
+                  <ul className="flex flex-col gap-1.5 text-sm">
+                    {glances.slice(0, 14).map((d) => (
+                      <li
+                        key={`${d.from}-${d.to}-${d.aspectHouse}`}
+                        className="border-l-2 pl-2.5 leading-snug"
+                        style={{
+                          // The special dṛṣṭis are the ones worth reading first,
+                          // so they are the ones marked.
+                          borderColor: d.aspectHouse === 7 ? 'var(--rule)' : 'var(--accent)',
+                        }}
+                      >
+                        <span className="text-[var(--ink-muted)]">{d.description}</span>
+                        {d.aspectHouse !== 7 ? (
+                          <span className="ml-1.5 font-mono text-[9.5px] uppercase tracking-wider text-[var(--accent)]">
+                            special
+                          </span>
+                        ) : null}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            ))}
+          </div>
+        </Panel>
+
+        <form action={removeRelationship} className="mt-10">
+          <input type="hidden" name="id" value={pair.id} />
+          <button type="submit" className="font-mono text-[11px] text-[var(--ink-muted)] underline">
+            unpair — this removes the relationship, not either person
+          </button>
+        </form>
+      </GlossaryProvider>
     </Shell>
   );
 }

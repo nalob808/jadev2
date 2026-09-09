@@ -184,8 +184,65 @@ test('the focus panel labels are explained, and say what they mean here', async 
 
   const card = page.getByRole('dialog', { name: 'Nakṣatra' });
   await expect(card).toContainText('does not decay');
-  // The chart-specific line names this person's Moon nakṣatra and its lord —
-  // the thing a generic glossary cannot say.
   await expect(card.getByText('In this chart')).toBeVisible();
-  await expect(card).toContainText(/Moon is in .+ pāda \d, ruled by/);
+  /**
+   * Scoped, not chart-wide.
+   *
+   * The panel is about Saturn, so the word hovered inside it answers about
+   * Saturn's nakṣatra. Answering with the Moon's — which is the chart-wide
+   * line, and what this asserted before scopes existed — would be telling the
+   * reader about something they did not point at.
+   */
+  await expect(card).toContainText(/Saturn is in \w+/);
+  await expect(card).not.toContainText(/Moon is in/);
+});
+
+/**
+ * One wheel, two surfaces.
+ *
+ * The person page used to get a picture — a bare `Wheel` in a 560px box where
+ * clicking a graha did nothing — while `/wheel` got an instrument. Same
+ * component, two products, and the reader had to know which page they were on
+ * before they knew what a click would do. This asserts they are now the same
+ * thing, using the same selectors against both.
+ */
+test('the person page mounts the same wheel as /wheel', async ({ page }) => {
+  await signIn(page);
+  await addPerson(page, 'Unified Subject', '1991-04-17', '06:30');
+  const personUrl = page.url();
+
+  for (const url of [personUrl, '/wheel']) {
+    await page.goto(url);
+    // The layer toggles are part of the instrument, not of one page.
+    await expect(page.getByRole('button', { name: 'aṣṭakavarga' })).toBeVisible();
+    // Click-to-isolate fills the panel, on both.
+    await page.getByRole('button', { name: 'Saturn', exact: true }).first().click();
+    await expect(page.getByText('Periods it rules')).toBeVisible();
+  }
+});
+
+/**
+ * Selection lives in the URL.
+ *
+ * Three things depend on it and none of them worked before: a reload keeps
+ * what you were looking at, the back button walks selections instead of
+ * leaving the page, and "look at her Saturn" becomes a link rather than a set
+ * of instructions.
+ */
+test('the selected graha survives a reload and travels in a link', async ({ page }) => {
+  await signIn(page);
+  await addPerson(page, 'URL Subject', '1975-12-02', '19:15');
+  await page.goto('/wheel');
+
+  await page.getByRole('button', { name: 'Jupiter', exact: true }).first().click();
+  await expect(page).toHaveURL(/[?&]g=Jupiter/);
+
+  await page.reload();
+  // The panel is filled from the URL alone, with no click on this page load.
+  await expect(page.getByText('Periods it rules')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'clear', exact: true })).toBeVisible();
+
+  // Clearing removes it rather than leaving a stale parameter behind.
+  await page.getByRole('button', { name: 'clear', exact: true }).click();
+  await expect(page).not.toHaveURL(/[?&]g=/);
 });

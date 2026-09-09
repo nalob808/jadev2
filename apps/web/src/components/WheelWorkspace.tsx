@@ -1,10 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useCallback } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { Wheel, Glyph, hasGlyph, type WheelPoint, type WheelAspect } from '@jade/ui';
-import { AutoTerms, T } from './Glossary';
+import { AutoTerms, Scope, T } from './Glossary';
 import type { FocusFacts } from '@/lib/focusIndex';
 
 /**
@@ -20,6 +20,22 @@ import type { FocusFacts } from '@/lib/focusIndex';
  * `focus` is not passed, which is what the printable report and the public
  * library still rely on.
  */
+
+/**
+ * Which surface is mounting the wheel.
+ *
+ * `workspace` is `/wheel`: the chart with the people rail beside it and the
+ * overlay picker, because switching subject is the point of that page.
+ * `inline` is the person page, where the subject is already decided and a rail
+ * of other people would be an invitation to leave.
+ *
+ * Everything else — the layer toggles, click-to-isolate, the focus panel, the
+ * dṛṣṭi, the aṣṭakavarga shading — is identical, which is the whole point.
+ * Before this, the person page got a picture and `/wheel` got an instrument,
+ * and a reader had to know which page they were on to know what a click would
+ * do.
+ */
+export type WheelVariant = 'workspace' | 'inline';
 
 export interface WorkspacePerson {
   readonly id: string;
@@ -41,6 +57,9 @@ export function WheelWorkspace({
   facts,
   lens,
   timeCaveat,
+  variant = 'workspace',
+  bhavaCusps,
+  bhavaLabel,
 }: {
   people: readonly WorkspacePerson[];
   currentId: string;
@@ -56,10 +75,43 @@ export function WheelWorkspace({
   lens: string;
   /** Present when the birth time is uncertain, so the wheel says so. */
   timeCaveat: string | null;
+  variant?: WheelVariant;
+  bhavaCusps?: readonly number[];
+  bhavaLabel?: string;
 }): React.ReactElement {
   const router = useRouter();
-  const [focus, setFocus] = useState<string | null>(null);
-  const focused = focus ? facts[focus] : null;
+  const pathname = usePathname();
+  const params = useSearchParams();
+
+  /**
+   * The selection lives in the URL, not in component state.
+   *
+   * Three things follow, and all three were missing before. A reload keeps
+   * what you were looking at. The back button walks your selections rather
+   * than leaving the page. And the address bar is a shareable reference to
+   * one exact view — "look at her Saturn" becomes a link instead of a set of
+   * instructions.
+   *
+   * `replace` rather than `push` on the *same* selection avoids stacking
+   * duplicate history entries when a click lands on what is already chosen.
+   */
+  const focus = params.get('g');
+  const focused = focus ? (facts[focus] ?? null) : null;
+
+  const setFocus = useCallback(
+    (next: string | null): void => {
+      const query = new URLSearchParams(params.toString());
+      if (next) query.set('g', next);
+      else query.delete('g');
+      const suffix = query.toString();
+      // scroll: false — selecting a graha must not jump the page to the top,
+      // which on a phone would throw away the wheel you were just touching.
+      router.replace(suffix ? `${pathname}?${suffix}` : pathname, { scroll: false });
+    },
+    [params, pathname, router],
+  );
+
+  const showRail = variant === 'workspace';
 
   const go = (personId: string, overlay: string | null): void => {
     const query = new URLSearchParams({ person: personId });
@@ -68,68 +120,76 @@ export function WheelWorkspace({
   };
 
   return (
-    <div className="grid gap-5 lg:grid-cols-[15rem_minmax(0,1fr)_19rem]">
+    <div
+      className={
+        showRail
+          ? 'grid gap-5 lg:grid-cols-[15rem_minmax(0,1fr)_19rem]'
+          : 'grid gap-5 lg:grid-cols-[minmax(0,1fr)_19rem]'
+      }
+    >
       {/* ------------------------------------------------------- the people */}
-      <aside className="order-2 lg:order-1">
-        <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--ink-faint)]">
-          Your people
-        </p>
-        <ul className="mt-2 flex flex-col gap-1">
-          {people.map((person) => {
-            const current = person.id === currentId;
-            return (
-              <li key={person.id}>
-                <button
-                  type="button"
-                  onClick={() => go(person.id, overlayId)}
-                  aria-current={current ? 'true' : undefined}
-                  className={`w-full border px-3 py-2 text-left transition-colors ${
-                    current
-                      ? 'border-[var(--accent)] bg-[var(--surface)]'
-                      : 'border-[var(--rule)] hover:border-[var(--accent)]'
-                  }`}
-                >
-                  <span className="block font-display text-lg leading-tight">{person.name}</span>
-                  <span className="block font-mono text-[10px] text-[var(--ink-faint)]">
-                    {person.born}
-                  </span>
-                </button>
-              </li>
-            );
-          })}
-        </ul>
+      {showRail ? (
+        <aside className="order-2 lg:order-1">
+          <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--ink-faint)]">
+            Your people
+          </p>
+          <ul className="mt-2 flex flex-col gap-1">
+            {people.map((person) => {
+              const current = person.id === currentId;
+              return (
+                <li key={person.id}>
+                  <button
+                    type="button"
+                    onClick={() => go(person.id, overlayId)}
+                    aria-current={current ? 'true' : undefined}
+                    className={`w-full border px-3 py-2 text-left transition-colors ${
+                      current
+                        ? 'border-[var(--accent)] bg-[var(--surface)]'
+                        : 'border-[var(--rule)] hover:border-[var(--accent)]'
+                    }`}
+                  >
+                    <span className="block font-display text-lg leading-tight">{person.name}</span>
+                    <span className="block font-mono text-[10px] text-[var(--ink-faint)]">
+                      {person.born}
+                    </span>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
 
-        {/* ------------------------------------------------------ overlay */}
-        <p className="mt-5 font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--ink-faint)]">
-          Overlay a second chart
-        </p>
-        <p className="mt-1 text-[12px] leading-relaxed text-[var(--ink-muted)]">
-          Their grahas ride the outer ring against this chart&rsquo;s houses.
-        </p>
-        <select
-          value={overlayId ?? ''}
-          onChange={(event) => go(currentId, event.target.value || null)}
-          aria-label="Overlay another person's chart"
-          className="mt-2 w-full border border-[var(--rule)] bg-[var(--surface)] px-2 py-1.5 text-sm"
-        >
-          <option value="">Nobody — this chart alone</option>
-          {people
-            .filter((person) => person.id !== currentId)
-            .map((person) => (
-              <option key={person.id} value={person.id}>
-                {person.name}
-              </option>
-            ))}
-        </select>
-        {overlayId ? (
-          <Link
-            href={`/relationships`}
-            className="mt-2 inline-block font-mono text-[10px] uppercase tracking-wider text-[var(--accent)] underline underline-offset-2"
+          {/* ------------------------------------------------------ overlay */}
+          <p className="mt-5 font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--ink-faint)]">
+            Overlay a second chart
+          </p>
+          <p className="mt-1 text-[12px] leading-relaxed text-[var(--ink-muted)]">
+            Their grahas ride the outer ring against this chart&rsquo;s houses.
+          </p>
+          <select
+            value={overlayId ?? ''}
+            onChange={(event) => go(currentId, event.target.value || null)}
+            aria-label="Overlay another person's chart"
+            className="mt-2 w-full border border-[var(--rule)] bg-[var(--surface)] px-2 py-1.5 text-sm"
           >
-            Read them together →
-          </Link>
-        ) : null}
-      </aside>
+            <option value="">Nobody — this chart alone</option>
+            {people
+              .filter((person) => person.id !== currentId)
+              .map((person) => (
+                <option key={person.id} value={person.id}>
+                  {person.name}
+                </option>
+              ))}
+          </select>
+          {overlayId ? (
+            <Link
+              href={`/relationships`}
+              className="mt-2 inline-block font-mono text-[10px] uppercase tracking-wider text-[var(--accent)] underline underline-offset-2"
+            >
+              Read them together →
+            </Link>
+          ) : null}
+        </aside>
+      ) : null}
 
       {/* -------------------------------------------------------- the wheel */}
       <div className="order-1 min-w-0 lg:order-2">
@@ -147,9 +207,11 @@ export function WheelWorkspace({
           ascendant={ascendant}
           ascendantSign={ascendantSign}
           sarva={sarva}
+          bhavaCusps={bhavaCusps}
+          bhavaLabel={bhavaLabel}
           focus={focus}
           onFocusChange={setFocus}
-          size={640}
+          size={720}
         />
 
         <p className="mt-2 font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--ink-faint)]">
@@ -234,106 +296,116 @@ function FocusPanel({
   onClear: () => void;
 }): React.ReactElement {
   return (
-    <div className="border border-[var(--accent)] bg-[var(--surface)]">
-      <div className="flex items-center gap-2 border-b border-[var(--rule)] px-4 py-3">
-        <span className="text-[var(--accent)]">
-          {hasGlyph(facts.id) ? <Glyph name={facts.id} size={26} title={facts.id} /> : null}
-        </span>
-        <span className="font-display text-2xl leading-none">{facts.id}</span>
-        {facts.runningNow ? (
-          <span className="border border-[var(--jade)] px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-wider text-[var(--jade)]">
-            running
+    /* Everything in this panel is about the focused graha, so a term hovered
+       inside it answers about that graha. Without this, hovering `Nakṣatra`
+       in Saturn's panel would report the Moon's — which is the chart-wide
+       answer, and the wrong one for the question being asked. */
+    <Scope of={facts.id}>
+      <div className="border border-[var(--accent)] bg-[var(--surface)]">
+        <div className="flex items-center gap-2 border-b border-[var(--rule)] px-4 py-3">
+          <span className="text-[var(--accent)]">
+            {hasGlyph(facts.id) ? <Glyph name={facts.id} size={26} title={facts.id} /> : null}
           </span>
+          <span className="font-display text-2xl leading-none">
+            <T id={`graha-${facts.id.toLowerCase()}`} plainTrigger>
+              {facts.id}
+            </T>
+          </span>
+          {facts.runningNow ? (
+            <span className="border border-[var(--jade)] px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-wider text-[var(--jade)]">
+              running
+            </span>
+          ) : null}
+          <button
+            type="button"
+            onClick={onClear}
+            className="ml-auto font-mono text-[10px] uppercase tracking-wider text-[var(--ink-faint)] hover:text-[var(--ink)]"
+          >
+            clear
+          </button>
+        </div>
+
+        <dl className="grid grid-cols-2 gap-px bg-[var(--rule)]">
+          <Cell term="rasi" label="Sign" value={`${degrees(facts.degreesInSign)} ${facts.sign}`} />
+          <Cell
+            term="bhava"
+            label="House"
+            value={facts.house != null ? ORDINALS[facts.house - 1]! : 'not counted'}
+          />
+          <Cell term="nakshatra" label="Nakṣatra" value={`${facts.nakshatra} · ${facts.pada}`} />
+          <Cell term="vimshottari" label="Nakṣatra lord" value={facts.nakshatraLord} />
+          <Cell term="dignity" label="Dignity" value={facts.dignity ?? 'none stated'} />
+          <Cell
+            term="bindu"
+            label="Bindus"
+            value={
+              facts.bindusInOwnSign != null
+                ? `${facts.bindusInOwnSign} own · ${facts.sarvaOfSign} sarva`
+                : '—'
+            }
+          />
+        </dl>
+
+        {facts.combustion || facts.retrograde ? (
+          <p className="border-t border-[var(--rule)] px-4 py-2 font-mono text-[11px] text-[var(--clay)]">
+            {facts.retrograde ? <span>retrograde</span> : null}
+            {facts.retrograde && facts.combustion ? ' · ' : null}
+            {facts.combustion ? <T id="combustion">{facts.combustion}</T> : null}
+          </p>
         ) : null}
-        <button
-          type="button"
-          onClick={onClear}
-          className="ml-auto font-mono text-[10px] uppercase tracking-wider text-[var(--ink-faint)] hover:text-[var(--ink)]"
-        >
-          clear
-        </button>
-      </div>
 
-      <dl className="grid grid-cols-2 gap-px bg-[var(--rule)]">
-        <Cell term="rasi" label="Sign" value={`${degrees(facts.degreesInSign)} ${facts.sign}`} />
-        <Cell
-          term="bhava"
-          label="House"
-          value={facts.house != null ? ORDINALS[facts.house - 1]! : 'not counted'}
-        />
-        <Cell term="nakshatra" label="Nakṣatra" value={`${facts.nakshatra} · ${facts.pada}`} />
-        <Cell term="vimshottari" label="Nakṣatra lord" value={facts.nakshatraLord} />
-        <Cell term="dignity" label="Dignity" value={facts.dignity ?? 'none stated'} />
-        <Cell
-          term="bindu"
-          label="Bindus"
-          value={
-            facts.bindusInOwnSign != null
-              ? `${facts.bindusInOwnSign} own · ${facts.sarvaOfSign} sarva`
-              : '—'
-          }
-        />
-      </dl>
-
-      {facts.combustion || facts.retrograde ? (
-        <p className="border-t border-[var(--rule)] px-4 py-2 font-mono text-[11px] text-[var(--clay)]">
-          {facts.retrograde ? <span>retrograde</span> : null}
-          {facts.retrograde && facts.combustion ? ' · ' : null}
-          {facts.combustion ? <T id="combustion">{facts.combustion}</T> : null}
-        </p>
-      ) : null}
-
-      {facts.yogas.length > 0 ? (
-        <section className="border-t border-[var(--rule)] px-4 py-3">
-          <p className="font-mono text-[9.5px] uppercase tracking-[0.14em] text-[var(--ink-faint)]">
-            <T id="yoga">Yogas</T> it forms
-          </p>
-          <ul className="mt-1.5 flex flex-col gap-2">
-            {facts.yogas.map((yoga) => (
-              <li key={yoga.id}>
-                <p className="text-[13.5px] font-medium">{yoga.name}</p>
-                <p className="font-mono text-[10.5px] leading-relaxed text-[var(--ink-faint)]">
-                  {yoga.factors.join(' · ')}
-                </p>
-                {yoga.cancellations && yoga.cancellations.length > 0 ? (
-                  <p className="mt-0.5 text-[11.5px] leading-relaxed text-[var(--clay)]">
-                    Cancelled by: {yoga.cancellations.join('; ')}
+        {facts.yogas.length > 0 ? (
+          <section className="border-t border-[var(--rule)] px-4 py-3">
+            <p className="font-mono text-[9.5px] uppercase tracking-[0.14em] text-[var(--ink-faint)]">
+              <T id="yoga">Yogas</T> it forms
+            </p>
+            <ul className="mt-1.5 flex flex-col gap-2">
+              {facts.yogas.map((yoga) => (
+                <li key={yoga.id}>
+                  <p className="text-[13.5px] font-medium">{yoga.name}</p>
+                  <p className="font-mono text-[10.5px] leading-relaxed text-[var(--ink-faint)]">
+                    <AutoTerms>{yoga.factors.join(' · ')}</AutoTerms>
                   </p>
-                ) : null}
-              </li>
-            ))}
-          </ul>
-        </section>
-      ) : null}
+                  {yoga.cancellations && yoga.cancellations.length > 0 ? (
+                    <p className="mt-0.5 text-[11.5px] leading-relaxed text-[var(--clay)]">
+                      Cancelled by: <AutoTerms>{yoga.cancellations.join('; ')}</AutoTerms>
+                    </p>
+                  ) : null}
+                </li>
+              ))}
+            </ul>
+          </section>
+        ) : null}
 
-      {facts.periods.length > 0 ? (
-        <section className="border-t border-[var(--rule)] px-4 py-3">
-          <p className="font-mono text-[9.5px] uppercase tracking-[0.14em] text-[var(--ink-faint)]">
-            <T id="dasha">Periods</T> it rules
-          </p>
-          <ul className="mt-1.5 flex flex-col gap-0.5 font-mono text-[11px] text-[var(--ink-muted)]">
-            {facts.periods.slice(0, 6).map((period, index) => (
-              <li key={`${period.level}-${index}`}>{period.level}</li>
-            ))}
-          </ul>
-        </section>
-      ) : null}
+        {facts.periods.length > 0 ? (
+          <section className="border-t border-[var(--rule)] px-4 py-3">
+            <p className="font-mono text-[9.5px] uppercase tracking-[0.14em] text-[var(--ink-faint)]">
+              <T id="dasha">Periods</T> it rules
+            </p>
+            <ul className="mt-1.5 flex flex-col gap-0.5 font-mono text-[11px] text-[var(--ink-muted)]">
+              {facts.periods.slice(0, 6).map((period, index) => (
+                <li key={`${period.level}-${index}`}>{period.level}</li>
+              ))}
+            </ul>
+          </section>
+        ) : null}
 
-      {facts.notes.length > 0 ? (
-        <section className="border-t border-[var(--rule)] px-4 py-3">
-          <p className="font-mono text-[9.5px] uppercase tracking-[0.14em] text-[var(--ink-faint)]">
-            What you wrote
-          </p>
-          <ul className="mt-1.5 flex flex-col gap-1.5">
-            {facts.notes.slice(0, 4).map((note) => (
-              <li key={note.id} className="text-[12.5px] leading-relaxed text-[var(--ink-muted)]">
-                {note.body}
-              </li>
-            ))}
-          </ul>
-        </section>
-      ) : null}
-    </div>
+        {facts.notes.length > 0 ? (
+          <section className="border-t border-[var(--rule)] px-4 py-3">
+            <p className="font-mono text-[9.5px] uppercase tracking-[0.14em] text-[var(--ink-faint)]">
+              What you wrote
+            </p>
+            <ul className="mt-1.5 flex flex-col gap-1.5">
+              {facts.notes.slice(0, 4).map((note) => (
+                <li key={note.id} className="text-[12.5px] leading-relaxed text-[var(--ink-muted)]">
+                  {note.body}
+                </li>
+              ))}
+            </ul>
+          </section>
+        ) : null}
+      </div>
+    </Scope>
   );
 }
 

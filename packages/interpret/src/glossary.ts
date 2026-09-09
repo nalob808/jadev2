@@ -29,6 +29,9 @@
  * shown the shape of the subject, not handed a card.
  */
 
+import { DERIVED_ENTRIES } from './glossaryBridge.js';
+import { MORE_TERMS } from './glossaryTerms.js';
+
 export interface GlossaryEntry {
   readonly id: string;
   /** IAST, as it appears in the interface. */
@@ -49,7 +52,7 @@ export interface GlossaryEntry {
 
 const E = (entry: GlossaryEntry): GlossaryEntry => entry;
 
-export const GLOSSARY: readonly GlossaryEntry[] = [
+const CORE_TERMS: readonly GlossaryEntry[] = [
   // ------------------------------------------------------ the frame itself
   E({
     id: 'jyotisa',
@@ -388,7 +391,30 @@ export const GLOSSARY: readonly GlossaryEntry[] = [
   }),
 ];
 
-const BY_ID = new Map(GLOSSARY.map((entry) => [entry.id, entry]));
+/**
+ * Every explainable word in Jade, from three sources.
+ *
+ * `CORE_TERMS` and `MORE_TERMS` are written here. `DERIVED_ENTRIES` are
+ * generated from the significations libraries and the nakṣatra reference —
+ * the signs, the grahas, the houses and the twenty-seven — so that the
+ * hundred-odd names a chart actually prints are hoverable without any of them
+ * being written down twice.
+ *
+ * Ordered core-first so that where a hand-written entry and a derived one
+ * would collide, the hand-written one wins. `Yoga` the combination is the
+ * word a reader meets in the interface; a sign or graha entry that happened
+ * to claim the same id should not displace it.
+ */
+export const GLOSSARY: readonly GlossaryEntry[] = [
+  ...CORE_TERMS,
+  ...MORE_TERMS,
+  ...DERIVED_ENTRIES,
+];
+
+const BY_ID = new Map<string, GlossaryEntry>();
+for (const entry of GLOSSARY) {
+  if (!BY_ID.has(entry.id)) BY_ID.set(entry.id, entry);
+}
 
 export function glossaryEntry(id: string): GlossaryEntry | null {
   return BY_ID.get(id) ?? null;
@@ -403,13 +429,23 @@ export function glossaryEntry(id: string): GlossaryEntry | null {
  * silently absent from half the places it is needed.
  */
 export function glossaryLookup(word: string): GlossaryEntry | null {
-  const key = normalise(word);
-  for (const entry of GLOSSARY) {
-    if (normalise(entry.term) === key || normalise(entry.plain) === key || entry.id === key) {
-      return entry;
-    }
+  return BY_SPELLING.get(normalise(word)) ?? null;
+}
+
+/**
+ * Every spelling that resolves, built once.
+ *
+ * A linear scan was fine at thirty-five entries and is not at a hundred and
+ * forty, because `AutoTerms` looks up every match in every block of prose on
+ * the page. First spelling registered wins, which combined with the ordering
+ * above means a hand-written entry is never shadowed by a derived one.
+ */
+const BY_SPELLING = new Map<string, GlossaryEntry>();
+for (const entry of GLOSSARY) {
+  for (const spelling of [entry.term, entry.plain, entry.id]) {
+    const key = normalise(spelling);
+    if (key && !BY_SPELLING.has(key)) BY_SPELLING.set(key, entry);
   }
-  return null;
 }
 
 function normalise(value: string): string {

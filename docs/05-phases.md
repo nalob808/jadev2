@@ -832,6 +832,271 @@ selection is lifted, the transit ring already accepts arbitrary points, and
 
 ---
 
+## Phase 16 — One instrument, reachable from anywhere
+
+**16.1 and 16.4 are done** — shipped together, because a wheel that behaves the
+same everywhere and a vocabulary that explains itself everywhere are the same
+complaint. See the notes under each below.
+
+Seven requests came in together, and they are not seven features. They are one
+complaint said seven ways: **Jade has good parts that do not know about each
+other.** There are two different wheels. The public library exists and is
+linked from nowhere a signed-in user will ever look. Words explain themselves
+on two pages out of fifteen. Nothing remembers what you were doing.
+
+That is a problem for everyone and a much bigger one for the person this phase
+is explicitly designed for.
+
+### The brief: built for an ADHD reader
+
+This is a design constraint with teeth, not a garnish, and it decides several
+arguments below. Four rules, applied throughout:
+
+1. **One obvious action per screen.** Not fewer features — fewer _decisions_
+   before the first useful thing happens.
+2. **State is visible, never remembered.** If something is selected, filtered,
+   or hidden, the screen says so. Nothing depends on the reader holding
+   context between pages.
+3. **Every surface is a way in, never a dead end.** A thing you can see is a
+   thing you can click, and it takes you somewhere related.
+4. **Colour and motion are information or they are removed.** Decoration
+   competes with the signal for the same attention, and loses it for
+   everybody.
+
+There is a real tension between this brief and two of the requests — more
+theme choices and more chart colours both add visual load. §16.2 and §16.6
+say exactly how each is resolved rather than pretending the tension is not
+there.
+
+---
+
+### 16.1 — One wheel, everywhere
+
+**The problem.** `packages/ui/src/charts/Wheel.tsx` is rendered twice with
+wildly different capability. `/wheel` wraps it in `WheelWorkspace`: focus
+state, the people rail, the overlay picker, the focus panel. The person page
+drops the bare component into a `max-w-[560px]` box with no focus, no panel,
+and no way to do anything with a click. Same component, two products, and the
+reader has to learn which page they are on before they know what the chart
+can do.
+
+**The work.**
+
+- Extract `WheelWorkspace` into a component both surfaces mount, and give the
+  person page the full one. The person page keeps its positions table, vargas
+  and reading below; the wheel section becomes the same instrument as `/wheel`.
+- Keep the bare `Wheel` for the printable report and the public library —
+  those are documents, not workspaces, and a focus panel in a PDF is noise.
+  This is the existing controlled/uncontrolled split and it stays.
+- Move the layer toggles (house numbers, glyphs, degrees, dṛṣṭi, nakṣatra
+  divisions, element tint, aṣṭakavarga) into the shared component so both
+  surfaces get all of them.
+- **Persist the toggles and the selection in the URL**, not in component
+  state. This is rule 2: a reader who follows a link, reloads, or comes back
+  tomorrow finds the chart as they left it, and can send someone the exact
+  view they are looking at.
+
+**Acceptance.** An e2e test opens a person page, turns on aṣṭakavarga, selects
+Saturn, reloads, and finds both still true. The same test passes against
+`/wheel` with the same selectors, because it is the same component.
+
+**Done.** `WheelWorkspace` takes a `variant`: `workspace` for `/wheel` (with
+the people rail and the overlay picker) and `inline` for the person page, where
+the subject is already decided and a rail of other people is an invitation to
+leave. Everything else is identical. The selection lives in the URL as `?g=`,
+so a reload keeps it, the back button walks selections rather than leaving the
+page, and "look at her Saturn" is a link instead of instructions.
+
+---
+
+### 16.2 — Bigger, and readable at a glance
+
+**Size.** The wheel is capped at 560px on the person page and shares its row
+on `/wheel`. It becomes the widest thing on the page, sized from the viewport
+rather than a fixed max, with the side panels collapsing under it on narrow
+screens instead of squeezing it.
+
+**Aspect lines get colour — encoding source, not inventing a dimension.**
+Today every dṛṣṭi line is `--accent` at two widths. Following a line back to
+the graha that cast it means tracing it by eye across a crowded circle.
+
+The rule: **an aspect line is the colour of the graha that casts it**, reusing
+the nature tints already defined. Nothing new is introduced into the palette,
+and the line is legible as "that is Saturn's" without a legend.
+
+Special dṛṣṭis — Mars to the 4th and 8th, Jupiter to the 5th and 9th, Saturn
+to the 3rd and 10th — are **dashed**, with the universal 7th-house aspect
+solid. That is deliberately redundant with colour: shape survives
+colourblindness, printing, and a phone in sunlight, and colour-alone encoding
+fails all three.
+
+**Colour discipline.** Element tint on the sign ring, nature tint on the
+grahas, source tint on the aspects — three systems, each answering a different
+question, none of them decorative. When a graha is selected everything else
+desaturates rather than disappearing, so the context stays available without
+competing.
+
+**Acceptance.** With dṛṣṭi on and nothing selected, the lines from Mars are a
+different colour from the lines from Jupiter, and Jupiter's 5th/9th lines are
+dashed while its 7th is solid. Asserted in the DOM, not by screenshot.
+
+---
+
+### 16.3 — The time scrubber
+
+Groundwork exists: selection is lifted, the transit ring already accepts
+arbitrary points, and `packages/astro` runs in the browser because it is pure
+(constitution #2 earning its keep).
+
+- A date control under the wheel: drag to move the transit ring, with buttons
+  for today / a week / a month / a year, and a date field for a specific day.
+- **Only transits recompute.** The natal chart is fixed; seven bodies move.
+  Recompute on animation frames, and never recompute the natal positions,
+  the yogas, the vargas or the aṣṭakavarga — those do not change.
+- The daśā chain updates alongside the ring, because "what is running when
+  Saturn gets there" is the actual question being asked.
+- The scrubbed date is in the URL like everything else in §16.1.
+- **The scrubber returns to today with one click, and says when it is not on
+  today.** A chart silently showing a date you set twenty minutes ago and
+  forgot is a correctness problem, not a UI wrinkle.
+
+**Acceptance.** Scrubbing forward one year moves a slow graha by roughly the
+right amount against a golden fixture, the natal ring does not move, and the
+"not today" state is announced.
+
+---
+
+### 16.4 — Explanations everywhere
+
+Phase 15 built the glossary and wired it into `/wheel`, the person page and
+section headings. It stops there.
+
+- **Home page**: the week bands, the running daśā chain, the sky panel and
+  the daily reading all print technical vocabulary with no way in.
+- **Person page**: extend past the headings into the positions table, the
+  varga grid, the pañcāṅga card and the aṣṭakavarga panel — the places where
+  the words are densest and least explained.
+- **New entries** for what those surfaces actually say: tārā and candra bala
+  by name, vāra, karaṇa, nitya yoga, upachaya, maraka, cazimi, retrogression,
+  and each of the sixteen vargas.
+- **Breakdowns, not just definitions.** Where a number is computed —
+  a bindu count, a ṣaḍbala component, a tārā — the card shows the arithmetic
+  that produced it, not only what the word means. This is constitution #5
+  applied to the interface itself: a figure that cannot show its working
+  should not be on screen.
+
+**Done, and pulled forward into 16.1 at Nalu's request.** The change that made
+it work was _scoping_. `glossaryContextFor` answers "what does nakṣatra mean in
+this chart", which is right for a heading and wrong for a table cell: the word
+`Nakṣatra` in Saturn's row is asking about Saturn. So context now comes in two
+layers — `packages/interpret/src/glossaryScope.ts` builds a scope per graha,
+per house, per sign and per varga, and a `<Scope of="Saturn">` narrows every
+term inside it. One scope answers many different terms, because the _word_
+decides what the scope means: inside Saturn's row, `dignity` is Saturn's
+dignity, `dṛṣṭi` is what Saturn aspects, and `daśā` is the periods Saturn
+rules.
+
+The vocabulary went from 35 entries to about 140. Most of that is _derived_
+rather than written: the twelve signs, nine grahas and twelve houses are
+generated from the significations libraries, so the lesson and the tooltip
+cannot drift, and the twenty-seven nakṣatras and nine tārās were added with
+their reference facts. Every sign, graha, house, nakṣatra and tārā name printed
+anywhere in Jade is now hoverable.
+
+---
+
+### 16.5 — Public charts, inside the account
+
+The library is nineteen figures with a genuinely honest treatment of birth-time
+provenance, and from inside the app it is reachable only by typing the URL.
+
+- **A nav entry in `Shell`**, beside People — the app's own nav, not just the
+  marketing header.
+- **On the home page**: "born on this day", drawn from the library, which is
+  the one thing that changes daily and gives a reason to come back.
+- **From the wheel's people rail**: a second section under your own people, so
+  a public figure can be loaded into the same wheel — and therefore overlaid
+  against a client's chart, which is a real technique and currently
+  impossible.
+- **From `/people`**: a way to open a library chart without adding it to your
+  own list, since it is not your client and should not count against your plan.
+
+The private/public table separation from Phase 13 is **not** relaxed. These
+are read paths into `public_figures`; nothing writes a client into it, and
+nothing joins the two.
+
+---
+
+### 16.6 — Theme vibes
+
+**The resolution of the tension.** A theme changes **ground, ink, accent,
+rule and texture**. A theme never changes **what a colour means**. Fire is
+always the warm one, malefic is always the clay one, Saturn's aspect lines are
+always Saturn's colour — but each theme supplies its own tuned values for
+those roles, so the chart belongs to the theme rather than looking pasted onto
+it. Semantics fixed, values themed.
+
+Starting set, each a complete token block in `globals.css`:
+
+| Theme                     | Ground                        | Character                              |
+| ------------------------- | ----------------------------- | -------------------------------------- |
+| **Paper** (current light) | Warm off-white                | The default; print-like                |
+| **Ink** (current dark)    | Deep blue-black               | The default dark                       |
+| **Palm**                  | Warm sand, jade accents       | Hawaiian — deliberately Nalu's         |
+| **Dusk**                  | Muted plum-grey               | Low-contrast evening                   |
+| **Ash**                   | Neutral grey, near-monochrome | Minimum colour load — the ADHD default |
+| **Vellum**                | Cream, brown ink              | Manuscript                             |
+
+- Stored on the settings profile (a migration), so it follows the account
+  rather than the browser, with the existing light/dark toggle still
+  overriding per-device.
+- Picked in Settings → Appearance **with a live preview of a real wheel**, not
+  a row of colour swatches. You are choosing how your instrument reads, and
+  swatches cannot tell you that.
+- `prefers-reduced-motion` is honoured everywhere, and the scrubber's
+  animation is the first thing it turns off.
+
+**Acceptance.** A test asserts every theme defines every token — a theme with
+a hole falls back to another theme's colour and produces a chart that is
+subtly, invisibly wrong.
+
+---
+
+### 16.7 — The ADHD pass
+
+Specific items, beyond the rules already applied above:
+
+- **Resume where you were.** Home leads with the chart you last had open and
+  the view you had set, as the first thing on the page.
+- **One primary action per screen**, visually distinct from everything else.
+  Today several pages present six equal-weight buttons.
+- **Counts on everything collapsible.** "Yogas (7)", "Notes (3)" — a closed
+  section that does not say what is inside gets opened repeatedly or never.
+- **No undifferentiated lists.** People, notes and the library get grouped
+  headings rather than one long scroll.
+- **Announce empty states with the action that fixes them**, never a bare
+  "nothing here".
+- **Keyboard: `/` focuses search, `Esc` clears selection**, everywhere,
+  consistently.
+
+---
+
+### Explicitly not in this phase
+
+Named so they do not creep in: encryption at rest, Swiss Ephemeris licensing,
+the worker and Resend, branded reports, share links, muhūrta, the prediction
+ledger, the public API, varṣaphala, and the iOS app. §16.3 is the largest risk
+here; if it slips, §16.1 and §16.2 still ship a better product on their own.
+
+### Order of work
+
+`16.1 → 16.2 → 16.5 → 16.4 → 16.6 → 16.3 → 16.7`
+
+16.1 unblocks everything else and is the biggest single improvement. 16.5 is
+nearly free and removes a whole class of "where is that" friction. 16.3 is
+last of the features because it is the only one that can genuinely overrun.
+16.7 is applied continuously and swept at the end.
+
 ## Phase 8 — Beyond (ongoing)
 
 Ranked by expected return:

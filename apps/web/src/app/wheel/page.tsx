@@ -7,7 +7,7 @@ import { getClock } from '@/lib/clock';
 import { getDatabase } from '@/lib/db';
 import { getOrComputeChart } from '@/lib/chart';
 import { buildFocusIndex } from '@/lib/focusIndex';
-import { glossaryContextFor } from '@jade/interpret';
+import { buildScopeIndex, glossaryContextFor } from '@jade/interpret';
 import { GlossaryProvider } from '@/components/Glossary';
 import { Kicker, Panel, Shell } from '@/components/Shell';
 import { WheelWorkspace, type WorkspacePerson } from '@/components/WheelWorkspace';
@@ -142,6 +142,7 @@ export default async function WheelPage({
     nowJd: clock.nowJd,
     subject: current.subject.displayName,
   });
+  const scopes = buildScopeIndex(chart, { dasha: dashas, nowJd: clock.nowJd });
 
   const aspects = (['Sun', 'Moon', 'Mars', 'Mercury', 'Jupiter', 'Venus', 'Saturn'] as const)
     .filter((id) => chart.points[id])
@@ -168,7 +169,7 @@ export default async function WheelPage({
         </Link>
       </div>
 
-      <GlossaryProvider lines={glossary.lines}>
+      <GlossaryProvider lines={glossary.lines} scopes={scopes}>
         <WheelWorkspace
           people={roster}
           currentId={current.subject.id}

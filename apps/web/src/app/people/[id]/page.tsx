@@ -23,16 +23,17 @@ import {
   PanchangaCard,
   SouthIndianChart,
   VargaGrid,
-  Wheel,
 } from '@jade/ui';
 import { getSession } from '@/lib/auth';
 import { getDatabase } from '@/lib/db';
 import { getOrComputeChart } from '@/lib/chart';
 import { removePerson } from '@/app/actions';
 import { Kicker, Panel, Shell } from '@/components/Shell';
-import { glossaryContextFor, housesForChart, readingFor } from '@jade/interpret';
-import { GlossaryProvider } from '@/components/Glossary';
+import { buildScopeIndex, glossaryContextFor, housesForChart, readingFor } from '@jade/interpret';
+import { AutoTerms, GlossaryProvider, Scope, T } from '@/components/Glossary';
 import { HouseTable, Reading } from '@/components/Reading';
+import { WheelWorkspace } from '@/components/WheelWorkspace';
+import { buildFocusIndex } from '@/lib/focusIndex';
 import { NoteCard } from '@/components/NoteCard';
 import { NoteComposer } from '@/components/NoteComposer';
 
@@ -180,10 +181,32 @@ export default async function PersonPage({
     nowJd,
     subject: subject.displayName,
   });
+  /**
+   * Per-graha, per-house, per-sign and per-varga context.
+   *
+   * Built here in one pass because it is arithmetic over a chart that has
+   * already been cast, and because a word inside a table row has to be able
+   * to answer about that row without waiting for anything.
+   */
+  const scopes = buildScopeIndex(chart, { dasha: dashas, nowJd });
+
+  /**
+   * Everything the focus panel shows, gathered once.
+   *
+   * The same index `/wheel` builds. It exists because a practitioner asking
+   * "what about Saturn?" should not have to answer it by scrolling six
+   * sections and remembering — and now the person page can answer it too.
+   */
+  const facts = buildFocusIndex(chart, {
+    yogas: chart.yogas,
+    dasha: dashas,
+    nowJd,
+    notes,
+  });
 
   return (
     <Shell email={session.email}>
-      <GlossaryProvider lines={glossary.lines}>
+      <GlossaryProvider lines={glossary.lines} scopes={scopes}>
         <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
           <div>
             <Kicker>{subject.relationship.replace('_', ' ')}</Kicker>
@@ -235,114 +258,154 @@ export default async function PersonPage({
 
         <div className="grid gap-5 lg:grid-cols-[auto_1fr]">
           <Panel className="flex flex-col items-center">
-            <div className="mb-3 flex w-full items-center justify-between gap-3">
-              <Kicker>
-                {vargaId} · {VARGA_NAMES[vargaId]}
-              </Kicker>
-              <nav className="flex gap-1 font-mono text-[10px] uppercase tracking-wider">
-                {STYLES.map((option) => (
+            <Scope of={`varga:${vargaId}`}>
+              <div className="mb-3 flex w-full items-center justify-between gap-3">
+                <Kicker>
+                  <T id="varga">{vargaId}</T> · <AutoTerms>{VARGA_NAMES[vargaId]}</AutoTerms>
+                </Kicker>
+                <nav className="flex gap-1 font-mono text-[10px] uppercase tracking-wider">
+                  {STYLES.map((option) => (
+                    <Link
+                      key={option.id}
+                      href={link({ style: option.id })}
+                      className={`border px-2 py-0.5 ${
+                        option.id === style
+                          ? 'border-[var(--accent)] text-[var(--accent)]'
+                          : 'border-[var(--rule)] text-[var(--ink-muted)]'
+                      }`}
+                    >
+                      {option.label}
+                    </Link>
+                  ))}
+                </nav>
+              </div>
+
+              <ChartComponent varga={varga} size={300} />
+
+              <nav className="mt-4 flex w-full flex-wrap gap-1 font-mono text-[10px]">
+                {(['D1', 'D9', 'D10', 'D12', 'D30', 'D60'] as const).map((id) => (
                   <Link
-                    key={option.id}
-                    href={link({ style: option.id })}
-                    className={`border px-2 py-0.5 ${
-                      option.id === style
+                    key={id}
+                    href={link({ varga: id })}
+                    className={`border px-1.5 py-0.5 ${
+                      id === vargaId
                         ? 'border-[var(--accent)] text-[var(--accent)]'
                         : 'border-[var(--rule)] text-[var(--ink-muted)]'
                     }`}
                   >
-                    {option.label}
+                    {id}
                   </Link>
                 ))}
-              </nav>
-            </div>
-
-            <ChartComponent varga={varga} size={300} />
-
-            <nav className="mt-4 flex w-full flex-wrap gap-1 font-mono text-[10px]">
-              {(['D1', 'D9', 'D10', 'D12', 'D30', 'D60'] as const).map((id) => (
                 <Link
-                  key={id}
-                  href={link({ varga: id })}
-                  className={`border px-1.5 py-0.5 ${
-                    id === vargaId
-                      ? 'border-[var(--accent)] text-[var(--accent)]'
-                      : 'border-[var(--rule)] text-[var(--ink-muted)]'
-                  }`}
+                  href={link({ view: showAllVargas ? '' : 'vargas' })}
+                  className="ml-auto border border-[var(--rule)] px-1.5 py-0.5 text-[var(--ink-muted)]"
                 >
-                  {id}
+                  {showAllVargas ? 'hide all 16' : 'all 16'}
                 </Link>
-              ))}
-              <Link
-                href={link({ view: showAllVargas ? '' : 'vargas' })}
-                className="ml-auto border border-[var(--rule)] px-1.5 py-0.5 text-[var(--ink-muted)]"
-              >
-                {showAllVargas ? 'hide all 16' : 'all 16'}
-              </Link>
-            </nav>
+              </nav>
+            </Scope>
           </Panel>
 
           <Panel>
             <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
               <Kicker>Sidereal positions</Kicker>
               <span className="font-mono text-[10px] text-[var(--ink-muted)]">
-                {chart.meta.ayanamsaMode} {chart.meta.ayanamsaValue.toFixed(4)}° ·{' '}
-                {cacheHit ? 'cached' : 'computed'}
+                <T id="ayanamsa">{chart.meta.ayanamsaMode}</T> {chart.meta.ayanamsaValue.toFixed(4)}
+                ° · {cacheHit ? 'cached' : 'computed'}
               </span>
             </div>
             <div className="overflow-x-auto">
               <table aria-label="Graha positions" className="w-full text-[13px] sm:text-sm">
                 <thead>
                   <tr className="text-left font-mono text-[10px] uppercase tracking-wider text-[var(--ink-muted)]">
-                    <th className="pb-2">Graha</th>
-                    <th className="pb-2">Position</th>
-                    <th className="hidden pb-2 sm:table-cell">Nakṣatra</th>
-                    <th className="hidden pb-2 sm:table-cell">House</th>
-                    <th className="hidden pb-2 md:table-cell">Dignity</th>
+                    <th className="pb-2">
+                      <T id="graha">Graha</T>
+                    </th>
+                    <th className="pb-2">
+                      <T id="rasi">Position</T>
+                    </th>
+                    <th className="hidden pb-2 sm:table-cell">
+                      <T id="nakshatra">Nakṣatra</T>
+                    </th>
+                    <th className="hidden pb-2 pr-3 sm:table-cell">
+                      <T id="bhava">House</T>
+                    </th>
+                    <th className="hidden pb-2 md:table-cell">
+                      <T id="dignity">Dignity</T>
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="font-mono">
                   {POINT_DISPLAY_ORDER.map((pointId) => chart.points[pointId])
                     .filter((point) => point !== undefined)
                     .map((point) => (
-                      <tr key={point.id} className="border-t border-[var(--rule)] align-top">
-                        <td className="py-1.5 pr-3">
-                          <span className="whitespace-nowrap">
-                            {GLYPHS[point.id as keyof typeof GLYPHS]} {point.id}
-                            {point.retrograde ? ' ℞' : ''}
-                          </span>
-                          <span className="block text-[10px] text-[var(--ink-muted)] sm:hidden">
-                            H{point.house} · {point.nakshatra.name} · {point.nakshatra.pada}
-                            {formatDignity(chart.dignity[point.id], chart.combustion[point.id])
-                              ? ` · ${formatDignity(chart.dignity[point.id], chart.combustion[point.id])}`
-                              : ''}
-                          </span>
-                        </td>
-                        <td className="py-1.5 pr-3 whitespace-nowrap">
-                          {formatSignPosition(point.longitude, SIGNS)}
-                        </td>
-                        <td className="hidden py-1.5 pr-3 sm:table-cell">
-                          {point.nakshatra.name}
-                          <span className="text-[var(--ink-muted)]"> · {point.nakshatra.pada}</span>
-                        </td>
-                        <td className="hidden py-1.5 pr-3 sm:table-cell">{point.house}</td>
-                        <td className="hidden py-1.5 md:table-cell">
-                          {formatDignity(chart.dignity[point.id], chart.combustion[point.id])}
-                        </td>
-                      </tr>
+                      /* Scoped to this graha, so a header hovered from inside
+                         this row answers about *this* graha rather than about
+                         the chart at large — which is what a reader pointing
+                         at Saturn's Nakṣatra cell is actually asking. */
+                      <Scope key={point.id} of={point.id}>
+                        <tr className="border-t border-[var(--rule)] align-top">
+                          <td className="py-1.5 pr-3">
+                            <span className="whitespace-nowrap">
+                              {GLYPHS[point.id as keyof typeof GLYPHS]}{' '}
+                              <T id={`graha-${point.id.toLowerCase()}`} plainTrigger>
+                                {point.id}
+                              </T>
+                              {point.retrograde ? (
+                                <T id="retrograde" plainTrigger>
+                                  {' '}
+                                  ℞
+                                </T>
+                              ) : null}
+                            </span>
+                            <span className="block text-[10px] text-[var(--ink-muted)] sm:hidden">
+                              H{point.house} · {point.nakshatra.name} · {point.nakshatra.pada}
+                              {formatDignity(chart.dignity[point.id], chart.combustion[point.id])
+                                ? ` · ${formatDignity(chart.dignity[point.id], chart.combustion[point.id])}`
+                                : ''}
+                            </span>
+                          </td>
+                          <td className="py-1.5 pr-3 whitespace-nowrap">
+                            {formatSignPosition(point.longitude, SIGNS)}
+                          </td>
+                          <td className="hidden py-1.5 pr-3 sm:table-cell">
+                            <T
+                              id={`nakshatra-${point.nakshatra.name.toLowerCase().replace(/\s+/g, '-')}`}
+                              plainTrigger
+                            >
+                              {point.nakshatra.name}
+                            </T>
+                            <span className="text-[var(--ink-muted)]">
+                              {' '}
+                              · <T id="pada">{String(point.nakshatra.pada)}</T>
+                            </span>
+                          </td>
+                          <td className="hidden py-1.5 pr-3 sm:table-cell">
+                            <T id={`house-${point.house}`} plainTrigger>
+                              {String(point.house)}
+                            </T>
+                          </td>
+                          <td className="hidden py-1.5 md:table-cell">
+                            <AutoTerms>
+                              {formatDignity(chart.dignity[point.id], chart.combustion[point.id])}
+                            </AutoTerms>
+                          </td>
+                        </tr>
+                      </Scope>
                     ))}
                 </tbody>
               </table>
             </div>
             {chart.vargottama.length > 0 ? (
               <p className="mt-4 text-sm text-[var(--ink-muted)]">
-                Vargottama: {chart.vargottama.join(', ')}
+                <T id="vargottama">Vargottama</T>: {chart.vargottama.join(', ')}
               </p>
             ) : null}
             {uncertaintyMinutes > 0 ? (
               <p className="mt-3 text-xs text-[var(--ink-muted)]">
-                Birth time given as ±{uncertaintyMinutes} minutes, which moves the ascendant by
-                roughly {(uncertaintyMinutes / 4).toFixed(0)}°. Everything house-dependent inherits
-                that.
+                Birth time given as ±{uncertaintyMinutes} minutes, which moves the{' '}
+                <T id="lagna">ascendant</T> by roughly {(uncertaintyMinutes / 4).toFixed(0)}°.
+                Everything house-dependent inherits that.
               </p>
             ) : null}
           </Panel>
@@ -377,7 +440,15 @@ export default async function PersonPage({
           <div className="mb-1 flex flex-wrap items-baseline justify-between gap-2">
             <Kicker>Daśā</Kicker>
             <span className="font-mono text-[10px] text-[var(--ink-muted)]">
-              running now: {runningChain.map((period) => period.lord).join(' › ')}
+              running now:{' '}
+              {runningChain.map((period, index) => (
+                <span key={`${period.lord}-${index}`}>
+                  {index > 0 ? ' › ' : ''}
+                  <T id={`graha-${period.lord.toLowerCase()}`} plainTrigger>
+                    {period.lord}
+                  </T>
+                </span>
+              ))}
             </span>
           </div>
           <DashaColumn dashas={dashas} atJdUt={nowJd} levels={3} />
@@ -395,22 +466,36 @@ export default async function PersonPage({
               dṛṣṭi.
             </p>
           </div>
-          <Panel>
-            <div className="flex justify-center">
-              <div className="w-full max-w-[560px]">
-                <Wheel
-                  points={wheelPoints}
-                  aspects={wheelAspects}
-                  ascendant={chart.points.Ascendant!.longitude}
-                  ascendantSign={chart.houses.ascendantSign}
-                  sarva={chart.ashtakavarga.sarva}
-                  bhavaCusps={bhavaCusps}
-                  bhavaLabel="equal from the lagna degree"
-                  title={`${subject.displayName} — circular chart`}
-                />
-              </div>
-            </div>
-          </Panel>
+          {/*
+            The same instrument `/wheel` mounts, not a picture of one.
+            `inline` drops the people rail — the subject is already decided on
+            this page — and keeps everything else: the layer toggles,
+            click-to-isolate, the dṛṣṭi filter and the focus panel. The
+            selection goes in the URL like it does there, so a reload or a
+            shared link lands on the same graha.
+          */}
+          <WheelWorkspace
+            variant="inline"
+            people={[]}
+            currentId={subject.id}
+            overlayId={null}
+            points={wheelPoints}
+            aspects={wheelAspects}
+            overlayPoints={[]}
+            overlayName={null}
+            ascendant={chart.points.Ascendant!.longitude}
+            ascendantSign={chart.houses.ascendantSign}
+            sarva={chart.ashtakavarga.sarva}
+            bhavaCusps={bhavaCusps}
+            bhavaLabel="equal from the lagna degree"
+            facts={facts}
+            lens={`${profile.ayanamsa} ayanāṁśa · ${chart.houses.system.replace('_', ' ')} houses · ${profile.nodeType} nodes`}
+            timeCaveat={
+              uncertaintyMinutes > 0
+                ? `Birth time given as ±${uncertaintyMinutes} minutes, which moves the lagna by roughly ${(uncertaintyMinutes / 4).toFixed(0)}°.`
+                : null
+            }
+          />
         </section>
 
         <section className="mt-8">

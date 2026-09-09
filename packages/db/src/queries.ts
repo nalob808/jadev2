@@ -422,38 +422,238 @@ export async function deleteLifeEvent(
 // Places
 // ---------------------------------------------------------------------------
 
+/** Lower-cased, diacritics stripped. The form the table stores and matches. */
+function normalisePlaceQuery(query: string): string {
+  return query
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9\s,]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 /**
- * Place search. Prefix matches first, then trigram similarity, population
- * breaking ties — someone typing "Springfield" almost always means the big one.
+ * Split "Austin, TX" into a city and a region.
+ *
+ * People do not type bare city names. They type "austin tx", "springfield,
+ * illinois", "paris france" — because they already know the name alone is
+ * ambiguous and they are trying to help. A search that takes all of that as
+ * one city name finds nothing, which reads to the person typing as "your
+ * atlas doesn't have my town" rather than "you gave me more than I asked
+ * for".
+ *
+ * A comma is taken at its word. Without one, the last token is treated as a
+ * region only when it is two letters — a state or country code. Anything
+ * longer stays part of the city, because "New York", "Salt Lake City" and
+ * "Ann Arbor" would each otherwise lose their last word to this.
+ */
+export function splitPlaceQuery(query: string): { city: string; region: string | null } {
+  const normalised = normalisePlaceQuery(query);
+  const comma = normalised.indexOf(',');
+  if (comma >= 0) {
+    const city = normalised.slice(0, comma).trim();
+    const region = normalised
+      .slice(comma + 1)
+      .replace(/,/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+    return { city, region: region.length > 0 ? region : null };
+  }
+  const tokens = normalised.split(' ').filter(Boolean);
+  const last = tokens[tokens.length - 1];
+  if (tokens.length >= 2 && last !== undefined && last.length === 2) {
+    return { city: tokens.slice(0, -1).join(' '), region: last };
+  }
+  return { city: normalised, region: null };
+}
+
+/**
+ * Place search.
+ *
+ * Four things a birthplace search has to do, and the first version did one:
+ *
+ *  1. **Match inside the name, not only at the front.** Typing "york" has to
+ *     find New York. Prefix-only matching is a large part of why this felt
+ *     like an empty atlas — often it was not empty, the query just started in
+ *     the middle of the name.
+ *  2. **Accept a region.** "austin tx" and "springfield, illinois" are what
+ *     people type. See `splitPlaceQuery`.
+ *  3. **Rank so the answer is first.** Exact, then prefix, then contained,
+ *     population breaking ties — somebody typing "Springfield" almost always
+ *     means the big one, and somebody who does not will recognise theirs in a
+ *     list of eight.
+ *  4. **Prefer home.** Between two equally good matches, the US one first.
+ *     Not a claim about the world; a claim about who is typing.
  */
 export async function searchPlaces(
   database: Database,
   query: string,
   limit = 8,
 ): Promise<(typeof places.$inferSelect)[]> {
-  const normalized = query
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
-    .replace(/[^a-z0-9\s]/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-  if (normalized.length < 2) return [];
+  const { city, region } = splitPlaceQuery(query);
+  if (city.length < 2) return [];
 
-  return database
-    .select()
-    .from(places)
-    .where(
-      sql`${places.searchName} like ${normalized + '%'} or ${places.searchName} % ${normalized}`,
-    )
-    .orderBy(
-      sql`case when ${places.searchName} = ${normalized} then 0
-               when ${places.searchName} like ${normalized + '%'} then 1
-               else 2 end`,
-      desc(places.population),
-    )
-    .limit(limit);
+  const prefix = `${city}%`;
+  const contains = `%${city}%`;
+
+  /**
+   * A region matches the state name, its postal code, or a country code.
+   *
+   * The expansion is the point. The table stores "Texas", and a person types
+   * "tx" \u2014 which is a prefix of nothing. Without the map, "austin tx" returned
+   * an empty list while "austin" returned Austin, which reads as the search
+   * being broken by the extra information the user helpfully supplied.
+   */
+  const expanded = region ? (US_STATE_BY_CODE[region] ?? region) : null;
+  const regionClause = expanded
+    ? sql`and (lower(${places.admin1}) like ${`${expanded}%`}
+               or lower(${places.countryCode}) = ${expanded})`
+    : sql``;
+
+  /**
+   * Deduplicated, best row per place.
+   *
+   * GeoNames carries several records for one city \u2014 the settlement, its urban
+   * area, sometimes a historic name \u2014 with different ids and the same name and
+   * state. Undeduped, a search for Honolulu offers Honolulu twice and the
+   * reader has to wonder which is right. The pass below keeps the most
+   * populous of each, which is the one they meant.
+   *
+   * Ranking happens in JavaScript rather than SQL because deduplication has
+   * to come first, and doing both in one statement needs a window function
+   * over a subquery — more machinery than a list of at most forty-eight rows
+   * is worth.
+   */
+  const run = async (
+    matchClause: ReturnType<typeof sql>,
+  ): Promise<(typeof places.$inferSelect)[]> =>
+    database
+      .select()
+      .from(places)
+      .where(sql`(${matchClause}) ${regionClause}`)
+      .orderBy(
+        sql`${places.searchName}, ${places.admin1}, ${places.countryCode}, ${desc(places.population)}`,
+      )
+      .limit(limit * 6)
+      .then((rows) => {
+        const seen = new Set<string>();
+        const unique = rows.filter((row) => {
+          const key = `${row.searchName}|${row.admin1 ?? ''}|${row.countryCode}`;
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        });
+        return unique
+          .sort((a, b) => {
+            const rankOf = (row: typeof a): number =>
+              row.searchName === city
+                ? 0
+                : row.searchName.startsWith(city)
+                  ? 1
+                  : row.searchName.includes(city)
+                    ? 2
+                    : 3;
+            /**
+             * Home is a thumb on the scale, not an override.
+             *
+             * As an absolute tiebreak it put Paris, Texas — twenty-five
+             * thousand people — above Paris, France, which is nobody's
+             * intention when they type five letters. As a multiplier, a US
+             * town still outranks a foreign city of similar size, and a world
+             * capital still outranks a US town named after it.
+             */
+            const weight = (row: typeof a): number =>
+              row.population * (row.countryCode === 'US' ? HOME_WEIGHT : 1);
+            return rankOf(a) - rankOf(b) || weight(b) - weight(a);
+          })
+          .slice(0, limit);
+      });
+
+  /**
+   * Fuzzy matching is a fallback, not a peer.
+   *
+   * Trigram similarity is what rescues a typo, and it is also what put "Kane,
+   * Pennsylvania" and "Kano, Nigeria" under a search for Kaneohe. Running it
+   * only when the literal match finds nothing keeps the misspelling rescue
+   * without paying for it on every query that was already spelled correctly.
+   */
+  const literal = await run(
+    sql`${places.searchName} like ${prefix} or ${places.searchName} like ${contains}`,
+  );
+  if (literal.length > 0) return literal;
+  return run(sql`${places.searchName} % ${city}`);
 }
+
+/**
+ * How much a US place outweighs a foreign one of the same size.
+ *
+ * Five is chosen so that a mid-size American town beats a comparable city
+ * abroad, while a genuine world capital still wins on its own merits. Not a
+ * claim about the world — a claim about who is typing into this box.
+ */
+const HOME_WEIGHT = 5;
+
+/**
+ * US postal codes to the state names the table stores.
+ *
+ * Here rather than in the import script because search needs it at query
+ * time: the person typing "tx" has to reach the rows that say "Texas".
+ */
+const US_STATE_BY_CODE: Record<string, string> = {
+  al: 'alabama',
+  ak: 'alaska',
+  az: 'arizona',
+  ar: 'arkansas',
+  ca: 'california',
+  co: 'colorado',
+  ct: 'connecticut',
+  de: 'delaware',
+  dc: 'district of columbia',
+  fl: 'florida',
+  ga: 'georgia',
+  hi: 'hawaii',
+  id: 'idaho',
+  il: 'illinois',
+  in: 'indiana',
+  ia: 'iowa',
+  ks: 'kansas',
+  ky: 'kentucky',
+  la: 'louisiana',
+  me: 'maine',
+  md: 'maryland',
+  ma: 'massachusetts',
+  mi: 'michigan',
+  mn: 'minnesota',
+  ms: 'mississippi',
+  mo: 'missouri',
+  mt: 'montana',
+  ne: 'nebraska',
+  nv: 'nevada',
+  nh: 'new hampshire',
+  nj: 'new jersey',
+  nm: 'new mexico',
+  ny: 'new york',
+  nc: 'north carolina',
+  nd: 'north dakota',
+  oh: 'ohio',
+  ok: 'oklahoma',
+  or: 'oregon',
+  pa: 'pennsylvania',
+  ri: 'rhode island',
+  sc: 'south carolina',
+  sd: 'south dakota',
+  tn: 'tennessee',
+  tx: 'texas',
+  ut: 'utah',
+  vt: 'vermont',
+  va: 'virginia',
+  wa: 'washington',
+  wv: 'west virginia',
+  wi: 'wisconsin',
+  wy: 'wyoming',
+  pr: 'puerto rico',
+};
 
 // ---------------------------------------------------------------------------
 // Charts — content-addressed cache

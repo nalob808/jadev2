@@ -140,9 +140,16 @@ export function glossaryContextFor(input: ContextInput): GlossaryContext {
   const vargottama = chart.vargottama ?? [];
   if (vargottama.length > 0) {
     add('vargottama', `Vargottama here: ${vargottama.map(CAP).join(', ')}.`);
-    add('navamsa', `${vargottama.map(CAP).join(', ')} hold the same sign in both charts.`);
+    add(
+      'navamsa',
+      `${vargottama.map(CAP).join(', ')} hold the same sign in the rāśi and the navāṁśa.`,
+    );
   } else {
     add('vargottama', 'No graha in this chart is vargottama.');
+    // Said either way. A term that only speaks when the chart happens to
+    // contain something is a term that looks broken on the charts where it
+    // does not — and "nothing is vargottama here" is itself a reading.
+    add('navamsa', 'Computed for this chart, and no graha holds the same sign in both.');
   }
   const vargaCount = Object.keys(Object.values(chart.vargas)[0] ?? {}).length;
   if (vargaCount > 0) {

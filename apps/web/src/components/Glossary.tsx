@@ -23,27 +23,84 @@ import { GLOSSARY, glossaryEntry, glossaryLookup } from '@jade/interpret';
 
 const ContextLines = createContext<Readonly<Record<string, readonly string[]>>>({});
 
+/**
+ * The narrower answer, when there is one.
+ *
+ * A `GlossaryScope` says "everything inside me is about Saturn" (or about the
+ * 7th house, or about the navāṁśa). A term inside it resolves against that
+ * scope first and only falls back to the chart at large — so hovering
+ * `Nakṣatra` in Saturn's row tells you Saturn's nakṣatra, which is the thing
+ * the reader actually pointed at.
+ *
+ * Scopes nest, and the innermost wins. That matters in the focus panel, which
+ * is inside a page scoped to the chart and itself scoped to the selected
+ * graha.
+ */
+const ScopeLines = createContext<Readonly<Record<string, readonly string[]>>>({});
+
+/** All scopes on the page, so a scope can be named rather than passed. */
+const ScopeIndex = createContext<
+  Readonly<Record<string, Readonly<Record<string, readonly string[]>>>>
+>({});
+
 export function GlossaryProvider({
   lines,
+  scopes,
   children,
 }: {
   readonly lines: Readonly<Record<string, readonly string[]>>;
+  /** Per-graha, per-house, per-sign and per-varga context for this chart. */
+  readonly scopes?: Readonly<Record<string, Readonly<Record<string, readonly string[]>>>>;
   readonly children: React.ReactNode;
 }): React.ReactElement {
-  return <ContextLines.Provider value={lines}>{children}</ContextLines.Provider>;
+  return (
+    <ContextLines.Provider value={lines}>
+      <ScopeIndex.Provider value={scopes ?? {}}>{children}</ScopeIndex.Provider>
+    </ContextLines.Provider>
+  );
 }
 
+/**
+ * Declare what the words inside this element are about.
+ *
+ * `<Scope of="Saturn">` for a graha, `<Scope of="house:7">`, `<Scope
+ * of="sign:3">`, `<Scope of="varga:D9">`. An unknown name is not an error —
+ * it simply adds nothing, so a caller can name a scope optimistically without
+ * having to know whether the page provided one.
+ */
+export function Scope({
+  of,
+  children,
+}: {
+  readonly of: string | null | undefined;
+  readonly children: React.ReactNode;
+}): React.ReactElement {
+  const index = useContext(ScopeIndex);
+  const outer = useContext(ScopeLines);
+  const lines = (of ? index[of] : undefined) ?? outer;
+  return <ScopeLines.Provider value={lines}>{children}</ScopeLines.Provider>;
+}
+
+/**
+ * Scope first, chart second.
+ *
+ * Deliberately not a merge. If a scope has something to say about `nakṣatra`,
+ * appending the chart-wide line about the Moon's nakṣatra underneath it turns
+ * a precise answer into two answers, one of which is about something the
+ * reader did not ask about.
+ */
 function useResolvers(): {
   resolve: (id: string) => TermDefinition | null;
   contextFor: (id: string) => readonly string[] | undefined;
 } {
   const lines = useContext(ContextLines);
+  const scope = useContext(ScopeLines);
   return useMemo(
     () => ({
       resolve: (id: string) => glossaryEntry(id),
-      contextFor: (id: string) => lines[id],
+      contextFor: (id: string) => scope[id] ?? lines[id],
     }),
-    [lines],
+    [lines, scope],
   );
 }
 
@@ -63,7 +120,6 @@ export function T({
   readonly children?: React.ReactNode;
   readonly plainTrigger?: boolean;
 }): React.ReactElement | null {
-  const lines = useContext(ContextLines);
   const { resolve, contextFor } = useResolvers();
   const entry = glossaryEntry(id);
   if (!entry) {
@@ -74,7 +130,7 @@ export function T({
   return (
     <Term
       entry={entry}
-      context={lines[id]}
+      context={contextFor(id)}
       resolve={resolve}
       contextFor={contextFor}
       plainTrigger={plainTrigger}

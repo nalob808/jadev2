@@ -40,9 +40,52 @@ describe('the live half of the glossary', () => {
    * working correctly, minus the one part that makes them worth building. It
    * took a browser test to notice. A count is what notices now.
    */
-  it('produces context for a substantial share of the vocabulary', () => {
-    const covered = Object.keys(lines).length;
-    expect(covered).toBeGreaterThan(GLOSSARY.length / 2);
+  it('produces context for the terms that need it', () => {
+    // Named rather than counted. A proportion of the vocabulary was the first
+    // version of this and it quietly stopped meaning anything the moment the
+    // glossary grew: most entries are sign, graha and nakṣatra *names*, which
+    // take their context from a scope rather than from the chart at large. A
+    // list says which terms actually have to work.
+    for (const id of [
+      'ayanamsa',
+      'sidereal',
+      'lagna',
+      'bhava',
+      'rasi',
+      'nakshatra',
+      'pada',
+      'vimshottari',
+      'dasha',
+      'tarabala',
+      'navamsa',
+      'vargottama',
+      'shodashavarga',
+      'ashtakavarga',
+      'bindu',
+      'sarvashtakavarga',
+      'dignity',
+      'combustion',
+      'yoga',
+      'panchanga',
+      'tithi',
+      'kendra',
+      'dusthana',
+      'rahu',
+    ]) {
+      expect(lines[id], id).toBeDefined();
+    }
+  });
+
+  it('covers the vocabulary a chart page actually prints', () => {
+    // Every sign, every graha, every house and every nakṣatra is explainable,
+    // because all four appear as bare names all over the interface.
+    expect(GLOSSARY.length).toBeGreaterThan(100);
+    for (const id of ['sign-aries', 'graha-saturn', 'house-7', 'nakshatra-pushya']) {
+      expect(
+        GLOSSARY.some((entry) => entry.id === id),
+        id,
+      ).toBe(true);
+    }
   });
 
   it('never emits an empty line list for a term it claims to cover', () => {

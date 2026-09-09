@@ -1,5 +1,6 @@
 import type { DayBand, DayQuality } from '@jade/astro';
 import { BAND_CAVEAT } from '@jade/interpret';
+import { AutoTerms, T } from './Glossary';
 
 /**
  * Seven days, coloured.
@@ -92,11 +93,31 @@ export function WeekBands({ days }: { days: readonly WeekDay[] }): React.ReactEl
                 </p>
                 <p className="font-mono text-[9px] text-[var(--ink-faint)]">{day.dateLabel}</p>
 
+                {/*
+                 * Every word in a band is a term. These are the densest
+                 * astrology on the home page and the least self-explanatory:
+                 * "Sampat" and "Ashlesha" mean nothing at all to a reader who
+                 * has not been taught them, and there is no room here to say
+                 * what they are in prose.
+                 *
+                 * Marked plainly — no dotted underline — because seven cards
+                 * of underlined words would turn a colour-coded strip into a
+                 * thicket. The affordance is the pointer changing, and the
+                 * glossary page carries the same content for anyone who wants
+                 * to read rather than poke.
+                 */}
                 <p className="mt-1 font-display text-lg leading-tight text-[var(--ink)]">
-                  {day.moonSign}
+                  <T id={`sign-${day.moonSign.toLowerCase()}`} plainTrigger>
+                    {day.moonSign}
+                  </T>
                 </p>
                 <p className="font-mono text-[10px] leading-snug text-[var(--ink-muted)]">
-                  {day.moonNakshatra}
+                  <T
+                    id={`nakshatra-${day.moonNakshatra.toLowerCase().replace(/\s+/g, '-')}`}
+                    plainTrigger
+                  >
+                    {day.moonNakshatra}
+                  </T>
                 </p>
 
                 {/*
@@ -105,13 +126,26 @@ export function WeekBands({ days }: { days: readonly WeekDay[] }): React.ReactEl
                  */}
                 <dl className="mt-2 flex flex-col gap-0.5 border-t border-[var(--rule)] pt-2 font-mono text-[9.5px]">
                   <div className="flex items-baseline justify-between gap-2">
-                    <dt className="text-[var(--ink-faint)]">Tārā</dt>
+                    <dt className="text-[var(--ink-faint)]">
+                      <T id="tarabala" plainTrigger>
+                        Tārā
+                      </T>
+                    </dt>
                     <dd className="text-right" style={{ color: token.line }}>
-                      {day.quality.tara.name}
+                      <T
+                        id={day.quality.tara.name.toLowerCase().replace(/[^a-z]/g, '')}
+                        plainTrigger
+                      >
+                        {day.quality.tara.name}
+                      </T>
                     </dd>
                   </div>
                   <div className="flex items-baseline justify-between gap-2">
-                    <dt className="text-[var(--ink-faint)]">Candra</dt>
+                    <dt className="text-[var(--ink-faint)]">
+                      <T id="candrabala" plainTrigger>
+                        Candra
+                      </T>
+                    </dt>
                     <dd className="text-right" style={{ color: token.line }}>
                       {day.quality.candra.house}
                       {ordinal(day.quality.candra.house)}
@@ -120,14 +154,26 @@ export function WeekBands({ days }: { days: readonly WeekDay[] }): React.ReactEl
                 </dl>
 
                 <p className="mt-1 font-mono text-[9px] leading-snug text-[var(--ink-faint)]">
-                  {day.tithi}
+                  <T id="tithi" plainTrigger>
+                    {day.tithi}
+                  </T>
                 </p>
 
                 {day.changesSign || day.changesNakshatra ? (
                   <p className="mt-auto pt-1.5 font-mono text-[8.5px] uppercase leading-snug tracking-wider text-[var(--accent)]">
                     {day.changesSign ? 'enters a new sign' : null}
                     {day.changesSign && day.changesNakshatra ? ' · ' : null}
-                    {day.changesNakshatra ? `→ ${day.nextNakshatra}` : null}
+                    {day.changesNakshatra && day.nextNakshatra ? (
+                      <>
+                        {'→ '}
+                        <T
+                          id={`nakshatra-${day.nextNakshatra.toLowerCase().replace(/\s+/g, '-')}`}
+                          plainTrigger
+                        >
+                          {day.nextNakshatra}
+                        </T>
+                      </>
+                    ) : null}
                   </p>
                 ) : null}
               </div>
@@ -153,7 +199,7 @@ export function WeekBands({ days }: { days: readonly WeekDay[] }): React.ReactEl
           ))}
         </ul>
         <p className="max-w-[70ch] text-[12px] leading-relaxed text-[var(--ink-muted)]">
-          {BAND_CAVEAT}
+          <AutoTerms>{BAND_CAVEAT}</AutoTerms>
         </p>
       </div>
     </div>
