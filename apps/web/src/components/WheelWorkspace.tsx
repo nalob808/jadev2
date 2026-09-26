@@ -1,10 +1,12 @@
 'use client';
 
-import { useCallback } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { Wheel, Glyph, hasGlyph, type WheelPoint, type WheelAspect } from '@jade/ui';
 import { AutoTerms, Scope, T } from './Glossary';
+import { TransitScrubber, type ScrubberNatal } from './TransitScrubber';
+import type { RingFrame } from '@/lib/transitRing';
 import type { FocusFacts } from '@/lib/focusIndex';
 
 /**
@@ -43,6 +45,22 @@ export interface WorkspacePerson {
   readonly born: string;
 }
 
+/**
+ * A public figure, offered for the outer ring.
+ *
+ * Deliberately a different shape from `WorkspacePerson`: a library figure is
+ * not one of your people, does not count against the plan, and is addressed by
+ * slug rather than by a workspace-scoped id. Keeping the types apart is what
+ * stops the two lists getting merged by a later convenience.
+ */
+export interface LibraryFigure {
+  readonly slug: string;
+  readonly name: string;
+  readonly born: string;
+  /** Rodden grade — never dropped, so a guessed birth time is never presented as attested. */
+  readonly rodden: string;
+}
+
 export function WheelWorkspace({
   people,
   currentId,
@@ -60,6 +78,12 @@ export function WheelWorkspace({
   variant = 'workspace',
   bhavaCusps,
   bhavaLabel,
+  transitFrame,
+  scrubberNatal,
+  todayJd,
+  figures = [],
+  figureSlug = null,
+  lensMismatch = null,
 }: {
   people: readonly WorkspacePerson[];
   currentId: string;
@@ -78,6 +102,24 @@ export function WheelWorkspace({
   variant?: WheelVariant;
   bhavaCusps?: readonly number[];
   bhavaLabel?: string;
+  /**
+   * The sidereal frame the transit ring is computed in.
+   *
+   * All three of these travel together: without a frame there is nothing to
+   * compute, without the natal Moon there is no daśā chain to update beside
+   * it, and without a `todayJd` from the page there is no "today" to be off
+   * from — this component has no clock of its own and must not grow one.
+   * Omit them and the scrubber is simply absent, which is what the printable
+   * report and the public library want.
+   */
+  transitFrame?: RingFrame;
+  scrubberNatal?: ScrubberNatal;
+  todayJd?: number;
+  /** Public figures that can be loaded onto the outer ring. Timed ones only. */
+  figures?: readonly LibraryFigure[];
+  figureSlug?: string | null;
+  /** Set when the figure's fixed lens differs from this workspace's. */
+  lensMismatch?: string | null;
 }): React.ReactElement {
   const router = useRouter();
   const pathname = usePathname();
@@ -111,11 +153,113 @@ export function WheelWorkspace({
     [params, pathname, router],
   );
 
+  /**
+   * The scrubbed date, as whole days from today, in the URL beside the
+   * selection.
+   *
+   * Same three reasons as `?g=`: a reload keeps the date, the back button walks
+   * dates instead of leaving, and a link carries the exact view. Days rather
+   * than an ISO date because the arithmetic that has to survive the round trip
+   * is `today + n`, and a date in the URL would silently mean something
+   * different tomorrow — a link saying "look at this" would drift by a day
+   * every day. A malformed value is treated as today rather than throwing; the
+   * URL is user-editable and a bad one must not blank the chart.
+   */
+  /**
+   * The *presence* of `t` turns the transit ring on; its value is the date.
+   *
+   * So the natal chart alone stays the default view, and nine extra marks appear
+   * on the circle because somebody asked for them. That matters twice over. The
+   * ADHD brief's fourth rule — colour and motion are information or they are
+   * removed — applies just as well to marks: a transit ring nobody asked for is
+   * competing with the natal chart for the same attention. And the ephemeris
+   * that computes the ring is about 80 KB of JavaScript, which is a fair price
+   * for a scrubber that answers inside one animation frame and a bad one for a
+   * reader who only wanted to look at a birth chart.
+   *
+   * `t=0` therefore means "transits, today" and no `t` at all means "no
+   * transits" — a distinction a plain number could not carry.
+   */
+  const offsetRaw = params.get('t');
+  const transitsRequested = offsetRaw !== null;
+  const offsetParsed = Number.parseInt(offsetRaw ?? '0', 10);
+  const offsetDays = Number.isFinite(offsetParsed) ? offsetParsed : 0;
+
+  const setOffset = useCallback(
+    (days: number | null): void => {
+      const query = new URLSearchParams(params.toString());
+      if (days === null) query.delete('t');
+      else query.set('t', String(days));
+      const suffix = query.toString();
+      router.replace(suffix ? `${pathname}?${suffix}` : pathname, { scroll: false });
+    },
+    [params, pathname, router],
+  );
+
+  /**
+   * One ring, two claimants.
+   *
+   * The wheel has a single outer ring. An overlaid second chart and a scrubbed
+   * transit ring both want it, and drawing both would produce a circle of
+   * eighteen marks in which nobody could tell a transit from the other
+   * person's natal Venus. Rather than pick silently, the overlay wins where it
+   * is chosen — it is the more deliberate act — and the scrubber says why it
+   * is not available (CLAUDE.md #3, applied to the interface).
+   */
+  const overlayHasRing = overlayPoints.length > 0;
+  const scrubbable = !overlayHasRing && transitFrame !== undefined && todayJd !== undefined;
+  const transitsOn = scrubbable && transitsRequested;
+
+  /**
+   * The ephemeris, fetched only once somebody wants transits.
+   *
+   * `astronomy-engine` is roughly 80 KB minified and it is the entire reason the
+   * scrubber can answer locally at all. Importing it at module scope would put
+   * it in the first load of every person page and of `/wheel`, including for the
+   * readers who never touch the date control. So it arrives on demand, and the
+   * control says so while it is in flight rather than looking broken for the
+   * few hundred milliseconds it takes.
+   */
+  const [ringFn, setRingFn] = useState<
+    ((jdUt: number, frame: RingFrame, ascendantSign: number) => WheelPoint[]) | null
+  >(null);
+
+  useEffect(() => {
+    if (!transitsOn || ringFn) return;
+    let cancelled = false;
+    void import('@/lib/transitRing').then((module) => {
+      // The wrapping arrow matters: `setState` treats a bare function as an
+      // updater and would call it with the previous value.
+      if (!cancelled) setRingFn(() => module.transitRing);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [transitsOn, ringFn]);
+
+  const transitPoints = useMemo(
+    () =>
+      transitsOn && ringFn && transitFrame && todayJd !== undefined
+        ? ringFn(todayJd + offsetDays, transitFrame, ascendantSign)
+        : [],
+    [transitsOn, ringFn, transitFrame, todayJd, offsetDays, ascendantSign],
+  );
+
+  const outerRing = overlayHasRing ? overlayPoints : transitPoints;
+
   const showRail = variant === 'workspace';
 
-  const go = (personId: string, overlay: string | null): void => {
+  /**
+   * Navigate the workspace.
+   *
+   * `overlay` and `figure` are mutually exclusive by construction rather than
+   * by convention — the wheel has one outer ring, and letting both into the URL
+   * would make the page pick one silently.
+   */
+  const go = (personId: string, overlay: string | null, figure: string | null = null): void => {
     const query = new URLSearchParams({ person: personId });
     if (overlay) query.set('overlay', overlay);
+    else if (figure) query.set('figure', figure);
     router.push(`/wheel?${query.toString()}`);
   };
 
@@ -167,7 +311,7 @@ export function WheelWorkspace({
           </p>
           <select
             value={overlayId ?? ''}
-            onChange={(event) => go(currentId, event.target.value || null)}
+            onChange={(event) => go(currentId, event.target.value || null, null)}
             aria-label="Overlay another person's chart"
             className="mt-2 w-full border border-[var(--rule)] bg-[var(--surface)] px-2 py-1.5 text-sm"
           >
@@ -188,6 +332,45 @@ export function WheelWorkspace({
               Read them together →
             </Link>
           ) : null}
+
+          {/* ------------------------------------------------- the library */}
+          {figures.length > 0 ? (
+            <>
+              <p className="mt-5 flex items-baseline justify-between font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--ink-faint)]">
+                <span>From the library</span>
+                <span>{figures.length}</span>
+              </p>
+              <p className="mt-1 text-[12px] leading-relaxed text-[var(--ink-muted)]">
+                A public chart on the outer ring, against this chart&rsquo;s houses. Not added to
+                your people and not counted against your plan.
+              </p>
+              <select
+                value={figureSlug ?? ''}
+                onChange={(event) => go(currentId, null, event.target.value || null)}
+                aria-label="Overlay a chart from the public library"
+                className="mt-2 w-full border border-[var(--rule)] bg-[var(--surface)] px-2 py-1.5 text-sm"
+              >
+                <option value="">Nobody from the library</option>
+                {figures.map((figure) => (
+                  <option key={figure.slug} value={figure.slug}>
+                    {figure.name} · {figure.born.slice(0, 4)} · Rodden {figure.rodden}
+                  </option>
+                ))}
+              </select>
+              {figureSlug ? (
+                <Link
+                  href={`/charts/${figureSlug}`}
+                  className="mt-2 inline-block font-mono text-[10px] uppercase tracking-wider text-[var(--accent)] underline underline-offset-2"
+                >
+                  Their own page →
+                </Link>
+              ) : null}
+              <p className="mt-1.5 font-mono text-[9.5px] leading-relaxed text-[var(--ink-faint)]">
+                Only figures with an attested birth time are listed — an untimed chart has no
+                ascendant, so it has no houses to draw.
+              </p>
+            </>
+          ) : null}
         </aside>
       ) : null}
 
@@ -198,12 +381,19 @@ export function WheelWorkspace({
             <span className="text-[var(--ink)]">inner · this chart</span>
             <span className="text-[var(--clay)]">outer · {overlayName}</span>
           </p>
+        ) : transitsOn ? (
+          <p className="mb-2 flex flex-wrap items-center gap-x-3 font-mono text-[10px] uppercase tracking-[0.14em]">
+            <span className="text-[var(--ink)]">inner · natal, fixed</span>
+            <span className="text-[var(--clay)]">
+              outer · transits{offsetDays === 0 ? ', today' : ', moved'}
+            </span>
+          </p>
         ) : null}
 
         <Wheel
           points={points}
           aspects={aspects}
-          transits={overlayPoints}
+          transits={outerRing}
           ascendant={ascendant}
           ascendantSign={ascendantSign}
           sarva={sarva}
@@ -211,7 +401,7 @@ export function WheelWorkspace({
           bhavaLabel={bhavaLabel}
           focus={focus}
           onFocusChange={setFocus}
-          size={720}
+          size={900}
         />
 
         <p className="mt-2 font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--ink-faint)]">
@@ -220,6 +410,46 @@ export function WheelWorkspace({
         {timeCaveat ? (
           <p className="mt-1 border-l-2 border-[var(--clay)] py-1 pl-2 text-[12px] leading-relaxed text-[var(--ink-muted)]">
             {timeCaveat}
+          </p>
+        ) : null}
+        {/* Two rings in two different frames is a correctness problem, so it is
+            stated beside the chart rather than left for the reader to deduce. */}
+        {lensMismatch ? (
+          <p className="mt-1 border-l-2 border-[var(--clay)] bg-[var(--band-difficult-wash)] py-1 pl-2 text-[12px] leading-relaxed text-[var(--ink-muted)]">
+            {lensMismatch}
+          </p>
+        ) : null}
+
+        {transitsOn && scrubberNatal && todayJd !== undefined ? (
+          <TransitScrubber
+            natal={scrubberNatal}
+            todayJd={todayJd}
+            offsetDays={offsetDays}
+            loading={ringFn === null}
+            onOffsetChange={setOffset}
+            onDismiss={() => setOffset(null)}
+          />
+        ) : scrubbable ? (
+          /* One obvious action, and it states what it will do rather than
+             being an unlabelled icon. */
+          <button
+            type="button"
+            onClick={() => setOffset(0)}
+            className="mt-3 w-full border border-[var(--rule)] px-3 py-2 text-left hover:border-[var(--accent)]"
+          >
+            <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--accent)]">
+              Add the transit ring
+            </span>
+            <span className="mt-0.5 block text-[12.5px] leading-relaxed text-[var(--ink-muted)]">
+              Today&rsquo;s sky on the outer ring, with a date control to move it. The natal chart
+              stays where it is.
+            </span>
+          </button>
+        ) : overlayHasRing && transitFrame ? (
+          <p className="mt-3 border border-dashed border-[var(--rule-strong)] p-2.5 text-[12px] leading-relaxed text-[var(--ink-muted)]">
+            The transit scrubber is off while a second chart is overlaid — the wheel has one outer
+            ring and they would be drawn on top of each other. Clear the overlay to move through
+            time.
           </p>
         ) : null}
       </div>

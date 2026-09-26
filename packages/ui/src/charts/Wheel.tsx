@@ -77,6 +77,7 @@ export interface WheelProps {
   readonly bhavaCusps?: readonly number[];
   /** Names the frame `bhavaCusps` was computed in, so the overlay can say so. */
   readonly bhavaLabel?: string;
+  /** Maximum drawn width in pixels. The wheel is fluid below it. */
   readonly size?: number;
   readonly title?: string;
   /**
@@ -91,6 +92,14 @@ export interface WheelProps {
    */
   readonly focus?: string | null;
   readonly onFocusChange?: (id: string | null) => void;
+  /**
+   * Layers to start switched on, over the defaults.
+   *
+   * Uncontrolled: the reader's own toggling takes over from here. Used by the
+   * person page to open with dṛṣṭi showing, and by the tests, which otherwise
+   * cannot see the layer they are asserting about.
+   */
+  readonly initialLayers?: Partial<Record<Toggle, boolean>>;
 }
 
 const SIGN_NAMES = [
@@ -141,6 +150,50 @@ const NATURE_TINT: Record<string, string> = {
 const tintOf = (id: string): string =>
   NATURE_TINT[GRAHA_NATURE[id] ?? 'neutral'] ?? NATURE_TINT.neutral!;
 
+/**
+ * Dṛṣṭi colour, by the graha that casts it.
+ *
+ * A line is the colour of its source, so it can be followed back without
+ * tracing it by eye. Each hue sits inside its graha's nature family — see the
+ * note beside these tokens in `globals.css` for why the nature tints alone
+ * could not do this job.
+ *
+ * Total on purpose: a graha with no entry here would fall back to a neighbour's
+ * colour and draw a chart that is subtly, invisibly wrong. A test asserts every
+ * graha that can cast a dṛṣṭi has one.
+ */
+export const DRISHTI_TINT: Record<string, string> = {
+  Sun: 'var(--drishti-sun, #A86A30)',
+  Moon: 'var(--drishti-moon, #4F8F79)',
+  Mars: 'var(--drishti-mars, #B0553C)',
+  Mercury: 'var(--drishti-mercury, #55606B)',
+  Jupiter: 'var(--drishti-jupiter, #2C7A64)',
+  Venus: 'var(--drishti-venus, #3D8F88)',
+  Saturn: 'var(--drishti-saturn, #4F5570)',
+  Rahu: 'var(--drishti-rahu, #7D5A8A)',
+  Ketu: 'var(--drishti-ketu, #8A6A52)',
+};
+
+const drishtiTintOf = (id: string): string => DRISHTI_TINT[id] ?? NATURE_TINT.neutral!;
+
+/**
+ * The seventh is the aspect every graha has; the rest belong to three of them.
+ *
+ * Mars to the 4th and 8th, Jupiter to the 5th and 9th, Saturn to the 3rd and
+ * 10th — the special dṛṣṭis — are drawn dashed, and the universal 7th solid.
+ * That is deliberately redundant with colour: shape survives printing,
+ * colourblindness, and a phone in sunlight, and colour-alone encoding fails all
+ * three.
+ */
+const isSpecialDrishti = (distance: number): boolean => distance !== 7;
+
+/** "7th", "3rd" — for the hover text on a dṛṣṭi line. */
+function ordinalOf(n: number): string {
+  const teen = n % 100 >= 11 && n % 100 <= 13;
+  const suffix = teen ? 'th' : (['th', 'st', 'nd', 'rd'][n % 10] ?? 'th');
+  return `${n}${suffix}`;
+}
+
 type Toggle =
   | 'houses'
   | 'signs'
@@ -177,7 +230,17 @@ export function Wheel({
   title,
   focus,
   onFocusChange,
+  initialLayers,
 }: WheelProps): React.ReactElement {
+  /**
+   * Which layers start on.
+   *
+   * Initial state only — the toggles remain the reader's afterwards, so this is
+   * a starting position rather than a controlled prop. It exists because the
+   * dṛṣṭi layer is off by default and there was otherwise no way to render the
+   * wheel with it on: the acceptance test for the aspect encoding could only
+   * assert against an empty layer, which it did, and passed.
+   */
   const [on, setOn] = useState<Record<Toggle, boolean>>({
     houses: true,
     signs: true,
@@ -188,6 +251,7 @@ export function Wheel({
     elements: true,
     sarva: false,
     chalit: false,
+    ...initialLayers,
   });
   const [ownSelection, setOwnSelection] = useState<string | null>(null);
   const controlled = focus !== undefined;
@@ -228,7 +292,17 @@ export function Wheel({
   }, [transits, ascendant]);
 
   const selectedPoint = placed.find((p) => p.point.id === selected)?.point ?? null;
-  const shownAspects = on.aspects ? aspects.filter((a) => !selected || a.from === selected) : [];
+  /**
+   * Selecting a graha desaturates the other lines rather than deleting them.
+   *
+   * It used to filter them out entirely, which answers "what does Saturn
+   * aspect" and destroys the thing you were looking at the wheel for — the
+   * other lines *are* the context that makes Saturn's interesting. Grahas
+   * already dim to 0.25 on selection instead of vanishing; the dṛṣṭi now
+   * behaves the same way, so one selection has one meaning everywhere on the
+   * chart.
+   */
+  const shownAspects = on.aspects ? aspects : [];
 
   return (
     <div className="flex flex-col gap-3">
@@ -269,8 +343,21 @@ export function Wheel({
       <svg
         className="jade-chart"
         viewBox="0 0 100 100"
-        width={size}
-        height={size}
+        /*
+         * Fluid, capped at `size`, rather than fixed at it.
+         *
+         * The wheel is the instrument; it should be the widest thing on the
+         * page and take whatever room the column gives it. A fixed pixel width
+         * made it a 720px square in a 1100px column on a desktop and forced a
+         * horizontal squeeze on a narrow one — the `.jade-chart` rule in
+         * globals.css was already there to catch the second case, which is a
+         * sign the fixed width was wrong rather than that the rule was right.
+         *
+         * `size` therefore reads as a maximum now. The printable report and the
+         * public library pass a smaller one and still get exactly what they
+         * asked for, because their containers are narrower than their cap.
+         */
+        style={{ width: '100%', height: 'auto', maxWidth: `${size}px`, display: 'block' }}
         role="img"
         aria-label={title ?? 'Circular chart with twelve houses'}
       >
@@ -479,6 +566,15 @@ export function Wheel({
             rInner - 0.5,
             angleFor(aspect.toSign * 30 + 15, ascendant),
           );
+          const special = isSpecialDrishti(aspect.distance);
+          const dim = selected !== null && selected !== aspect.from;
+          const baseOpacity = aspect.strength >= 1 ? 0.62 : 0.34;
+          /* Composed as one string: an SVG <title> may only hold a single text
+             node, and React warns and falls back to client rendering when it
+             is handed several. */
+          const description = `${aspect.from} aspects the ${ordinalOf(aspect.distance)} from itself${
+            special ? ' — a special dṛṣṭi' : ''
+          }`;
           return (
             <line
               key={`asp-${aspect.from}-${aspect.toSign}-${i}`}
@@ -486,10 +582,21 @@ export function Wheel({
               y1={y1}
               x2={x2}
               y2={y2}
-              stroke="var(--accent, #33668F)"
+              stroke={drishtiTintOf(aspect.from)}
               strokeWidth={aspect.strength >= 1 ? 0.3 : 0.18}
-              opacity={aspect.strength >= 1 ? 0.55 : 0.3}
-            />
+              /* Dashed for the special dṛṣṭis, solid for the universal 7th.
+                 Redundant with colour on purpose — see `isSpecialDrishti`. */
+              strokeDasharray={special ? '1.4 1.1' : undefined}
+              opacity={dim ? baseOpacity * 0.22 : baseOpacity}
+              style={{ transition: 'opacity 180ms ease' }}
+              /* Asserted in the DOM by the phase-16.2 acceptance test rather
+                 than by screenshot, so a palette change cannot silently pass. */
+              data-drishti-from={aspect.from}
+              data-drishti-distance={aspect.distance}
+              data-drishti-special={special ? 'true' : 'false'}
+            >
+              <title>{description}</title>
+            </line>
           );
         })}
 
@@ -580,17 +687,35 @@ export function Wheel({
                   color={point.id === selected ? 'var(--accent, #33668F)' : tintOf(point.id)}
                 />
               ) : null}
-              {point.retrograde ? (
-                <text
-                  x={gx + 2.6}
-                  y={gy - 2.2}
-                  fontSize={2.2}
-                  fill="var(--clay, #9E5B3A)"
-                  fontFamily="var(--font-mono, monospace)"
-                >
-                  R
-                </text>
-              ) : null}
+              {/*
+                The retrograde mark sits *radially outward* from the glyph,
+                not diagonally beside it.
+
+                Diagonally, at a 2.6-unit offset from a 4.8-unit glyph, it
+                lands inside the next body's space whenever two grahas share a
+                sign — so a chart with the Sun and Rāhu together in the 6th
+                appeared to mark the Sun retrograde, which is impossible and
+                reads as a calculation error rather than a collision. Pushed
+                out along the same radius, the mark stays in its own body's
+                lane however crowded the sign gets.
+              */}
+              {point.retrograde
+                ? (() => {
+                    const [rx, ry] = polar(cx, cy, rGraha - 3.6, angle);
+                    return (
+                      <text
+                        x={rx}
+                        y={ry}
+                        fontSize={2.2}
+                        textAnchor="middle"
+                        fill="var(--clay, #9E5B3A)"
+                        fontFamily="var(--font-mono, monospace)"
+                      >
+                        R
+                      </text>
+                    );
+                  })()
+                : null}
               {on.degrees ? (
                 <text
                   x={polar(cx, cy, rGraha - 4.4, angle)[0]}

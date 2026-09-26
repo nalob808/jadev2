@@ -252,7 +252,25 @@ export function readingFor(
     const combust = chart.combustion?.[id];
     const notes: string[] = [];
     if (point.retrograde && !['Rahu', 'Ketu'].includes(id)) notes.push('retrograde');
-    if (combust) notes.push('combust');
+    /**
+     * `combust` is a *record*, not a verdict.
+     *
+     * `combustionOf` returns an object for every graha that has combustion
+     * orbs at all — carrying the separation, the orb, and whether the
+     * condition actually holds. Testing the object rather than its `combust`
+     * field marked every one of them combust, including a Jupiter 168° from
+     * the Sun. The reading said so in prose, with the factors underneath
+     * agreeing, which is exactly the failure mode constitution #5 is supposed
+     * to prevent — so the separation is now printed alongside, where a wrong
+     * answer has to show its own contradiction.
+     */
+    if (combust?.cazimi) {
+      notes.push(`cazimi — ${combust.separation.toFixed(1)}° from the Sun`);
+    } else if (combust?.combust) {
+      notes.push(
+        `combust — ${combust.separation.toFixed(1)}° from the Sun, within a ${combust.orb}° orb`,
+      );
+    }
     if (house.classes.includes('upachaya') && lib.nature === 'malefic') {
       notes.push('an upachaya house, where a malefic tends to build capacity rather than obstruct');
     }

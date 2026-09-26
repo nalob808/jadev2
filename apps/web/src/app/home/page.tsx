@@ -19,7 +19,13 @@ import {
   grahaSignification,
   houseSignification,
 } from '@jade/interpret';
-import { getSettingsProfile, listNotes, listSubjects, listUpcomingHits } from '@jade/db';
+import {
+  figuresBornOn,
+  getSettingsProfile,
+  listNotes,
+  listSubjects,
+  listUpcomingHits,
+} from '@jade/db';
 import { getSession } from '@/lib/auth';
 import { getClock, stamp } from '@/lib/clock';
 import { getDatabase } from '@/lib/db';
@@ -137,7 +143,7 @@ export default async function HomePage() {
   const { nowMs, nowJd } = clock;
 
   const database = getDatabase();
-  const [people, profile, notes, hits] = await Promise.all([
+  const [people, profile, notes, hits, bornToday] = await Promise.all([
     listSubjects(database, session.workspaceId),
     getSettingsProfile(database, session.workspaceId, session.settingsProfileId),
     listNotes(database, session.workspaceId, { limit: 4 }),
@@ -146,6 +152,20 @@ export default async function HomePage() {
       fromDate: new Date(nowMs),
       limit: 8,
     }),
+    /*
+     * Born on this day, from the public library.
+     *
+     * The one thing on this page that changes daily for its own reasons rather
+     * than because the sky moved, which is what makes it a reason to come back.
+     * Read against the workspace's own clock, not the server's — on a Hawaii
+     * clock the server is already a day ahead for ten hours out of twenty-four,
+     * and "born on this day" would be quietly showing tomorrow's.
+     */
+    figuresBornOn(
+      database,
+      Number(clock.format(nowMs, { month: 'numeric' })),
+      Number(clock.format(nowMs, { day: 'numeric' })),
+    ),
   ]);
 
   // The lens is never defaulted silently — constitution item 3. Without a
@@ -414,6 +434,55 @@ export default async function HomePage() {
               </Panel>
             )}
           </section>
+
+          {/* --------------------------------------------- born on this day */}
+          {bornToday.length > 0 ? (
+            <section className="mb-10">
+              <div className="mb-3 flex flex-wrap items-baseline justify-between gap-x-4 border-b border-[var(--rule)] pb-2">
+                <div>
+                  <Kicker>From the library</Kicker>
+                  <h2 className="font-display text-2xl font-semibold">
+                    Born on this day
+                    {/* Counts on everything: a heading that does not say what
+                        is under it gets opened repeatedly or never. */}
+                    <span className="ml-2 font-mono text-[11px] font-normal text-[var(--ink-faint)]">
+                      {bornToday.length}
+                    </span>
+                  </h2>
+                </div>
+                <Link
+                  href="/charts"
+                  className="font-mono text-[11px] uppercase tracking-wider text-[var(--accent)] underline underline-offset-4"
+                >
+                  the whole library →
+                </Link>
+              </div>
+
+              <ul className="flex flex-col gap-2">
+                {bornToday.map((figure) => (
+                  <li key={figure.slug}>
+                    <Link
+                      href={`/charts/${figure.slug}`}
+                      className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5 border border-[var(--rule)] bg-[var(--surface)] p-3 hover:border-[var(--accent)]"
+                    >
+                      <span className="font-display text-lg leading-none">
+                        {figure.displayName}
+                      </span>
+                      <span className="font-mono text-[10.5px] text-[var(--ink-faint)]">
+                        {figure.placeName}
+                      </span>
+                      {/* The Rodden grade travels with the name everywhere in
+                          Jade. A chart whose birth time is a guess must never
+                          be presented as though it were not. */}
+                      <span className="ml-auto font-mono text-[10px] uppercase tracking-[0.12em] text-[var(--ink-faint)]">
+                        {figure.birthTime ? `Rodden ${figure.rodden}` : 'no birth time'}
+                      </span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ) : null}
 
           {/* ------------------------------------------------------- the sky */}
           <section>

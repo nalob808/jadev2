@@ -29,10 +29,18 @@ import { getDatabase } from '@/lib/db';
 import { getOrComputeChart } from '@/lib/chart';
 import { removePerson } from '@/app/actions';
 import { Kicker, Panel, Shell } from '@/components/Shell';
-import { buildScopeIndex, glossaryContextFor, housesForChart, readingFor } from '@jade/interpret';
+import {
+  buildScopeIndex,
+  glossaryContextFor,
+  housesForChart,
+  lordPatternStatements,
+  lordSurvey,
+  readingFor,
+} from '@jade/interpret';
 import { AutoTerms, GlossaryProvider, Scope, T } from '@/components/Glossary';
 import { HouseTable, Reading } from '@/components/Reading';
 import { WheelWorkspace } from '@/components/WheelWorkspace';
+import { LordTable } from '@/components/LordTable';
 import { buildFocusIndex } from '@/lib/focusIndex';
 import { NoteCard } from '@/components/NoteCard';
 import { NoteComposer } from '@/components/NoteComposer';
@@ -92,7 +100,17 @@ export default async function PersonPage({
       ? birthEvent.utcDatetime.getTime()
       : new Date(birthEvent.utcDatetime).getTime(),
   );
-  const dashas = vimshottari(chart.points.Moon!.longitude, birthJd, { levels: 3 });
+  /**
+   * Stated rather than defaulted (CLAUDE.md #3). The scrubber rebuilds this
+   * same tree in the browser, and if the two disagreed about the length of a
+   * year the running chain under the wheel would drift from the one in the
+   * daśā column — by days at the mahādaśā level and visibly at the third.
+   */
+  const YEAR_LENGTH = 'julian' as const;
+  const dashas = vimshottari(chart.points.Moon!.longitude, birthJd, {
+    levels: 3,
+    yearLength: YEAR_LENGTH,
+  });
   // "Now" is passed explicitly rather than read inside the core.
   const nowJd = jdFromUnixMs(Date.now());
   const runningChain = dashaChainAt(dashas, nowJd);
@@ -105,6 +123,16 @@ export default async function PersonPage({
   // packages/interpret. Nothing here is pre-written prose.
   const reading = readingFor(chart, { dasha: dashas.periods, nowJd });
   const houseRows = housesForChart(chart);
+
+  /**
+   * Where every house lord goes.
+   *
+   * The question a practitioner actually asks of a chart, and the one Jade
+   * could not answer — which is why it kept getting asked of a chatbot
+   * instead. Pure arithmetic over the chart already cast.
+   */
+  const lords = lordSurvey(chart);
+  const lordPatterns = lordPatternStatements(lords);
 
   // The wheel draws from real longitudes rather than sign buckets, so it needs
   // the points themselves rather than the varga projection the square charts
@@ -461,9 +489,23 @@ export default async function PersonPage({
               Every degree, and what aspects what
             </h2>
             <p className="mt-1 max-w-[64ch] text-[14px] leading-relaxed text-[var(--ink-muted)]">
-              Drawn from longitudes rather than sign buckets — the square charts say Mars is in
-              Scorpio, this says where in Scorpio. Toggle the layers; click a graha to isolate its
-              dṛṣṭi.
+              {/*
+                Told with this chart's own Mars, not a worked example.
+                Hard-coded, the sentence read as a statement about the chart on
+                screen — "Mars is in Scorpio" on a chart whose Mars is in
+                Cancer looks like the software is confused about the data,
+                which is a bad thing for an accuracy product to look like.
+              */}
+              Drawn from longitudes rather than sign buckets — the square charts say{' '}
+              {chart.points.Mars ? (
+                <>
+                  Mars is in {chart.points.Mars.sign}, this says{' '}
+                  {formatSignPosition(chart.points.Mars.longitude, SIGNS)}
+                </>
+              ) : (
+                <>a graha is in a sign, this says where in the sign</>
+              )}
+              . Toggle the layers; click a graha to isolate its <T id="drishti">dṛṣṭi</T>.
             </p>
           </div>
           {/*
@@ -488,6 +530,17 @@ export default async function PersonPage({
             sarva={chart.ashtakavarga.sarva}
             bhavaCusps={bhavaCusps}
             bhavaLabel="equal from the lagna degree"
+            transitFrame={{
+              ayanamsa: profile.ayanamsa,
+              customAyanamsaAtJ2000: profile.customAyanamsaAtJ2000 ?? undefined,
+              nodeType: profile.nodeType,
+            }}
+            scrubberNatal={{
+              moonLongitude: chart.points.Moon!.longitude,
+              birthJd,
+              yearLength: YEAR_LENGTH,
+            }}
+            todayJd={nowJd}
             facts={facts}
             lens={`${profile.ayanamsa} ayanāṁśa · ${chart.houses.system.replace('_', ' ')} houses · ${profile.nodeType} nodes`}
             timeCaveat={
@@ -496,6 +549,44 @@ export default async function PersonPage({
                 : null
             }
           />
+        </section>
+
+        <section className="mt-8">
+          <div className="mb-4">
+            <Kicker>House lords</Kicker>
+            <h2 className="font-display text-3xl font-semibold leading-tight">
+              Where each house sends its lord
+            </h2>
+            <p className="mt-1 max-w-[64ch] text-[14px] leading-relaxed text-[var(--ink-muted)]">
+              <AutoTerms>
+                {
+                  'Two houses are linked when one house’s lord sits in the other — that is how a chart connects money to creativity, or work to partnership. The rows are the arithmetic; the pattern underneath them is what a practitioner reads.'
+                }
+              </AutoTerms>
+            </p>
+          </div>
+          <Panel>
+            <LordTable survey={lords} statements={lordPatterns} />
+          </Panel>
+          {/*
+            The way through to the house-by-house reading.
+            This table answers where the lords went; the next page answers what
+            each house holds, what aspects it and what that comes to. Placed here
+            rather than in the nav alone, because this is where somebody reading
+            the lords starts wanting the rest.
+          */}
+          <Link
+            href={`/people/${subject.id}/houses`}
+            className="mt-3 flex flex-wrap items-baseline gap-x-3 border border-[var(--rule)] p-3 hover:border-[var(--accent)]"
+          >
+            <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--accent)]">
+              Read the twelve houses
+            </span>
+            <span className="text-[12.5px] leading-relaxed text-[var(--ink-muted)]">
+              Each one with its sign, its lord, what sits in it, what aspects it, and what those
+              come to — with the placements printed beside every line.
+            </span>
+          </Link>
         </section>
 
         <section className="mt-8">

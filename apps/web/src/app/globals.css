@@ -46,6 +46,35 @@
   --benefic: #2c7a64;
   --malefic: #9e5b3a;
 
+  /* ------------------------------------------------- dṛṣṭi, by its source
+     One hue per graha, so a line can be followed back to the graha that cast it
+     rather than traced by eye across a crowded circle.
+
+     Phase 16.2 first said to reuse the three nature tints and add nothing new.
+     That does not work: five of the nine grahas are malefic, so Mars, Saturn,
+     the Sun, Rāhu and Ketu would all cast the same clay line and "that one is
+     Saturn's" — the whole point — stays unreadable. Those five are also exactly
+     the grahas that cast three lines each, so the crowding is real.
+
+     The discipline is kept a different way. Each hue sits inside its graha's
+     nature family, so a line still reads benefic or malefic at a glance and
+     agrees with the tint of the glyph it starts from. The set is total, so no
+     graha can fall back to another's colour. Muted throughout, because twenty
+     saturated lines across a circle stop being information.
+
+     Shape carries the same distinction independently — special dṛṣṭis are
+     dashed — because colour-alone encoding fails print, colourblindness and a
+     phone in sunlight, and all three happen. */
+  --drishti-sun: #a86a30;
+  --drishti-moon: #4f8f79;
+  --drishti-mars: #b0553c;
+  --drishti-mercury: #55606b;
+  --drishti-jupiter: #2c7a64;
+  --drishti-venus: #3d8f88;
+  --drishti-saturn: #4f5570;
+  --drishti-rahu: #7d5a8a;
+  --drishti-ketu: #8a6a52;
+
   /*
    * The three day bands.
    *
@@ -104,6 +133,17 @@
     --benefic: #5cbba0;
     --malefic: #cd8964;
 
+    /* Dṛṣṭi sources, lifted for a dark ground. Same hues, same families. */
+    --drishti-sun: #d3a163;
+    --drishti-moon: #6fc0a6;
+    --drishti-mars: #d9866a;
+    --drishti-mercury: #97a2ad;
+    --drishti-jupiter: #5cbba0;
+    --drishti-venus: #6fbdb4;
+    --drishti-saturn: #8f97bd;
+    --drishti-rahu: #b491c2;
+    --drishti-ketu: #bfa088;
+
     --band-favourable: #5cbba0;
     --band-mixed: #d8ab55;
     --band-difficult: #cd8964;
@@ -144,6 +184,17 @@
   --nature-neutral: #97a2ad;
   --benefic: #5cbba0;
   --malefic: #cd8964;
+
+  /* Dṛṣṭi sources, lifted for a dark ground. Same hues, same families. */
+  --drishti-sun: #d3a163;
+  --drishti-moon: #6fc0a6;
+  --drishti-mars: #d9866a;
+  --drishti-mercury: #97a2ad;
+  --drishti-jupiter: #5cbba0;
+  --drishti-venus: #6fbdb4;
+  --drishti-saturn: #8f97bd;
+  --drishti-rahu: #b491c2;
+  --drishti-ketu: #bfa088;
 
   --skeleton: #232f3a;
   --skeleton-sheen: #2c3a46;
@@ -541,6 +592,18 @@ h3 {
     --clay: #7d4227;
     --benefic: #1d5f4c;
     --malefic: #7d4227;
+
+    /* Dṛṣṭi sources, darkened for paper. The dash pattern does the heavy
+       lifting here — ink is where colour encoding fails first. */
+    --drishti-sun: #7a4c1f;
+    --drishti-moon: #2f6455;
+    --drishti-mars: #8a3c24;
+    --drishti-mercury: #3a434c;
+    --drishti-jupiter: #1d5f4c;
+    --drishti-venus: #2a6560;
+    --drishti-saturn: #343a52;
+    --drishti-rahu: #563a61;
+    --drishti-ketu: #5f4733;
     --panel-shadow: none;
     --panel-shadow-lifted: none;
     --panel-highlight: transparent;

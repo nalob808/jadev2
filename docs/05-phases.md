@@ -125,7 +125,7 @@ Sub-steps, in order:
 
 ---
 
-## Phase 3 — The chart workspace (3–4 weeks) 🔵 IN PROGRESS
+## Phase 3 — The chart workspace ✅ SUBSTANTIALLY COMPLETE
 
 **Shipped so far:** the varga projection in the core (`buildVargaChart` — every
 divisional re-seated on its own ascendant, not the rāśi redrawn sixteen times),
@@ -140,9 +140,22 @@ spots in one glance. Cross-check the layout against Jagannātha Hora or Shri
 Jyoti Star before rebuilding it. Two verified styles beat three where one is
 invented.
 
-**Still to come in this phase:** the Western wheel, the transit ring with a
-time scrubber, bhāva chalit overlay, aṣṭakavarga on the wheel (blocked on the
-Phase 1 aṣṭakavarga work), and notes anchored to chart elements.
+**Now shipped as well:** the Western wheel (Phase 14), the bhāva chalit overlay
+as dashed spokes, aṣṭakavarga shading on the wheel, notes anchored to chart
+elements, and — the last item, carried since this phase was written — **the
+transit ring with a time scrubber**.
+
+The scrubber is opt-in rather than always on, which was a decision rather than
+an omission. The ring adds nine marks to a circle and the ephemeris that
+computes it is about 80 KB of JavaScript; a reader who opened a birth chart
+should pay neither. So the natal wheel is still the default and the ring
+arrives, with its ephemeris, when someone asks for it. Only transits recompute
+while scrubbing: the natal positions, yogas, vargas and aṣṭakavarga are
+properties of the birth moment and a rendering control must not be able to
+alter a reading.
+
+**Still open in this phase:** Playwright visual-regression screenshots of the
+chart styles, and the print stylesheet audit.
 
 **Goal:** rebuild the v0 screens as real components over real data, then go far past them.
 
@@ -219,7 +232,7 @@ private couple's page with its own share link.
 
 ---
 
-## Phase 5 — Predictive engine and alerts (2–3 weeks) 🔵 IN PROGRESS
+## Phase 5 — Predictive engine and alerts 🔵 CODE COMPLETE, DEPLOY PENDING
 
 **Goal:** Jade tells you things before you ask.
 
@@ -246,9 +259,33 @@ from the event rather than from when the job ran, so a second pass over an
 overlapping window finds the same ten events and records none of them. Verified
 against a real Postgres — three runs, ten rows.
 
-**Still to come in this phase:** the long-running worker on Fly.io, the daśā ×
-transit heat timeline, event search, and email digests. The digests need Resend
-wired to a verified domain, which is a deploy-side step rather than a code one.
+**Shipped: the /timing screens.** Three of them, each answering one question.
+
+`/timing` is the daśā × transit series. The segments **are** the antardaśās
+rather than equal date bins, because a bin boundary falling mid-period splits
+one reading in half and joins halves of unrelated ones — every division on the
+axis is a real change of period. There is deliberately **no heat**: the word
+survived in this roadmap and the thing did not. A gradient from cool to hot is a
+verdict about a stretch of somebody's life, which Jade may not make. Each
+segment carries a _count of named events_ instead, and the one genuine
+correlation — a transit by a graha that also rules the running period — is
+marked because it is a fact about the chart rather than an opinion about the
+person.
+
+`/timing/search` compiles a set of clauses into the windows where all of them
+hold. Ranked by **spread** — how few days separate the conditions — which is
+arithmetic anyone can check, and explicitly not a ranking by importance. Six
+presets cover the questions practitioners actually ask; the builder teaches
+itself by showing how each preset was constructed.
+
+`/timing/sky` is the book-wide screen: every person against today's sky, sorted
+by what asked for attention — fired watches first, then the difficult end of the
+tārā band. One transiting Moon is resolved for the whole book, so the page is
+cheap enough to leave open.
+
+**Still to come in this phase:** the long-running worker on Fly.io and email
+digests. Both are deploy-side — the worker code and the nightly job body exist
+and are idempotent; the digests need Resend wired to a verified domain.
 
 **Done when:** the worker service runs scheduled scans; watches evaluate nightly; the daśā ×
 transit heat timeline renders across decades; event search compiles a query and returns ranked
@@ -909,7 +946,7 @@ page, and "look at her Saturn" is a link instead of instructions.
 
 ---
 
-### 16.2 — Bigger, and readable at a glance
+### 16.2 — Bigger, and readable at a glance ✅ DONE
 
 **Size.** The wheel is capped at 560px on the person page and shares its row
 on `/wheel`. It becomes the widest thing on the page, sized from the viewport
@@ -940,13 +977,42 @@ competing.
 different colour from the lines from Jupiter, and Jupiter's 5th/9th lines are
 dashed while its 7th is solid. Asserted in the DOM, not by screenshot.
 
+**Done, with one decision reversed.** This section said to reuse the three
+nature tints and add nothing to the palette. That does not work: five of the
+nine grahas are malefic, so Mars, Saturn, the Sun, Rāhu and Ketu would all cast
+the same clay line and "that one is Saturn's" — the whole point — stays
+unreadable. Those five are also exactly the grahas that cast three lines each.
+
+So there is now one hue per graha, each sitting inside its graha's nature
+family, defined in all four theme blocks including print. The discipline the
+original rule was protecting is kept: a line still reads benefic or malefic at a
+glance and agrees with the tint of the glyph it starts from, the set is total so
+no graha can fall back to another's colour, and the hues stay muted.
+
+Two smaller changes came with it. Selecting a graha now **desaturates** the other
+dṛṣṭi rather than deleting it — it used to filter the lines out entirely, which
+answers "what does Saturn aspect" and throws away the context that made the
+answer worth having; grahas already dimmed rather than vanished, so one selection
+now means one thing everywhere. And the wheel is fluid, capped at its `size`
+rather than fixed at it, so it takes whatever room the column gives it.
+
+The acceptance test lives in `apps/web/src/lib/drishtiEncoding.test.tsx`, and it
+is worth knowing that its first version passed while checking nothing: the dṛṣṭi
+layer is off by default, so every assertion ran against zero lines. `Wheel` now
+takes `initialLayers` so a caller — or a test — can open with a layer on.
+
 ---
 
-### 16.3 — The time scrubber
+### 16.3 — The time scrubber ✅ DONE
 
-Groundwork exists: selection is lifted, the transit ring already accepts
+**Built as part of closing Phase 3**, since it was that phase's last open item
+and this phase's largest risk. See the Phase 3 note above for the two decisions
+that shaped it: the ring is opt-in, and its ephemeris is fetched on demand
+rather than shipped to every chart page.
+
+Groundwork existed: selection is lifted, the transit ring already accepts
 arbitrary points, and `packages/astro` runs in the browser because it is pure
-(constitution #2 earning its keep).
+(constitution #2 earning its keep — this is where it cashed out).
 
 - A date control under the wheel: drag to move the transit ring, with buttons
   for today / a week / a month / a year, and a date field for a specific day.
@@ -1005,7 +1071,7 @@ anywhere in Jade is now hoverable.
 
 ---
 
-### 16.5 — Public charts, inside the account
+### 16.5 — Public charts, inside the account ✅ DONE
 
 The library is nineteen figures with a genuinely honest treatment of birth-time
 provenance, and from inside the app it is reachable only by typing the URL.
@@ -1024,6 +1090,21 @@ provenance, and from inside the app it is reachable only by typing the URL.
 The private/public table separation from Phase 13 is **not** relaxed. These
 are read paths into `public_figures`; nothing writes a client into it, and
 nothing joins the two.
+
+**Done.** All four ways in: a `Library` entry in `Shell`, "born on this day" on
+Home (counted from the workspace's own clock, not the server's — on a Hawaii
+clock the server is a day ahead for ten hours out of twenty-four and would show
+tomorrow's), the library as a second section in the wheel's people rail, and a
+link from `/people` placed beside the plan meter, because somebody at their
+limit is exactly who needs to know a public chart costs them nothing.
+
+Two things the implementation had to say out loud. Only figures with an attested
+birth time are offered for the wheel — an untimed chart has no ascendant and so
+no houses, and the library is scrupulous about that everywhere else. And every
+figure is cast in the library's own fixed lens (Lahiri, mean nodes) so published
+charts stay stable and citable, which means a workspace set to true nodes would
+have an inner ring and an outer ring in different frames, Rāhu up to ~1.7° apart.
+That mismatch is now printed beside the wheel rather than reconciled or ignored.
 
 ---
 
@@ -1090,12 +1171,67 @@ here; if it slips, §16.1 and §16.2 still ship a better product on their own.
 
 ### Order of work
 
-`16.1 → 16.2 → 16.5 → 16.4 → 16.6 → 16.3 → 16.7`
+`16.1 → 16.4 → 16.3 → 16.2 → 16.5 → 16.6 → 16.7`
+
+16.1, 16.2, 16.3, 16.4 and 16.5 are done. **16.6 (theme vibes) and 16.7 (the
+ADHD sweep) remain**, and 16.7 is partly paid for already — counts on headings,
+one primary action per screen and grouped lists went in alongside the work
+above rather than being saved for a pass at the end.
 
 16.1 unblocks everything else and is the biggest single improvement. 16.5 is
 nearly free and removes a whole class of "where is that" friction. 16.3 is
 last of the features because it is the only one that can genuinely overrun.
 16.7 is applied continuously and swept at the end.
+
+## Phase 16.8 — The houses, read and compared ✅ DONE
+
+Not in the original Phase 16 list. Nalu asked for it mid-phase, in his words:
+_"We really like looking at peoples houses and comparing them and stuff and im
+still learning of the houses and lords and whats in it"_, plus interpretations
+per house.
+
+**What was already there and what was missing.** Jade could say where every
+graha sat and where every house lord went. Neither answers "what about my
+seventh?", which needs four things joined: the sign on the house, its lord and
+where the lord went, what occupies it, and what aspects it. Those lived in four
+places. `packages/interpret/src/houseReading.ts` joins them.
+
+**Two screens.** `/people/[id]/houses` reads one chart twelve times, ordered the
+way a house is actually read — lord first, then occupants, then aspects, then the
+assembled reading, then what the house means in general _last_, because by then
+you already know what it means here. `?h=7` narrows to one. `/houses` holds one
+house across everybody at once, which is the thing people do and software does
+not support.
+
+**The interpretations are assembled, never stored.** There are 144 lord-in-house
+combinations before dignity, and a library of canned prose for them is exactly
+the unsourced boilerplate the $299 desktop programs ship and nobody trusts. Every
+sentence is composed from the significations libraries plus the computed chart and
+carries its own placements, with the classical citation printed where the
+statement rests on a rule rather than on arithmetic.
+
+**On the source.** Nalu asked for the interpretations to come from _Elements of
+Vedic Astrology_. That is K.S. Charak's book and still in copyright, so its text
+cannot go into a product Jade sells. The statements are written against the
+classical sources it draws on — BPHS above all — and cite chapter and verse. Ideas
+are not the protected part; his wording is.
+
+**Two things the tests caught, both worth keeping.** The constitution-#6 guard
+first failed on the string `7th from Cancer` — Karka is Cancer, so the sign name
+collides with the disease, and `cancer` had to come out of the forbidden list
+(the disease sense is still caught by `disease`, `illness`, `terminal`, `fatal`,
+`diagnos*`). Then it failed on Saturn's kāraka list, which legitimately contains
+"longevity". That drew the right line: the prediction guard belongs on the
+composed prose, and the factors are held to a stricter standard instead — a test
+requires every significations-derived factor to be a _verbatim_ slice of the
+library, so such a word can only reach the screen because a cited source put it
+there.
+
+**One thing this made worse.** The nav went from seven items to ten (Timing,
+Library, Houses). It wraps now instead of overflowing a phone, but ten flat items
+is more than a reader should scan. Grouping it is §16.7's job.
+
+---
 
 ## Phase 8 — Beyond (ongoing)
 

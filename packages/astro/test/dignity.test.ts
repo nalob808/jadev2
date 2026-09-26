@@ -232,7 +232,12 @@ describe('the computed chart carries dignity, combustion and pañcāṅga', () =
     // Bumping the version is what invalidates every cached chart. If this
     // assertion fails because the version moved, that is correct — but the
     // cache key must move with it.
-    expect(ASTRO_VERSION).toBe('0.5.0');
+    //
+    // 0.5.0 → 0.6.0: the Sun and Moon can no longer be reported retrograde,
+    // and combustion is read as a verdict rather than as the presence of a
+    // record. Both change stored chart output, so every cached chart from
+    // before this bump has to be recomputed rather than served.
+    expect(ASTRO_VERSION).toBe('0.6.0');
 
     expect(chart.dignity.Saturn).toBeDefined();
     expect(chart.dignity.Ascendant).toBeUndefined();

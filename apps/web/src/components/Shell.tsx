@@ -7,7 +7,13 @@ const LINKS: Array<{ href: string; label: string }> = [
   { href: '/home', label: 'Home' },
   { href: '/people', label: 'People' },
   { href: '/wheel', label: 'Wheel' },
+  // The library existed from Phase 13 and was reachable only by typing the URL.
+  // It is a read path into `public_figures`; nothing here writes a client into
+  // that table and nothing joins the two (Phase 13's separation stands).
+  { href: '/charts', label: 'Library' },
+  { href: '/houses', label: 'Houses' },
   { href: '/relationships', label: 'Relationships' },
+  { href: '/timing', label: 'Timing' },
   // Shown to everyone, including tiers that cannot open it. Clicking through
   // to a wall that explains the feature sells it; a padlock teaches nothing.
   { href: '/sessions', label: 'Sessions' },
@@ -37,7 +43,20 @@ export function Nav({ email }: { email?: string | undefined }): React.ReactEleme
           sidereal practice
         </span>
 
-        <nav aria-label="Main" className="ml-auto flex items-center gap-1 text-sm">
+        {/*
+          Wraps rather than overflowing.
+
+          This row held seven items and did not need to wrap. Timing, Library and
+          Houses took it to ten, which overflows the masthead on a phone — so it
+          wraps now and the masthead grows a line instead of hiding its right
+          edge. Ten flat items is still more than a reader should have to scan;
+          grouping them belongs to §16.7, and is noted there rather than bolted
+          on here.
+        */}
+        <nav
+          aria-label="Main"
+          className="ml-auto flex flex-wrap items-center justify-end gap-x-1 gap-y-0.5 text-sm"
+        >
           {LINKS.map((link) => (
             <NavLink key={link.href} href={link.href}>
               {link.label}

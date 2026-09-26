@@ -75,6 +75,18 @@ export default async function PeoplePage({
             Add person
           </Link>
           <PlanMeter counted="people" used={usage.used} limit={usage.limit} planName={plan.name} />
+          {/*
+            The library, beside the plan meter on purpose.
+            A practitioner at their limit is exactly the person who wants to know
+            that opening a public chart costs them nothing — it is a read path
+            into `public_figures` and is never added to this list.
+          */}
+          <Link
+            href="/charts"
+            className="font-mono text-[10px] uppercase tracking-wider text-[var(--accent)] underline underline-offset-4"
+          >
+            or open a chart from the library →
+          </Link>
         </div>
       </div>
 

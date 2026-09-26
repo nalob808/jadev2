@@ -2,6 +2,7 @@ import type { EphemerisProvider } from './ephemeris/provider.js';
 import type { Graha, PointId } from './types.js';
 import { SIGNS } from './types.js';
 import { nakshatraOf } from './nakshatra.js';
+import { retrogradeFrom } from './motion.js';
 import { karanaOf, nityaYogaOf, tithiOf, varaOf, type Panchanga } from './panchanga.js';
 import {
   findIngresses,
@@ -202,6 +203,15 @@ export function skyNow(
     'Rahu',
     'Ketu',
   ],
+  /**
+   * Which node formulation the caller is using.
+   *
+   * The mean node is retrograde by definition; the true node turns direct for
+   * a few days at a time, and a panel that hard-codes "always retrograde"
+   * reports the wrong thing for anyone whose profile says true. Defaulted to
+   * mean because that is Jade's default, and stated rather than hidden.
+   */
+  nodeType: 'mean' | 'true' = 'mean',
 ): SkyPosition[] {
   return bodies.map((id) => {
     const longitude = siderealLongitudeAt(provider, id, jdUt, frame);
@@ -218,7 +228,7 @@ export function skyNow(
       degreesInSign: longitude - signIndex * 30,
       nakshatra: nakshatraOf(longitude).name,
       nakshatraLord: nakshatraOf(longitude).lord,
-      retrograde: id === 'Rahu' || id === 'Ketu' ? true : speed < 0,
+      retrograde: retrogradeFrom(id, speed, nodeType),
     };
   });
 }

@@ -1,4 +1,5 @@
 import { EXALTATION, lordOfSign, MOOLATRIKONA, SIGN_LORDS } from './dignity.js';
+import { GRAHA_DRISHTI } from './drishti.js';
 import { SIGNS, type Graha } from './types.js';
 
 /**
@@ -85,6 +86,15 @@ export interface YogaOptions {
    */
   readonly nodesCountAsGrahas?: boolean;
   /**
+   * Whether a dusthāna lord in its *own* dusthāna forms a viparīta rāja yoga.
+   *
+   * The majority reading says yes, and it is the textbook case: the 6th lord
+   * in the 6th is Harṣa. A minority require the lord to occupy a *different*
+   * difficult house, reading the yoga as an exchange of afflictions rather
+   * than a containment. Default includes it.
+   */
+  readonly viparitaOwnHouse?: 'include' | 'exclude';
+  /**
    * Whether the Sun's presence in the 2nd or 12th spoils sunaphā and anaphā.
    *
    * Both readings are in circulation. Parāśara's rule is that the yoga is
@@ -108,6 +118,7 @@ export interface YogaOptions {
 const DEFAULTS: Required<YogaOptions> = {
   mahapurushaReference: 'lagna',
   nodesCountAsGrahas: false,
+  viparitaOwnHouse: 'include',
   sunSpoilsLunarYogas: false,
   lunarSolarReporting: 'exclusive',
 };
@@ -364,6 +375,34 @@ function lunarYogas(chart: YogaChart, options: Required<YogaOptions>): YogaHit[]
   if (withMoon.length > 0) {
     cancellations.push(`the Moon is joined by ${withMoon.join(', ')}`);
   }
+  /**
+   * A benefic *aspecting* the Moon cancels it too, and this was missing.
+   *
+   * The three conditions above all ask where something sits. The texts give a
+   * fourth that asks what looks at the Moon, and it is the one that fires most
+   * often in practice — Jupiter's 5th and 9th aspects reach two thirds of the
+   * chart, so a Jupiter anywhere trinal to the Moon is a cancellation. Leaving
+   * it out meant Jade reported a bare Kemadruma on charts the tradition would
+   * not call afflicted at all, which is precisely the dishonesty the
+   * cancellation field exists to prevent.
+   */
+  const aspecting = BENEFICS.filter((g) => {
+    if (chart.signOf[g] === moonSign) return false; // conjunction, counted above
+    return GRAHA_DRISHTI[g].some((distance) => (chart.signOf[g] + distance - 1) % 12 === moonSign);
+  });
+  if (aspecting.length > 0) {
+    const verb = aspecting.length === 1 ? 'aspects' : 'aspect';
+    cancellations.push(
+      `${aspecting
+        .map(
+          (g) =>
+            `${g} from ${signName(chart.signOf[g])}, the ${ordinal(
+              houseFrom(chart.signOf[g], moonSign),
+            )} from it`,
+        )
+        .join('; ')} ${verb} the Moon`,
+    );
+  }
 
   return [
     {
@@ -476,7 +515,7 @@ function otherYogas(chart: YogaChart, options: Required<YogaOptions>): YogaHit[]
     });
   }
 
-  // Viparīta Rāja — a lord of the 6th, 8th or 12th sitting in another of them.
+  // Viparīta Rāja — a lord of the 6th, 8th or 12th sitting in one of them.
   // The three have their own names, which is how a practitioner refers to them.
   const VIPAREETA: Record<number, { id: string; name: string; plain: string }> = {
     6: { id: 'harsha', name: 'Harṣa yoga', plain: 'Harsha yoga' },
@@ -488,18 +527,104 @@ function otherYogas(chart: YogaChart, options: Required<YogaOptions>): YogaHit[]
     const sign = (chart.ascendantSign + house - 1) % 12;
     const lord = lordOfSign(sign);
     const lordHouse = houseFrom(chart.ascendantSign, chart.signOf[lord]);
-    if (dusthanas.includes(lordHouse) && lordHouse !== house) {
-      const named = VIPAREETA[house]!;
+    if (!dusthanas.includes(lordHouse)) continue;
+    /**
+     * A dusthāna lord in its *own* dusthāna counts, and used not to.
+     *
+     * The rule here read `lordHouse !== house`, excluding the commonest and
+     * strongest case in the whole set: the 6th lord in the 6th, the 8th in the
+     * 8th. That is the textbook Harṣa — the lord of difficulty confined to the
+     * house of difficulty, so it spoils the significations it would otherwise
+     * press on you. Excluding it meant a Pisces ascendant with the Sun in Leo
+     * reported no Harṣa yoga at all.
+     *
+     * A minority of writers do require the lord to move to a *different*
+     * dusthāna, reading the yoga as an exchange of afflictions rather than a
+     * containment. `viparitaOwnHouse: 'exclude'` is that reading; the default
+     * is the majority one, and the factors say which case fired either way
+     * (CLAUDE.md, on sources that disagree).
+     */
+    const ownHouse = lordHouse === house;
+    if (ownHouse && options.viparitaOwnHouse === 'exclude') continue;
+    const named = VIPAREETA[house]!;
+    hits.push({
+      id: named.id,
+      name: `${named.name} (viparīta rāja)`,
+      plain: `${named.plain} (vipareeta raja)`,
+      source: 'BPHS, on the lords of the dusthānas',
+      summary: ownHouse
+        ? `The lord of the ${ordinal(house)} sits in the ${ordinal(house)} itself, confined to the house it rules.`
+        : `The lord of the ${ordinal(house)} occupies another of the difficult houses.`,
+      factors: [
+        `the ${ordinal(house)} is ${signName(sign)}, ruled by ${lord}`,
+        ownHouse
+          ? `${lord} sits in ${signName(chart.signOf[lord])}, its own ${ordinal(house)}`
+          : `${lord} sits in ${signName(chart.signOf[lord])}, the ${ordinal(lordHouse)} — also a dusthāna`,
+      ],
+    });
+  }
+
+  /**
+   * Parivartana — two grahas in each other's signs.
+   *
+   * A mutual exchange, and one of the strongest combinations in Jyotiṣa:
+   * each graha is placed in the other's house, so the two houses' matters are
+   * bound together and each lord has a stake in the other's affairs.
+   *
+   * The classical three-way split is by which houses are involved, and it
+   * matters far more than the fact of the exchange. An exchange between the
+   * 5th and 9th is a rāja yoga; one involving the 6th, 8th or 12th is
+   * dainya — "wretched" — and reads as a liability rather than a gift.
+   * Reporting the exchange without its class would flatten the difference.
+   */
+  for (let i = 0; i < CLASSICAL.length; i += 1) {
+    for (let j = i + 1; j < CLASSICAL.length; j += 1) {
+      const a = CLASSICAL[i]!;
+      const b = CLASSICAL[j]!;
+      // Each standing in a sign the other rules. `lordOfSign` gives one lord
+      // per sign, so a pair either exchanges or it does not — no ambiguity.
+      if (lordOfSign(chart.signOf[a]) !== b) continue;
+      if (lordOfSign(chart.signOf[b]) !== a) continue;
+
+      const houseA = houseFrom(chart.ascendantSign, chart.signOf[a]);
+      const houseB = houseFrom(chart.ascendantSign, chart.signOf[b]);
+      const involved = [houseA, houseB];
+
+      const dainya = involved.some((h) => dusthanas.includes(h));
+      const khala = involved.includes(3);
+      const kind = dainya
+        ? { id: 'dainya', name: 'Dainya parivartana', plain: 'Dainya parivartana' }
+        : khala
+          ? { id: 'khala', name: 'Khala parivartana', plain: 'Khala parivartana' }
+          : { id: 'maha', name: 'Mahā parivartana', plain: 'Maha parivartana' };
+
       hits.push({
-        id: named.id,
-        name: `${named.name} (viparīta rāja)`,
-        plain: `${named.plain} (vipareeta raja)`,
-        source: 'BPHS, on the lords of the dusthānas',
-        summary: `The lord of the ${ordinal(house)} occupies another of the difficult houses.`,
+        id: `parivartana_${kind.id}_${a.toLowerCase()}_${b.toLowerCase()}`,
+        name: `${kind.name} — ${a} and ${b}`,
+        plain: `${kind.plain} - ${a} and ${b}`,
+        source: 'BPHS and Phaladīpikā, on mutual exchange of signs',
+        summary: dainya
+          ? `${a} and ${b} exchange signs, and a difficult house is involved — the texts class this as dainya rather than as a gift.`
+          : khala
+            ? `${a} and ${b} exchange signs, with the 3rd involved — classed as khala, mixed in its effects.`
+            : `${a} and ${b} exchange signs between the ${ordinal(houseA)} and the ${ordinal(houseB)}, binding the two houses' matters together.`,
         factors: [
-          `the ${ordinal(house)} is ${signName(sign)}, ruled by ${lord}`,
-          `${lord} sits in ${signName(chart.signOf[lord])}, the ${ordinal(lordHouse)} — also a dusthāna`,
+          `${a} in ${signName(chart.signOf[a])}, the ${ordinal(houseA)}, ruled by ${b}`,
+          `${b} in ${signName(chart.signOf[b])}, the ${ordinal(houseB)}, ruled by ${a}`,
         ],
+        /**
+         * An exchange between two debilitated grahas is the classical
+         * cancellation of both debilitations, and it is the difference
+         * between a frightening reading and an ordinary chart — so it travels
+         * with the yoga rather than being left for the reader to notice.
+         */
+        ...(inDebilitation(a, chart) && inDebilitation(b, chart)
+          ? {
+              cancellations: [
+                `both ${a} and ${b} are debilitated, and an exchange between them is held to cancel both debilitations`,
+              ],
+            }
+          : {}),
       });
     }
   }
@@ -541,7 +666,6 @@ function otherYogas(chart: YogaChart, options: Required<YogaOptions>): YogaHit[]
     });
   }
 
-  void options;
   return hits;
 }
 

@@ -1,11 +1,12 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { POINT_DISPLAY_ORDER, jdFromUnixMs, signsAspectedBy, vimshottari } from '@jade/astro';
-import { getSettingsProfile, listNotes, listSubjects } from '@jade/db';
+import { getSettingsProfile, listNotes, listPublicFigures, listSubjects } from '@jade/db';
 import { getSession } from '@/lib/auth';
 import { getClock } from '@/lib/clock';
 import { getDatabase } from '@/lib/db';
 import { getOrComputeChart } from '@/lib/chart';
+import { LIBRARY_LENS, castFigure } from '@/lib/publicChart';
 import { buildFocusIndex } from '@/lib/focusIndex';
 import { buildScopeIndex, glossaryContextFor } from '@jade/interpret';
 import { GlossaryProvider } from '@/components/Glossary';
@@ -67,19 +68,38 @@ function wheelPointsFor(chart: Awaited<ReturnType<typeof getOrComputeChart>>['ch
 export default async function WheelPage({
   searchParams,
 }: {
-  searchParams: Promise<{ person?: string; overlay?: string }>;
+  searchParams: Promise<{ person?: string; overlay?: string; figure?: string }>;
 }) {
   const session = await getSession();
   if (!session) redirect('/sign-in');
 
-  const { person: personParam, overlay: overlayParam } = await searchParams;
+  const { person: personParam, overlay: overlayParam, figure: figureParam } = await searchParams;
   const database = getDatabase();
   const clock = await getClock(session.workspaceId);
 
-  const [people, profile] = await Promise.all([
+  const [people, profile, figures] = await Promise.all([
     listSubjects(database, session.workspaceId),
     getSettingsProfile(database, session.workspaceId, session.settingsProfileId),
+    /*
+     * The library, as a read path only.
+     *
+     * Phase 13 put public figures in their own table with no workspace column
+     * precisely so the two could never be joined, and that stands: nothing here
+     * writes a client into `public_figures`, and a figure loaded onto this wheel
+     * is never added to the practice's own people or counted against the plan.
+     */
+    listPublicFigures(database, {}),
   ]);
+
+  /*
+   * Only timed figures can ride the outer ring.
+   *
+   * An untimed chart has no ascendant and therefore no houses — the library is
+   * scrupulous about this and shows a day's range of positions instead. Putting
+   * one on a wheel would require inventing a birth time, so those are filtered
+   * out here rather than offered and then refused.
+   */
+  const overlayableFigures = figures.filter((figure) => figure.birthTime !== null);
 
   const withCharts = people.filter((row) => row.birthEvent);
 
@@ -111,16 +131,46 @@ export default async function WheelPage({
       ? (withCharts.find((row) => row.subject.id === overlayParam) ?? null)
       : null;
 
+  /* A library figure on the outer ring instead of one of your own people. */
+  const overlayFigure =
+    !overlay && figureParam
+      ? (overlayableFigures.find((candidate) => candidate.slug === figureParam) ?? null)
+      : null;
+  const figureCast = overlayFigure ? castFigure(overlayFigure) : null;
+
   const { chart } = await getOrComputeChart(session.workspaceId, current.birthEvent!, profile);
   const overlayChart = overlay
     ? (await getOrComputeChart(session.workspaceId, overlay.birthEvent!, profile)).chart
-    : null;
+    : figureCast?.kind === 'timed'
+      ? figureCast.chart
+      : null;
+
+  /**
+   * The library is cast in its own fixed lens, and that has to be said.
+   *
+   * Every figure in `public_figures` is computed with Lahiri and mean nodes so
+   * the published charts are stable and citable. A workspace set to true nodes
+   * would therefore be looking at an inner ring in one frame and an outer ring
+   * in another, with Rāhu up to about 1.7° apart between them — and nothing on
+   * screen to say so. Jade states the mismatch rather than silently
+   * reconciling or silently ignoring it (CLAUDE.md #3).
+   */
+  const lensMismatch =
+    overlayFigure && profile.nodeType !== LIBRARY_LENS.nodeType
+      ? `${overlayFigure.displayName} is drawn in the library's fixed lens — ${LIBRARY_LENS.label}. This workspace uses ${profile.nodeType} nodes, so the two rings do not share a frame.`
+      : null;
 
   const birthMs =
     current.birthEvent!.utcDatetime instanceof Date
       ? current.birthEvent!.utcDatetime.getTime()
       : new Date(current.birthEvent!.utcDatetime).getTime();
-  const dashas = vimshottari(chart.points.Moon!.longitude, jdFromUnixMs(birthMs), { levels: 3 });
+  /** Stated, not defaulted, and shared with the browser-side scrubber. */
+  const YEAR_LENGTH = 'julian' as const;
+  const birthJd = jdFromUnixMs(birthMs);
+  const dashas = vimshottari(chart.points.Moon!.longitude, birthJd, {
+    levels: 3,
+    yearLength: YEAR_LENGTH,
+  });
 
   const notes = await listNotes(database, session.workspaceId, { subjectId: current.subject.id });
 
@@ -177,13 +227,32 @@ export default async function WheelPage({
           points={wheelPointsFor(chart)}
           aspects={aspects}
           overlayPoints={overlayChart ? wheelPointsFor(overlayChart) : []}
-          overlayName={overlay?.subject.displayName ?? null}
+          overlayName={overlay?.subject.displayName ?? overlayFigure?.displayName ?? null}
+          figures={overlayableFigures.map((figure) => ({
+            slug: figure.slug,
+            name: figure.displayName,
+            born: figure.birthDate,
+            rodden: figure.rodden,
+          }))}
+          figureSlug={overlayFigure?.slug ?? null}
+          lensMismatch={lensMismatch}
           ascendant={chart.points.Ascendant!.longitude}
           ascendantSign={chart.houses.ascendantSign}
           sarva={chart.ashtakavarga.sarva}
           facts={facts}
           lens={`${profile.ayanamsa} ayanāṁśa · ${chart.houses.system.replace('_', ' ')} houses · ${profile.nodeType} nodes`}
           timeCaveat={ACCURACY_CAVEAT[current.birthEvent!.timeAccuracy] ?? null}
+          transitFrame={{
+            ayanamsa: profile.ayanamsa,
+            customAyanamsaAtJ2000: profile.customAyanamsaAtJ2000 ?? undefined,
+            nodeType: profile.nodeType,
+          }}
+          scrubberNatal={{
+            moonLongitude: chart.points.Moon!.longitude,
+            birthJd,
+            yearLength: YEAR_LENGTH,
+          }}
+          todayJd={clock.nowJd}
         />
       </GlossaryProvider>
     </Shell>

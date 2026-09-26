@@ -7,6 +7,7 @@ import { allVargas, isVargottama, type VargaId } from './vargas.js';
 import { combustionOf, dignityOf, type Combustion, type Dignity } from './dignity.js';
 import { panchangaOf, type Panchanga } from './panchanga.js';
 import { norm360 } from './angles.js';
+import { retrogradeFrom } from './motion.js';
 import {
   ashtakavarga as computeAshtakavarga,
   AV_CONTRIBUTORS,
@@ -58,7 +59,7 @@ export interface ComputedChart {
 }
 
 /** Bumped whenever any calculation changes. Stored on every cached chart. */
-export const ASTRO_VERSION = '0.5.0';
+export const ASTRO_VERSION = '0.6.0';
 
 /**
  * Compute a full sidereal chart.
@@ -85,7 +86,6 @@ export function computeChart(
   const siderealAscendant = norm360(angles.ascendantTropical - ayanamsaValue);
 
   const bodies: PointId[] = [...GRAHAS, ...(settings.includeOuters ? OUTERS : [])];
-
   const points: Record<string, PointPosition> = {};
 
   const place = (id: PointId, tropicalLongitude: number, latitude: number, speed: number): void => {
@@ -97,7 +97,18 @@ export function computeChart(
       tropicalLongitude: norm360(tropicalLongitude),
       latitude,
       speed,
-      retrograde: speed < 0,
+      /**
+       * Retrogression is apparent motion, and two bodies never have it.
+       *
+       * The Sun and the Moon cannot appear to move backwards from the Earth —
+       * the Sun because its apparent motion *is* the Earth's orbit, the Moon
+       * because it always outpaces it. Reading it off the sign of a finite
+       * difference is correct arithmetic that admits an impossible answer, so
+       * the impossible answer is closed off here rather than left for every
+       * surface downstream to remember. The angles are not bodies and do not
+       * have the condition at all.
+       */
+      retrograde: retrogradeFrom(id, speed, settings.nodeType),
       signIndex,
       sign: SIGNS[signIndex]!,
       degreesInSign: longitude - signIndex * 30,

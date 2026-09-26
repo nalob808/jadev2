@@ -45,7 +45,23 @@ function unixMsFromJd(jdUt: number): number {
 
 async function main(): Promise<void> {
   const db = createDatabase(requireDatabaseUrl('direct'));
-  const provider = new AstronomyEngineProvider();
+  /**
+   * One provider per node type.
+   *
+   * `nodeType` belongs to the provider rather than to `ChartSettings`, so a
+   * single default-constructed provider computes the mean node for every
+   * workspace — including those whose profile says `true`. The nightly job
+   * would then fire watches against a Rāhu up to about 1.7° from the one the
+   * app shows the same user. Built per profile, cached because there are two.
+   */
+  const providers = new Map<'mean' | 'true', AstronomyEngineProvider>();
+  const providerFor = (nodeType: 'mean' | 'true'): AstronomyEngineProvider => {
+    const existing = providers.get(nodeType);
+    if (existing) return existing;
+    const made = new AstronomyEngineProvider({ nodeType });
+    providers.set(nodeType, made);
+    return made;
+  };
 
   // Every workspace, because a nightly job serves all of them. The per-query
   // workspace binding still applies inside each iteration.
@@ -69,6 +85,7 @@ async function main(): Promise<void> {
       if (!profile) continue;
 
       const birthJd = jdFromUnixMs(new Date(record.birthEvent.utcDatetime).getTime());
+      const provider = providerFor(profile.nodeType);
       const chart = computeChart(
         provider,
         {

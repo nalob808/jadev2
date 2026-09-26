@@ -20,6 +20,7 @@ export type { EclipticPosition, EphemerisProvider } from './ephemeris/provider.j
 export { AstronomyEngineProvider } from './ephemeris/astronomyEngine.js';
 export * from './shadbala/index.js';
 export * from './transits/index.js';
+export * from './motion.js';
 export * from './outlook.js';
 export * from './dayQuality.js';
 export * from './watches/index.js';
