@@ -10,13 +10,18 @@ import {
   vimshottari,
   dashaChainAt,
   unixMsFromJd,
+  type AvContributor,
   type SarvaTransitSegment,
   type VimshottariResult,
   type YearLength,
 } from '@jade/astro';
 import {
   dms,
+  ContributorMultiples,
   DashaTimeline,
+  KakshaBand,
+  SarvaProfile,
+  type KakshaRow,
   NakshatraDetail,
   type DashaStrengthSegment,
   type DashaTimelineEvent,
@@ -64,6 +69,10 @@ export interface InstrumentWorkspaceProps {
   readonly saturnBand: readonly SarvaTransitSegment[];
   /** Dated life events to pin on the timeline. */
   readonly events: readonly DashaTimelineEvent[];
+  /** Sarva bindus decomposed by the contributor that gave them. */
+  readonly bySource: Record<AvContributor, readonly number[]>;
+  readonly kakshaRows: readonly KakshaRow[];
+  readonly kakshaWindow: { readonly fromJd: number; readonly toJd: number };
 }
 
 export function InstrumentWorkspace(props: InstrumentWorkspaceProps): React.ReactElement {
@@ -80,6 +89,9 @@ function Instrument({
   settingsLabel,
   saturnBand,
   events,
+  bySource,
+  kakshaRows,
+  kakshaWindow,
 }: InstrumentWorkspaceProps): React.ReactElement {
   const { jd, selection, setSelection, setJd, scrubTo, endScrub } = useInstrument();
   const onKeyDown = useInstrumentKeys();
@@ -209,6 +221,29 @@ function Instrument({
           </p>
         </aside>
       </div>
+
+      <section aria-label="Aṣṭakavarga" className="min-w-0">
+        <Heading>Aṣṭakavarga · where the strength is, and who gives it</Heading>
+        <div className="grid gap-5 lg:grid-cols-[minmax(0,22rem)_minmax(0,1fr)]">
+          <SarvaProfile
+            sarva={natal.sarva}
+            rotation={natal.ascendant}
+            ascendantSign={natal.ascendantSign}
+            selection={selection}
+            onSelect={setSelection}
+          />
+          <ContributorMultiples
+            bySource={bySource}
+            ascendantSign={natal.ascendantSign}
+            selection={selection}
+            onSelect={setSelection}
+          />
+        </div>
+        <div className="mt-4">
+          <Heading>Kakṣā transits · Saturn and Jupiter</Heading>
+          <KakshaBand rows={kakshaRows} range={kakshaWindow} jd={jd} onJd={setJd} />
+        </div>
+      </section>
 
       <section aria-label="Daśā timeline" className="min-w-0">
         <Heading>Vimśottarī daśā · Saturn&rsquo;s transit by sarva bindus beneath</Heading>

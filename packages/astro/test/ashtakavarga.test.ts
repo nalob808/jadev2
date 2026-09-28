@@ -7,6 +7,11 @@ import {
   BENEFIC_HOUSES,
   bhinnashtakavarga,
   CLASSICAL_TOTALS,
+  kakshaOf,
+  kakshasInSign,
+  kakshaTransit,
+  KAKSHA_LORDS,
+  KAKSHA_SPAN,
   SARVA_TOTAL,
   type AvContributor,
   type SignPlacement,
@@ -114,6 +119,114 @@ describe('sarvāṣṭakavarga', () => {
     expect(bySign[strongestSigns[0]!]).toBe(0);
     expect(sarva[strongestSigns.indexOf(strongestSigns[0]!)]).toBeDefined();
     expect(max).toBeGreaterThanOrEqual(min);
+  });
+});
+
+describe('kakṣā geometry', () => {
+  it('uses the fixed classical order, not the prasthāra build order', () => {
+    expect(KAKSHA_LORDS).toEqual([
+      'Saturn',
+      'Jupiter',
+      'Mars',
+      'Sun',
+      'Venus',
+      'Mercury',
+      'Moon',
+      'Ascendant',
+    ]);
+    expect(KAKSHA_SPAN).toBe(3.75);
+    expect(KAKSHA_LORDS).not.toEqual(AV_CONTRIBUTORS);
+  });
+
+  it('puts exact 3°45′ boundaries in the division that begins there', () => {
+    expect(kakshaOf(0)).toMatchObject({ signIndex: 0, kakshaIndex: 0, lord: 'Saturn' });
+    expect(kakshaOf(3.75 - 1e-9).lord).toBe('Saturn');
+    expect(kakshaOf(3.75)).toMatchObject({ kakshaIndex: 1, lord: 'Jupiter' });
+    expect(kakshaOf(26.25)).toMatchObject({ kakshaIndex: 7, lord: 'Ascendant' });
+    expect(kakshaOf(30)).toMatchObject({ signIndex: 1, kakshaIndex: 0, lord: 'Saturn' });
+  });
+
+  it('normalises the zodiac without changing the occupied cell', () => {
+    expect(kakshaOf(360)).toEqual(kakshaOf(0));
+    expect(kakshaOf(363.75)).toEqual(kakshaOf(3.75));
+    expect(kakshaOf(-3.75)).toMatchObject({
+      longitude: 356.25,
+      signIndex: 11,
+      kakshaIndex: 7,
+      lord: 'Ascendant',
+    });
+  });
+});
+
+describe('kakṣā bindus', () => {
+  it('reads each flag from the BAV source that owns the cell', () => {
+    const allAries = Object.fromEntries(AV_CONTRIBUTORS.map((c) => [c, 0])) as SignPlacement;
+    const result = ashtakavarga(allAries);
+    const cells = kakshasInSign('Jupiter', 0, result);
+
+    // In Jupiter's table at this synthetic placement, Sun, Mars, Mercury,
+    // Jupiter and Lagna supply Aries. Reordered into kakṣā order, those are:
+    expect(cells.map((cell) => cell.hasBindu)).toEqual([
+      false,
+      true,
+      true,
+      true,
+      false,
+      true,
+      false,
+      true,
+    ]);
+    expect(cells.filter((cell) => cell.hasBindu).map((cell) => cell.lord)).toEqual([
+      'Jupiter',
+      'Mars',
+      'Sun',
+      'Mercury',
+      'Ascendant',
+    ]);
+  });
+
+  it.each(Object.keys(oracle.cases))(
+    'decomposes every JHora-aligned BAV count into eight cells for %s',
+    (label) => {
+      const result = ashtakavarga(placementOf(oracle.cases[label]!));
+      for (const subject of AV_SUBJECTS) {
+        for (let signIndex = 0; signIndex < 12; signIndex += 1) {
+          const cells = kakshasInSign(subject, signIndex, result);
+          expect(cells).toHaveLength(8);
+          expect(cells.filter((cell) => cell.hasBindu)).toHaveLength(
+            result.bhinna[subject].bindus[signIndex]!,
+          );
+          expect(new Set(cells.filter((cell) => cell.hasBindu).map((cell) => cell.lord))).toEqual(
+            new Set(result.bhinna[subject].sources[signIndex]),
+          );
+        }
+      }
+    },
+  );
+
+  it('matches the reference chart at Jupiter’s recorded longitude', () => {
+    const reference = oracle.cases['v0-reference-chart']!;
+    const result = ashtakavarga(placementOf(reference));
+    const longitude = reference.signIndexes.Jupiter! * 30 + 21.772230114;
+    const transit = kakshaTransit('Jupiter', longitude, result);
+
+    expect(result.bhinna.Jupiter.bindus[2]).toBe(4);
+    expect(result.bhinna.Jupiter.sources[2]).toEqual(['Sun', 'Mercury', 'Jupiter', 'Venus']);
+    expect(transit).toMatchObject({
+      subject: 'Jupiter',
+      signIndex: 2,
+      kakshaIndex: 5,
+      kakshaNumber: 6,
+      lord: 'Mercury',
+      hasBindu: true,
+    });
+  });
+
+  it('rejects a sign index instead of wrapping a caller error', () => {
+    const result = ashtakavarga(placementOf(Object.values(oracle.cases)[0]!));
+    expect(() => kakshasInSign('Saturn', -1, result)).toThrow(/0 to 11/);
+    expect(() => kakshasInSign('Saturn', 12, result)).toThrow(/0 to 11/);
+    expect(() => kakshasInSign('Saturn', 1.5, result)).toThrow(/0 to 11/);
   });
 });
 

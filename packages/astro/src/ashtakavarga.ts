@@ -1,5 +1,6 @@
 import type { Sign } from './types.js';
 import { SIGNS } from './types.js';
+import { norm360 } from './angles.js';
 
 /**
  * Aṣṭakavarga — the eightfold division.
@@ -181,6 +182,31 @@ export const CLASSICAL_TOTALS: Record<AvContributor, number> = {
 /** 48 + 49 + 39 + 54 + 56 + 52 + 39. The ascendant is not part of it. */
 export const SARVA_TOTAL = 337;
 
+/** One kakṣā: an eighth of a 30° sign, exactly 3°45′. */
+export const KAKSHA_SPAN = 30 / 8;
+
+/**
+ * Kakṣā lords from 0°00′ to 30°00′ inside every sign.
+ *
+ * This is the classical sequence stated in Phaladīpikā ch. 23, śloka 18
+ * (V. Subrahmanya Sastri translation): Saturn owns the first division,
+ * Jupiter the second, then Mars, Sun, Venus, Mercury, Moon and Lagna.
+ *
+ * Do not reuse `AV_CONTRIBUTORS` here. That array is the convenient order in
+ * which Jade builds a prasthāra; it is not the zodiacal kakṣā order. Swapping
+ * the two produces a plausible-looking band whose bindu flags are wrong.
+ */
+export const KAKSHA_LORDS = [
+  'Saturn',
+  'Jupiter',
+  'Mars',
+  'Sun',
+  'Venus',
+  'Mercury',
+  'Moon',
+  'Ascendant',
+] as const satisfies readonly AvContributor[];
+
 /** Where each contributor sits, as a sign index 0–11 with Aries at 0. */
 export type SignPlacement = Record<AvContributor, number>;
 
@@ -235,6 +261,43 @@ export interface AshtakavargaResult {
   readonly strongestSigns: readonly Sign[];
 }
 
+/** The geometrical kakṣā containing one sidereal longitude. */
+export interface KakshaPosition {
+  /** The input longitude normalised to [0, 360). */
+  readonly longitude: number;
+  /** Aries = 0. */
+  readonly signIndex: number;
+  /** 0–7 inside the sign. */
+  readonly kakshaIndex: number;
+  /** The same division in the practitioner-facing 1–8 notation. */
+  readonly kakshaNumber: number;
+  readonly lord: AvContributor;
+  /** Absolute sidereal longitude of the two boundaries. */
+  readonly startLongitude: number;
+  readonly endLongitude: number;
+  /** Degrees elapsed inside this 3°45′ division. */
+  readonly degreesInto: number;
+}
+
+/** One cell of a graha's eight-cell kakṣā band for a sign. */
+export interface KakshaCell {
+  readonly subject: AvSubject;
+  readonly signIndex: number;
+  readonly kakshaIndex: number;
+  readonly kakshaNumber: number;
+  readonly lord: AvContributor;
+  readonly startLongitude: number;
+  readonly endLongitude: number;
+  /** Whether this lord supplied a bindu in this subject's BAV for the sign. */
+  readonly hasBindu: boolean;
+}
+
+/** The occupied kakṣā and its BAV judgement at one transit longitude. */
+export interface KakshaTransit extends KakshaPosition {
+  readonly subject: AvSubject;
+  readonly hasBindu: boolean;
+}
+
 export function ashtakavarga(placement: SignPlacement): AshtakavargaResult {
   const bhinna = {} as Record<AvContributor, Bhinnashtakavarga>;
   for (const subject of AV_CONTRIBUTORS) {
@@ -252,4 +315,98 @@ export function ashtakavarga(placement: SignPlacement): AshtakavargaResult {
     .map((s) => s.name);
 
   return { bhinna, sarva, strongestSigns };
+}
+
+/**
+ * Locate a sidereal longitude in the fixed eightfold division of its sign.
+ *
+ * Exact boundaries belong to the division that begins there: 3°45′ is the
+ * first instant of Jupiter's kakṣā, never the last instant of Saturn's.
+ */
+export function kakshaOf(siderealLongitude: number): KakshaPosition {
+  const longitude = norm360(siderealLongitude);
+  const signIndex = Math.floor(longitude / 30);
+  const degreesInSign = longitude - signIndex * 30;
+  const kakshaIndex = Math.min(7, Math.floor(degreesInSign / KAKSHA_SPAN));
+  const startLongitude = signIndex * 30 + kakshaIndex * KAKSHA_SPAN;
+
+  return {
+    longitude,
+    signIndex,
+    kakshaIndex,
+    kakshaNumber: kakshaIndex + 1,
+    lord: KAKSHA_LORDS[kakshaIndex]!,
+    startLongitude,
+    endLongitude: startLongitude + KAKSHA_SPAN,
+    degreesInto: longitude - startLongitude,
+  };
+}
+
+/**
+ * All eight kakṣās for one graha in one sign.
+ *
+ * A BAV count alone cannot answer this question. The flag comes from the
+ * prasthāra source list: the cell bears a bindu exactly when that cell's lord
+ * is one of the contributors recorded for the sign.
+ */
+export function kakshasInSign(
+  subject: AvSubject,
+  signIndex: number,
+  result: AshtakavargaResult,
+): readonly KakshaCell[] {
+  if (!Number.isInteger(signIndex) || signIndex < 0 || signIndex > 11) {
+    throw new RangeError(
+      `kakshasInSign: signIndex must be an integer from 0 to 11, got ${signIndex}`,
+    );
+  }
+
+  const sources = new Set(result.bhinna[subject].sources[signIndex] ?? []);
+  const signStart = signIndex * 30;
+  return KAKSHA_LORDS.map((lord, kakshaIndex) => ({
+    subject,
+    signIndex,
+    kakshaIndex,
+    kakshaNumber: kakshaIndex + 1,
+    lord,
+    startLongitude: signStart + kakshaIndex * KAKSHA_SPAN,
+    endLongitude: signStart + (kakshaIndex + 1) * KAKSHA_SPAN,
+    hasBindu: sources.has(lord),
+  }));
+}
+
+/** Score one live transit against the occupied cell in its graha's own BAV. */
+export function kakshaTransit(
+  subject: AvSubject,
+  siderealLongitude: number,
+  result: AshtakavargaResult,
+): KakshaTransit {
+  const position = kakshaOf(siderealLongitude);
+  const sources = result.bhinna[subject].sources[position.signIndex] ?? [];
+  return {
+    ...position,
+    subject,
+    hasBindu: sources.includes(position.lord),
+  };
+}
+
+/**
+ * The sarvāṣṭakavarga taken apart by who gave each bindu.
+ *
+ * `bySource.Saturn[4]` is how many of the seven graha tables received a bindu
+ * in Leo *from* Saturn. Summed over the eight contributors, each sign returns
+ * exactly its sarva count. This is the decomposition the integer grid hides:
+ * a sign of 28 made of benefic bindus and one made of malefic bindus read the
+ * same in a table and differently in practice.
+ */
+export function sarvaByContributor(
+  result: AshtakavargaResult,
+): Record<AvContributor, readonly number[]> {
+  const out = {} as Record<AvContributor, number[]>;
+  for (const contributor of AV_CONTRIBUTORS) out[contributor] = new Array<number>(12).fill(0);
+  for (const subject of AV_SUBJECTS) {
+    result.bhinna[subject].sources.forEach((sources, sign) => {
+      for (const contributor of sources) out[contributor]![sign]! += 1;
+    });
+  }
+  return out;
 }

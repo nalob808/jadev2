@@ -29,3 +29,5 @@ export type {
   DashaTimelineEvent,
   DashaStrengthSegment,
 } from './DashaTimeline.js';
+export { SarvaProfile, ContributorMultiples, KakshaBand, SARVA_MEAN } from './AshtakavargaView.js';
+export type { KakshaRow } from './AshtakavargaView.js';

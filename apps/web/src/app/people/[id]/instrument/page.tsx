@@ -1,6 +1,13 @@
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
-import { POINT_DISPLAY_ORDER, jdFromUnixMs, signsAspectedBy } from '@jade/astro';
+import {
+  AstronomyEngineProvider,
+  POINT_DISPLAY_ORDER,
+  jdFromUnixMs,
+  kakshaTransitSeries,
+  sarvaByContributor,
+  signsAspectedBy,
+} from '@jade/astro';
 import { getSettingsProfile, getSubject, listLifeEvents } from '@jade/db';
 import { getSession } from '@/lib/auth';
 import { getClock } from '@/lib/clock';
@@ -59,6 +66,27 @@ export default async function InstrumentPage({ params }: { params: Promise<{ id:
     },
     chart.ashtakavarga.sarva,
   );
+
+  /**
+   * The kakṣā band: Saturn and Jupiter through their 3°45′ divisions, from a
+   * year back to three years ahead of today, each cell judged in the graha's
+   * own bhinnāṣṭakavarga. Bisected edges; see `transits/kakshaTransit.ts`.
+   */
+  const kakshaWindow = { fromJd: clock.nowJd - 365, toJd: clock.nowJd + 3 * 365 };
+  const kakshaProvider = new AstronomyEngineProvider({ nodeType: profile.nodeType });
+  const kakshaRows = (['Saturn', 'Jupiter'] as const).map((subject) => ({
+    subject,
+    segments: kakshaTransitSeries(
+      kakshaProvider,
+      subject,
+      kakshaWindow,
+      {
+        ayanamsa: profile.ayanamsa,
+        customAyanamsaAtJ2000: profile.customAyanamsaAtJ2000 ?? undefined,
+      },
+      chart.ashtakavarga,
+    ),
+  }));
 
   /**
    * Life events, pinned to the timeline. The brief asks for dated notes, but
@@ -122,6 +150,9 @@ export default async function InstrumentPage({ params }: { params: Promise<{ id:
           yearLength: YEAR_LENGTH,
         }}
         saturnBand={band}
+        bySource={sarvaByContributor(chart.ashtakavarga)}
+        kakshaRows={kakshaRows}
+        kakshaWindow={kakshaWindow}
         events={events}
         frame={{
           ayanamsa: profile.ayanamsa,

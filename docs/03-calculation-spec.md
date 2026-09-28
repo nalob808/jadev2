@@ -206,6 +206,20 @@ timestamps in the subject's local time _and_ UTC, balance-at-birth, and a **daś
   by how strongly the running daśā lords are being activated by transit — same lord conjoined,
   aspected, or transiting the daśā lord's natal house. Output as a heat-strip timeline under
   the daśā bar. Nobody ships this well; it's the screenshot that sells the product.
+- **Kakṣā transits** (`kakshaOf`, `kakshaTransit` in `ashtakavarga.ts`; the time series in
+  `transits/kakshaTransit.ts`). Each sign divides into eight kakṣās of 3°45′ owned, from 0°, by
+  Saturn, Jupiter, Mars, Sun, Venus, Mercury, Moon, Lagna — descending Chaldean order, then the
+  ascendant (Phaladīpikā 23.18). A transiting graha is in a bindu-bearing kakṣā when that
+  kakṣā's lord is among the contributors that gave the sign a bindu in the graha's **own**
+  bhinnāṣṭakavarga. An exact boundary belongs to the kakṣā that begins there. Only one order is
+  implemented because no competing order was found in the texts consulted; if one surfaces it
+  goes behind a named option like every other disagreement. **Oracle status:** the bindu flags
+  inherit the Jagannātha Hora–verified BAV source lists, and the tests check every oracle chart,
+  sign and graha, but there is no external oracle for the kakṣā assignment itself — it is only
+  as right as the lord order above.
+- **Sarva transit band** (`transits/sarvaTransit.ts`): a graha's sign over time, each stretch
+  scored by the natal sarva bindus of that sign, with bisected ingress edges and retrograde
+  re-entries kept as their own segments. Context for the daśā timeline, not a verdict.
 
 ## 11. Relationship analysis
 
