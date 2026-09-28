@@ -206,7 +206,8 @@ export const ACCOUNT: NavSection = {
  * The ways of looking at one subject.
  *
  * Ordered as a practitioner moves: the sheet first because it is the reference,
- * then the two readings of it, then the instrument for exploring, then time,
+ * then the two readings of it, then the instrument for exploring and the
+ * sphere for showing, then time,
  * then the things you produce (a report) or correct (rectification).
  *
  * `/timing` takes the subject as a query parameter rather than a path segment,
@@ -233,6 +234,12 @@ export function subjectLenses(id: string): readonly NavItem[] {
       href: `/people/${id}/instrument`,
       label: 'Instrument',
       blurb: 'Nakṣatra ring, graphic ephemeris, aṣṭakavarga and the daśā timeline on one cursor.',
+    },
+    {
+      href: `/people/${id}/sphere`,
+      label: 'Sphere',
+      blurb:
+        'The sky at this moment as a sphere — latitude, retrograde loops and the real stars, to show a client.',
     },
     {
       href: `/timing?person=${id}`,

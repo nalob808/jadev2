@@ -25,7 +25,7 @@ masthead, and they do not grow — a sixth word is a sign that two of them shoul
 have been one.
 
 **Lenses** are ways of looking at one subject: the sheet, the houses, the plain
-reading, the instrument, that person's timing, a report, a rectification. A lens
+reading, the instrument, the sphere, that person's timing, a report, a rectification. A lens
 is meaningless without a subject, so lenses live in the **subject bar** beside
 the name of the person they are lenses on — never in the masthead.
 
@@ -35,7 +35,7 @@ That gives three rows of chrome, in this order:
 2. **The section row** — the parts of whichever section you are in. Changes with
    the section; absent where a section has no parts.
 3. **The subject bar** — who you are looking at, the birth data the chart was
-   cast from, and the seven lenses. Present on every surface that is about one
+   cast from, and the eight lenses. Present on every surface that is about one
    person, including `/wheel?person=` and `/timing?person=`.
 
 The birth line belongs in the subject bar for a second reason beyond navigation:

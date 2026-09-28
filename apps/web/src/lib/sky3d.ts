@@ -2,6 +2,7 @@ import {
   ayanamsa,
   centuriesFromJ2000,
   jdTtFromJdUt,
+  NAKSHATRA_IAST,
   NAKSHATRA_SPAN,
   norm360,
   type PointId,
@@ -241,35 +242,11 @@ export const RASHI_IAST = [
   'Mīna',
 ] as const;
 
-export const NAKSHATRA_IAST = [
-  'Aśvinī',
-  'Bharaṇī',
-  'Kṛttikā',
-  'Rohiṇī',
-  'Mṛgaśirā',
-  'Ārdrā',
-  'Punarvasu',
-  'Puṣya',
-  'Āśleṣā',
-  'Maghā',
-  'Pūrva Phalgunī',
-  'Uttara Phalgunī',
-  'Hasta',
-  'Citrā',
-  'Svātī',
-  'Viśākhā',
-  'Anurādhā',
-  'Jyeṣṭhā',
-  'Mūla',
-  'Pūrva Āṣāḍhā',
-  'Uttara Āṣāḍhā',
-  'Śravaṇa',
-  'Dhaniṣṭhā',
-  'Śatabhiṣā',
-  'Pūrva Bhādrapadā',
-  'Uttara Bhādrapadā',
-  'Revatī',
-] as const;
+/**
+ * Nakṣatra names come from the core (`NAKSHATRA_IAST` in packages/astro), so
+ * there is one spelling of each in the codebase. Re-exported for the scene.
+ */
+export { NAKSHATRA_IAST };
 
 /** Midpoint longitudes, where each label is anchored. */
 export const RASHI_CENTRES = RASHI_IAST.map((_, index) => index * 30 + 15);
@@ -314,6 +291,136 @@ function smoothstep(edge0: number, edge1: number, x: number): number {
  * dissolves it instead of switching it off — binary visibility flickers at the
  * threshold, a fade cannot.
  */
-export function labelOpacity(room: number): number {
-  return smoothstep(0.95, 1.35, room);
+export function labelOpacity(room: number, narrow = false): number {
+  // On a phone the same 27 nakṣatra names share about a third of the width,
+  // and a label at 95% of its room still reads as touching. Narrow screens ask
+  // for clear air before a label shows at all.
+  return narrow ? smoothstep(1.15, 1.6, room) : smoothstep(0.95, 1.35, room);
+}
+
+/** Below this canvas width, labels use the narrow-screen fade. */
+export const NARROW_CANVAS_PX = 520;
+
+/* ------------------------------------------------------------ the camera */
+
+export type SphereView = 'centre' | 'outside' | 'pole' | 'lagna';
+
+/**
+ * How the camera moves, given `prefers-reduced-motion`.
+ *
+ * Reduced motion turns off orbit inertia and makes view changes jump rather
+ * than fly. It removes no feature: dragging is direct manipulation and stays,
+ * and every view is still one key or one button away.
+ */
+export function motionPolicy(reduced: boolean): { damping: boolean; flightMs: number } {
+  return reduced ? { damping: false, flightMs: 0 } : { damping: true, flightMs: 900 };
+}
+
+/**
+ * The horizontal offset that orients the pole view, as a unit [x, z].
+ *
+ * Looking down from the north ecliptic pole with the camera nudged towards
+ * direction φ, screen-right is longitude φ and longitude runs anticlockwise
+ * (right → up → left). So screen-left is φ + 180°, and putting the ascendant
+ * on the left — where the wheel puts it — is φ = ascendant − 180°. One
+ * rotation about +Y, which is what lets the sphere and the wheel be read in
+ * the same frame.
+ */
+export function poleOffset(leftLongitude: number): [number, number] {
+  const phi = (leftLongitude - 180) * RAD;
+  return [Math.sin(phi), Math.cos(phi)];
+}
+
+/**
+ * Which longitudes sit at screen-right, screen-top and screen-left for a pole
+ * view with camera offset [x, z]. The inverse of `poleOffset`, derived from
+ * the camera basis (forward ≈ −Y, up ≈ −offset), for the test to hold it to.
+ */
+export function poleScreenLongitudes(offset: [number, number]): {
+  right: number;
+  top: number;
+  left: number;
+} {
+  const phi = Math.atan2(offset[0], offset[1]) / RAD;
+  return { right: norm360(phi), top: norm360(phi + 90), left: norm360(phi + 180) };
+}
+
+export type SphereKeyAction =
+  | { readonly kind: 'orbit'; readonly azimuth: number; readonly polar: number }
+  | { readonly kind: 'zoom'; readonly factor: number }
+  | { readonly kind: 'view'; readonly view: SphereView }
+  | { readonly kind: 'leave' };
+
+/** Degrees per arrow press. */
+const ORBIT_STEP = 6;
+
+/**
+ * The keyboard map for the canvas. Arrows orbit, + and − zoom, 1–4 are the
+ * four views, Escape hands focus back to the page so a keyboard user is never
+ * trapped in the canvas. Everything else is left to the browser.
+ */
+export function sphereKeyAction(key: string): SphereKeyAction | null {
+  switch (key) {
+    case 'ArrowLeft':
+      return { kind: 'orbit', azimuth: -ORBIT_STEP, polar: 0 };
+    case 'ArrowRight':
+      return { kind: 'orbit', azimuth: ORBIT_STEP, polar: 0 };
+    case 'ArrowUp':
+      return { kind: 'orbit', azimuth: 0, polar: -ORBIT_STEP };
+    case 'ArrowDown':
+      return { kind: 'orbit', azimuth: 0, polar: ORBIT_STEP };
+    case '+':
+    case '=':
+      return { kind: 'zoom', factor: 0.8 };
+    case '-':
+    case '_':
+      return { kind: 'zoom', factor: 1.25 };
+    case '1':
+      return { kind: 'view', view: 'centre' };
+    case '2':
+      return { kind: 'view', view: 'outside' };
+    case '3':
+      return { kind: 'view', view: 'pole' };
+    case '4':
+      return { kind: 'view', view: 'lagna' };
+    case 'Escape':
+      return { kind: 'leave' };
+    default:
+      return null;
+  }
+}
+
+/**
+ * Orbit a camera position about the origin by azimuth and polar steps, in
+ * degrees, keeping its distance. The polar angle stays clear of the poles, as
+ * OrbitControls keeps it, so the view never flips.
+ */
+export function orbitPosition(
+  position: readonly [number, number, number],
+  azimuthDeg: number,
+  polarDeg: number,
+): [number, number, number] {
+  const [x, y, z] = position;
+  const radius = Math.hypot(x, y, z) || 1;
+  const polar = Math.acos(Math.max(-1, Math.min(1, y / radius)));
+  const azimuth = Math.atan2(x, z);
+  const nextPolar = Math.max(0.01, Math.min(Math.PI - 0.01, polar + polarDeg * RAD));
+  const nextAzimuth = azimuth + azimuthDeg * RAD;
+  return [
+    radius * Math.sin(nextPolar) * Math.sin(nextAzimuth),
+    radius * Math.cos(nextPolar),
+    radius * Math.sin(nextPolar) * Math.cos(nextAzimuth),
+  ];
+}
+
+/** Scale the camera's distance, clamped to the controls' limits. */
+export function zoomPosition(
+  position: readonly [number, number, number],
+  factor: number,
+  min: number,
+  max: number,
+): [number, number, number] {
+  const radius = Math.hypot(...position) || 1;
+  const next = Math.max(min, Math.min(max, radius * factor));
+  return position.map((value) => (value / radius) * next) as [number, number, number];
 }

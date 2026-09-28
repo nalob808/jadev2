@@ -1,9 +1,13 @@
+import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
   // The chart components are rendered to static markup in a couple of tests, so
   // JSX has to compile. `automatic` means no `import React` in every spec.
   esbuild: { jsx: 'automatic' },
+  // The same `@/` → `src/` mapping tsconfig gives Next, so a test can import a
+  // component that uses it.
+  resolve: { alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) } },
   test: {
     // e2e/ belongs to Playwright, which has its own runner and its own
     // `test` export. Without this, vitest collects those specs and fails on

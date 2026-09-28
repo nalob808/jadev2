@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { unixMsFromJd } from '@jade/astro';
 import { Wheel, type WheelPoint } from '@jade/ui';
 import { transitRing, type RingFrame } from '@/lib/transitRing';
+import { sphereBodies } from '@/lib/sky3d';
 import type { SphereHandle, SphereStats } from './CelestialSphere';
 
 /**
@@ -70,6 +71,7 @@ export function SphereSpike({
   // Lahiri is the only ayanāṁśa the core has fitted; stated, not defaulted.
   const frame = useMemo<RingFrame>(() => ({ ayanamsa: 'lahiri', nodeType }), [nodeType]);
   const transits = useMemo(() => transitRing(jd, frame, ascendantSign), [jd, frame, ascendantSign]);
+  const bodies = useMemo(() => sphereBodies(jd, frame), [jd, frame]);
 
   const onHandle = useCallback((next: SphereHandle | null) => setHandle(next), []);
 
@@ -155,6 +157,7 @@ export function SphereSpike({
             <CelestialSphere
               jdUt={jd}
               frame={frame}
+              bodies={bodies}
               showPaths={showPaths}
               onHandle={onHandle}
               onContextState={setContextState}

@@ -1,6 +1,6 @@
 # The 3D celestial sphere — spike report
 
-**Status:** spike complete, decision pending. Brief: `docs/briefs/jade-3d-spike-prompt.md`.
+**Status:** shipped as the eighth lens, `/people/[id]/sphere` — see _Shipped as a lens_ at the end. Spike brief: `docs/briefs/jade-3d-spike-prompt.md`; production brief: `docs/briefs/17-sphere-to-production.md`.
 **Where:** `pnpm dev`, then <http://localhost:3100/spike/sphere>. Off in production unless
 `JADE_SPIKES=1`.
 
@@ -165,3 +165,65 @@ further. `NAKSHATRA_IAST` is defined in `sky3d.ts`; a core version has since app
 Start from this code, not from scratch. The remaining weeks go on everything in the skipped
 list above plus `BatchedText`, and on the one new idea the spike surfaced: lagna-aligned
 orientation, so the sphere and the wheel can be read in the same frame.
+
+---
+
+## Shipped as a lens (28 Sep 2026)
+
+**Decision:** the sphere ships, as a _presentation_ surface, not a Professional analysis one —
+the report's verdict stands. It is the eighth lens, **Sphere**, at `/people/[id]/sphere`,
+between Instrument and Timing in `subjectLenses()`. It is not inside the instrument: three.js
+has to be carried by one route alone. The spike page stays at `/spike/sphere` behind
+`JADE_SPIKES`, for side-by-side comparison and the context-loss buttons.
+
+**What was added, per the five gates:**
+
+1. **The positions table** under the canvas — graha, sidereal longitude, **ecliptic latitude**,
+   nakṣatra and pāda, motion — visible by default. `sphereBodies()` is now called once, in
+   `SphereLens`, and the same array goes to the table and to the scene (`bodies` prop), so the
+   two cannot disagree; a test asserts the table's numbers field by field.
+2. **Keyboard:** the canvas is focusable with a visible ring. Arrows orbit, +/− zoom, 1–4 are
+   the views, Escape leaves the canvas without also clearing the selection. View changes and the
+   settled date are announced through `aria-live` regions. The map is `sphereKeyAction()` and the
+   camera maths `orbitPosition()`/`zoomPosition()`, pure and tested.
+3. **Reduced motion:** `motionPolicy()` — no orbit damping, and views jump instead of flying.
+   Followed live if the setting changes mid-visit. Paths already drew in one step.
+4. **Fallback:** WebGL is detected before the scene mounts (`detectWebgl()`); without it, or if
+   the context is lost for 2.5 s, or if the scene throws (an error boundary), the page shows one
+   plain sentence, the 2D wheel with the same moment's transits, and the positions table.
+5. **Phone:** `touch-action: none` on the canvas only; below 520 px of canvas the ring labels use
+   a stricter fade (`labelOpacity(room, narrow)`: 1.15–1.6 rather than 0.95–1.35).
+
+**The two loose ends:** `NAKSHATRA_IAST` is now the core's (`sky3d.ts` re-exports it; a test
+checks identity). The **lagna-aligned pole view** is the fourth `view()` kind and the default:
+the camera is offset by φ = ascendant − 180° about +Y, which puts the ascendant on the left and
+longitude running anticlockwise, as on the wheel (`poleOffset()`, tested for several ascendants).
+
+**The frame is printed**, in the wheel's words — `lahiri ayanāṁśa · mean nodes · precision class
+interactive` — plus where Citrā/Spica lands in that zodiac, which is the check a reader can make
+against the sky. A custom offset prints its J2000 value.
+
+**One correction to the production brief:** it expected all eight ayanāṁśa modes to flow through,
+with Fagan–Bradley putting Spica off 180°. In fact the core has fitted **Lahiri and custom only**;
+the other six modes are declared and deliberately throw rather than guess (CLAUDE.md #3). That is
+true of the whole app, not just the sphere — a workspace cannot cast any chart under
+Fagan–Bradley today. The sphere's tests use a custom offset at Fagan–Bradley's J2000 value
+(24°44′) as the non-Lahiri case. Fitting the other modes is core work, out of this brief's scope.
+
+**Cut, as the brief required:** Milky Way, planet textures, post-processing, GPU tiers beyond the
+pixel-ratio clamp, `BatchedText`, constellation figures, any heliocentric mode. `packages/astro`
+was not touched.
+
+**Measured cost** (`pnpm build`, gzip):
+
+|                                              |                                                                                                                                                                                                                                                 |
+| -------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/people/[id]/sphere` first load             | **182 kB** (page 6.5 kB) — the instrument is 196 kB                                                                                                                                                                                             |
+| Loaded after first paint, on this route only | **197 kB**: three.js 144 kB, troika 45 kB, the scene 7.5 kB                                                                                                                                                                                     |
+| Fetched at runtime                           | star file ~30 kB, IAST font 32 kB                                                                                                                                                                                                               |
+| three.js in any other route's first load     | **none** (checked against the build manifest, 60 routes)                                                                                                                                                                                        |
+| Other routes                                 | unchanged, except app pages that show the subject bar or menu, which moved by ~0.1 kB (125 → 126 kB on ten of them, shared 87.5 → 87.6 kB): the new lens's label and blurb in the navigation chunk, which the brief's own registration requires |
+
+**Not yet verified by eye:** the lens has not been opened in a browser on a real chart or a
+390 px phone; the gates are held by tests on pure functions and rendered markup, because the
+scene needs WebGL and the test runner has none.

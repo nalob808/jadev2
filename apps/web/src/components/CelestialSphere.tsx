@@ -32,6 +32,7 @@ import { Text, preloadFont } from 'troika-three-text';
 import { NAKSHATRA_SPAN, norm360, type PointId } from '@jade/astro';
 import type { RingFrame } from '@/lib/transitRing';
 import { SKY } from '@/lib/skyPalette';
+import { prepareSphereCanvas } from '@/lib/sphereSupport';
 import {
   NAKSHATRA_CENTRES,
   NAKSHATRA_IAST,
@@ -44,9 +45,16 @@ import {
   directionOf,
   eclipticFromEquatorial,
   equinoxSiderealLongitude,
+  NARROW_CANVAS_PX,
   labelOpacity,
-  sphereBodies,
+  motionPolicy,
+  orbitPosition,
+  poleOffset,
+  sphereKeyAction,
   starFrameShift,
+  zoomPosition,
+  type SphereBody,
+  type SphereView,
 } from '@/lib/sky3d';
 
 /**
@@ -91,8 +99,12 @@ export interface SphereStats {
 }
 
 export interface SphereHandle {
-  /** Fly the camera: the viewer's seat, the armillary view, or down from the north ecliptic pole. */
-  view(kind: 'centre' | 'outside' | 'pole'): void;
+  /**
+   * Fly the camera: the viewer's seat, the armillary view, down from the north
+   * ecliptic pole, or down from the pole turned so the lagna sits on the left
+   * as it does on the wheel.
+   */
+  view(kind: SphereView): void;
   /** Force a WebGL context loss and restore, to exercise the handlers. */
   loseContext(): void;
   restoreContext(): void;
@@ -102,7 +114,25 @@ export interface SphereHandle {
 export interface CelestialSphereProps {
   readonly jdUt: number;
   readonly frame: RingFrame;
+  /**
+   * The bodies to place, from `sphereBodies(jdUt, frame)`. Passed in rather
+   * than computed here so that the page's positions table and this render are
+   * the same array — they cannot disagree because there is only one.
+   */
+  readonly bodies: readonly SphereBody[];
   readonly showPaths: boolean;
+  /** Natal ascendant longitude, for the lagna-aligned pole view. */
+  readonly ascendant?: number;
+  /** The view the camera opens on. Defaults to the armillary view from outside. */
+  readonly initialView?: SphereView;
+  /** `prefers-reduced-motion: reduce` — no inertia, and views jump rather than fly. */
+  readonly reducedMotion?: boolean;
+  /** A graha drawn larger, from the instrument's `?sel=`. */
+  readonly highlight?: string | null;
+  /** Told whenever the view changes, so the page can announce it. */
+  readonly onView?: (view: SphereView) => void;
+  /** Accessible name and instructions for the focusable canvas. */
+  readonly ariaLabel?: string;
   readonly onHandle?: (handle: SphereHandle | null) => void;
   readonly onContextState?: (state: 'ok' | 'lost') => void;
 }
@@ -168,21 +198,32 @@ interface Label {
 }
 
 interface World {
-  update(jdUt: number, frame: RingFrame): void;
+  update(jdUt: number, frame: RingFrame, bodies: readonly SphereBody[]): void;
   updatePaths(jdUt: number, frame: RingFrame, show: boolean): void;
 }
 
 export default function CelestialSphere({
   jdUt,
   frame,
+  bodies: skyBodies,
   showPaths,
+  ascendant = 180,
+  initialView = 'outside',
+  reducedMotion = false,
+  highlight = null,
+  onView,
+  ariaLabel = 'The sky as a sphere. Arrow keys turn it, plus and minus zoom, 1 to 4 choose a view, Escape leaves.',
   onHandle,
   onContextState,
 }: CelestialSphereProps): React.ReactElement {
   const hostRef = useRef<HTMLDivElement>(null);
   const worldRef = useRef<World | null>(null);
-  const callbacks = useRef({ onHandle, onContextState });
-  callbacks.current = { onHandle, onContextState };
+  const callbacks = useRef({ onHandle, onContextState, onView });
+  callbacks.current = { onHandle, onContextState, onView };
+  /** Read by the scene, which is built once; the props can change afterwards. */
+  const live = useRef({ ascendant, reducedMotion, highlight, initialView, ariaLabel });
+  live.current = { ascendant, reducedMotion, highlight, initialView, ariaLabel };
+  const motionRef = useRef<((reduced: boolean) => void) | null>(null);
 
   /* ============================================================ the scene */
   useEffect(() => {
@@ -198,7 +239,8 @@ export default function CelestialSphere({
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, coarse ? 1.5 : 2));
     renderer.setClearColor(SKY.ground, 1);
     renderer.domElement.style.display = 'block';
-    renderer.domElement.style.touchAction = 'none';
+    // Focusable, named, touch-captured on the canvas alone — see sphereSupport.
+    prepareSphereCanvas(renderer.domElement, live.current.ariaLabel);
     host.appendChild(renderer.domElement);
 
     const scene = new Scene();
@@ -206,7 +248,7 @@ export default function CelestialSphere({
     camera.position.set(0, 10, 21);
 
     const controls = new OrbitControls(camera, renderer.domElement);
-    controls.enableDamping = true;
+    controls.enableDamping = motionPolicy(live.current.reducedMotion).damping;
     controls.dampingFactor = 0.08;
     controls.enablePan = false; // the target is the viewer; it does not move
     controls.minDistance = 0.05;
@@ -583,19 +625,23 @@ export default function CelestialSphere({
       }
       equinoxLabel = makeLabel('Tropical 0°', new Vector3(), 11, SKY.accent, 0.9);
       fontReadyAt = performance.now();
-      if (lastSky) world.update(lastSky.jdUt, lastSky.frame);
+      if (lastSky) world.update(lastSky.jdUt, lastSky.frame, lastSky.bodies);
       requestRender();
     });
 
     /* ------------------------------------------------------ sky updaters */
-    let lastSky: { jdUt: number; frame: RingFrame } | null = null;
+    let lastSky: {
+      jdUt: number;
+      frame: RingFrame;
+      bodies: readonly SphereBody[];
+    } | null = null;
     let starShift = 0;
 
     const world: World = {
-      update(jd, skyFrame) {
-        lastSky = { jdUt: jd, frame: skyFrame };
+      update(jd, skyFrame, skyBodyList) {
+        lastSky = { jdUt: jd, frame: skyFrame, bodies: skyBodyList };
         const positions = stalkGeometry.getAttribute('position');
-        sphereBodies(jd, skyFrame).forEach((body, index) => {
+        skyBodyList.forEach((body, index) => {
           const entry = bodies.get(body.id)!;
           const at = scaled(directionOf(body.longitude, body.latitude), R_BODY);
           const foot = scaled(directionOf(body.longitude, 0), R_BODY);
@@ -703,6 +749,7 @@ export default function CelestialSphere({
     const layoutLabels = (now: number): void => {
       const width = host.clientWidth;
       const height = host.clientHeight;
+      const narrow = width < NARROW_CANVAS_PX;
       const tanHalf = Math.tan((camera.fov * Math.PI) / 360);
       const cameraDistance = camera.position.length();
       const outside = smooth(9, 12, cameraDistance); // 0 at the centre, 1 outside the band
@@ -806,7 +853,7 @@ export default function CelestialSphere({
             : farDim + (1 - farDim) * smooth(-0.4, 0, facing);
           const arc = 1 - outside + outside * near;
           const clear = yieldToGrahas(here.x, here.y, (label.width * label.px) / 2, label.px * 0.6);
-          place(label, labelOpacity(room) * arc * clear);
+          place(label, labelOpacity(room, narrow) * arc * clear);
         });
       };
       ringPass(ringLabels.signs, false, 0.45);
@@ -843,9 +890,12 @@ export default function CelestialSphere({
       earth.visible = cameraDistance > 1;
 
       // Bodies and halos hold a constant size on screen.
-      for (const { mesh, halo: glow } of bodies.values()) {
-        mesh.scale.setScalar((mesh.userData.px as number) / pxPerUnit(mesh.position));
-        glow.scale.setScalar((glow.userData.px as number) / pxPerUnit(glow.position));
+      for (const [id, { mesh, halo: glow }] of bodies) {
+        // The selected graha is drawn larger, so `?sel=` reads here as it does
+        // on every other view.
+        const emphasis = id === live.current.highlight ? 1.8 : 1;
+        mesh.scale.setScalar(((mesh.userData.px as number) * emphasis) / pxPerUnit(mesh.position));
+        glow.scale.setScalar(((glow.userData.px as number) * emphasis) / pxPerUnit(glow.position));
       }
       // The nodal axis runs through the viewer; from inside it is a smear.
       (axisLine.material as LineDashedMaterial).opacity = 0.4 * outside;
@@ -859,8 +909,77 @@ export default function CelestialSphere({
     let flight: { from: Vector3; to: Vector3; start: number; duration: number } | null = null;
     const flyTo = (to: Vector3): void => {
       touched = true;
-      flight = { from: camera.position.clone(), to, start: performance.now(), duration: 900 };
+      const { flightMs } = motionPolicy(live.current.reducedMotion);
+      if (flightMs === 0) {
+        // Reduced motion: the view changes in one step, with no transition.
+        flight = null;
+        camera.position.copy(to);
+        camera.lookAt(0, 0, 0);
+        controls.update();
+        dirty = true;
+        return;
+      }
+      flight = { from: camera.position.clone(), to, start: performance.now(), duration: flightMs };
     };
+
+    const poleDistance = (): number => fitDistance(12.4);
+    const viewPosition = (kind: SphereView): Vector3 => {
+      if (kind === 'centre') return new Vector3(0.02, 0, 0.05);
+      if (kind === 'pole') return new Vector3(0, poleDistance(), 0.001);
+      if (kind === 'lagna') {
+        const [x, z] = poleOffset(live.current.ascendant);
+        return new Vector3(x * 0.001, poleDistance(), z * 0.001);
+      }
+      return outsideView();
+    };
+    const setView = (kind: SphereView): void => {
+      flyTo(viewPosition(kind));
+      callbacks.current.onView?.(kind);
+    };
+
+    motionRef.current = (reduced) => {
+      controls.enableDamping = motionPolicy(reduced).damping;
+      if (reduced && flight) {
+        camera.position.copy(flight.to);
+        camera.lookAt(0, 0, 0);
+        flight = null;
+      }
+      dirty = true;
+    };
+
+    /* -------------------------------------------------------- keyboard */
+    const onKeyDown = (event: KeyboardEvent): void => {
+      const action = sphereKeyAction(event.key);
+      if (!action) return;
+      event.preventDefault();
+      // Handled here, so the page-wide shortcuts must not act on it as well —
+      // Escape leaves the canvas; it does not also clear the selection.
+      event.stopPropagation();
+      if (action.kind === 'leave') {
+        renderer.domElement.blur();
+        return;
+      }
+      if (action.kind === 'view') {
+        setView(action.view);
+        return;
+      }
+      touched = true;
+      flight = null;
+      const at: [number, number, number] = [
+        camera.position.x,
+        camera.position.y,
+        camera.position.z,
+      ];
+      const next =
+        action.kind === 'orbit'
+          ? orbitPosition(at, action.azimuth, action.polar)
+          : zoomPosition(at, action.factor, controls.minDistance, controls.maxDistance);
+      camera.position.set(...next);
+      camera.lookAt(0, 0, 0);
+      controls.update();
+      dirty = true;
+    };
+    renderer.domElement.addEventListener('keydown', onKeyDown);
 
     /* --------------------------------------------------------- the loop */
     let lost = false;
@@ -939,7 +1058,7 @@ export default function CelestialSphere({
       renderer.setSize(width, height);
       camera.aspect = width / height;
       camera.updateProjectionMatrix();
-      if (!touched && !flight) camera.position.copy(outsideView());
+      if (!touched && !flight) camera.position.copy(viewPosition(live.current.initialView));
       dirty = true;
     };
     const observer = new ResizeObserver(resize);
@@ -947,11 +1066,7 @@ export default function CelestialSphere({
     resize();
 
     callbacks.current.onHandle?.({
-      view(kind) {
-        if (kind === 'centre') flyTo(new Vector3(0.02, 0, 0.05));
-        else if (kind === 'pole') flyTo(new Vector3(0, fitDistance(12.4), 0.001));
-        else flyTo(outsideView());
-      },
+      view: setView,
       loseContext: () => renderer.forceContextLoss(),
       restoreContext: () => renderer.forceContextRestore(),
       stats: () => lastStats,
@@ -964,6 +1079,8 @@ export default function CelestialSphere({
       callbacks.current.onHandle?.(null);
       cancelAnimationFrame(frameId);
       observer.disconnect();
+      renderer.domElement.removeEventListener('keydown', onKeyDown);
+      motionRef.current = null;
       renderer.domElement.removeEventListener('webglcontextlost', onLost);
       renderer.domElement.removeEventListener('webglcontextrestored', onRestored);
       controls.dispose();
@@ -988,8 +1105,14 @@ export default function CelestialSphere({
   // Only the bodies (and the slow equinox) move. Everything else is fixed.
   const { ayanamsa, customAyanamsaAtJ2000, nodeType } = frame;
   useEffect(() => {
-    worldRef.current?.update(jdUt, { ayanamsa, customAyanamsaAtJ2000, nodeType });
-  }, [jdUt, ayanamsa, customAyanamsaAtJ2000, nodeType]);
+    worldRef.current?.update(jdUt, { ayanamsa, customAyanamsaAtJ2000, nodeType }, skyBodies);
+    // `highlight` is read during layout; re-running the update requests a frame.
+  }, [jdUt, ayanamsa, customAyanamsaAtJ2000, nodeType, skyBodies, highlight]);
+
+  // prefers-reduced-motion can change while the page is open.
+  useEffect(() => {
+    motionRef.current?.(reducedMotion);
+  }, [reducedMotion]);
 
   // Paths cost ~30 ms, so they are redrawn when the scrubber comes to rest
   // rather than on every frame of a drag.
