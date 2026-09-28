@@ -1,0 +1,3 @@
+astronomy-engine 2.1.19 is distributed under the MIT licence, as declared in its package.json.
+The package ships no licence file; the full text is in its repository: https://github.com/cosinekitty/astronomy#readme.
+Author: Donald Cross.

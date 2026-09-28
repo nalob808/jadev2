@@ -26,7 +26,7 @@ numbered section, and run `pnpm verify` before every commit.
   scoped context, house readings, plain-voice reading library.
 - `apps/web` — Next 14 App Router, React 18. Design tokens in
   `apps/web/src/app/globals.css`: `--paper --surface --ink --rule --accent
-  --jade --clay`, element and nature tints, and `--drishti-*` per graha. Fonts
+--jade --clay`, element and nature tints, and `--drishti-*` per graha. Fonts
   are Barlow, Barlow Condensed and IBM Plex Mono.
 
 ## The finding this whole build rests on
@@ -46,7 +46,7 @@ Five further gaps were verified as genuinely empty across the whole category:
    years old and is a static raster in Solar Fire, Astro Gold, Sirius and
    Astro-Seek alike. Nobody offers hover-to-identify a crossing, click-to-jump
    to that date, or drag-to-scrub.
-2. **Nothing renders the nakṣatra band.** Astro-Seek gives the *Arabic* 28
+2. **Nothing renders the nakṣatra band.** Astro-Seek gives the _Arabic_ 28
    lunar mansions a graphic calendar and gives the Vedic 27 nothing. A search
    for an interactive nakṣatra wheel returns Pinterest boards and PDFs.
 3. **Aṣṭakavarga is an integer grid everywhere.** A dataset of 8 contributors ×
@@ -89,8 +89,8 @@ type Selection =
   | { kind: 'graha'; id: PointId }
   | { kind: 'house'; house: number }
   | { kind: 'sign'; signIndex: number }
-  | { kind: 'nakshatra'; index: number }       // 0–26
-  | { kind: 'pada'; nakshatra: number; pada: number }  // pada 1–4
+  | { kind: 'nakshatra'; index: number } // 0–26
+  | { kind: 'pada'; nakshatra: number; pada: number } // pada 1–4
   | { kind: 'period'; lords: readonly Graha[] };
 ```
 
@@ -145,7 +145,7 @@ A 360° SVG band. Requirements:
 Why this matters, so you make the right calls under pressure: nakṣatra and pada
 are load-bearing in Jyotiṣa — they drive Vimśottarī, tārā-bala, muhūrta and
 matching. A ring makes visible the structure every other view is derived from,
-so a user can finally see *why* their daśā sequence starts where it does.
+so a user can finally see _why_ their daśā sequence starts where it does.
 
 ## 3. The graphic ephemeris — with the nakṣatra fold
 
@@ -183,7 +183,7 @@ Three views of data Jade already computes in `packages/astro/src/ashtakavarga.ts
   shape rather than twelve numbers. Sarva totals 337 across twelve signs — scale
   against that, and label the actual values.
 - **BAV as small multiples** — eight small charts, one per contributor, so a
-  reader can see *who* supplies the bindus. This is the whole argument: a single
+  reader can see _who_ supplies the bindus. This is the whole argument: a single
   SAV of 28 hides whether the strength comes from benefics or malefics, and the
   grid makes that decomposition invisible.
 - **The kakṣā transit band.** A horizontal band per slow graha, each divided into

@@ -17,6 +17,7 @@
     "format": "prettier --write \"**/*.{ts,tsx,md,json,css}\"",
     "format:check": "prettier --check \"**/*.{ts,tsx,md,json,css}\"",
     "fixtures": "python3 scripts/generate_fixtures.py",
+    "assets:visual": "tsx --tsconfig apps/web/scripts/tsconfig.json apps/web/scripts/build-visual-assets.tsx",
     "places:import": "pnpm --filter @jade/db run places:import",
     "db:migrate": "pnpm --filter @jade/db run migrate",
     "db:seed": "pnpm --filter @jade/db run seed",

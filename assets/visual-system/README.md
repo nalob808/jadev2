@@ -24,7 +24,7 @@ Settings are explicit: Lahiri ayanāṁśa, mean lunar nodes, apparent geocentri
 From the project root:
 
 ```sh
-pnpm exec tsx apps/web/scripts/build-visual-assets.tsx
+pnpm assets:visual
 ```
 
 The source components live in `packages/ui/src/charts/`; pure calculations live in `packages/astro/src/`; the connected production page is `/people/[id]/instrument`.

@@ -1,0 +1,2008 @@
+{
+  "todayJd": 2461311.5,
+  "frame": {
+    "ayanamsa": "lahiri",
+    "nodeType": "mean",
+    "positionBasis": "apparent"
+  },
+  "positionBasis": "apparent",
+  "settingsLabel": "Lahiri ayanāṁśa · mean nodes · apparent positions · whole-sign houses · Vimśottarī Julian year",
+  "natal": {
+    "points": [
+      {
+        "id": "Sun",
+        "longitude": 201.4115929598156,
+        "tropicalLongitude": 225.28940966955196,
+        "latitude": -0.000004413550816594806,
+        "speed": 1.0036744863550382,
+        "retrograde": false,
+        "signIndex": 6,
+        "sign": "Libra",
+        "degreesInSign": 21.411592959815607,
+        "nakshatra": "Vishakha",
+        "house": 12,
+        "dignity": "debilitated"
+      },
+      {
+        "id": "Moon",
+        "longitude": 100.14996152076361,
+        "tropicalLongitude": 124.02777823049995,
+        "latitude": 3.0501314749734503,
+        "speed": 13.899996726039987,
+        "retrograde": false,
+        "signIndex": 3,
+        "sign": "Cancer",
+        "degreesInSign": 10.149961520763611,
+        "nakshatra": "Pushya",
+        "house": 9,
+        "dignity": "own"
+      },
+      {
+        "id": "Mars",
+        "longitude": 283.691072291473,
+        "tropicalLongitude": 307.56888900120936,
+        "latitude": -1.9331856552306241,
+        "speed": 0.7010589133471399,
+        "retrograde": false,
+        "signIndex": 9,
+        "sign": "Capricorn",
+        "degreesInSign": 13.691072291473006,
+        "nakshatra": "Shravana",
+        "house": 3,
+        "dignity": "exalted"
+      },
+      {
+        "id": "Mercury",
+        "longitude": 185.84691964029395,
+        "tropicalLongitude": 209.7247363500303,
+        "latitude": 1.9367162088527168,
+        "speed": 1.5184472636589987,
+        "retrograde": false,
+        "signIndex": 6,
+        "sign": "Libra",
+        "degreesInSign": 5.846919640293947,
+        "nakshatra": "Chitra",
+        "house": 12,
+        "dignity": "friend"
+      },
+      {
+        "id": "Jupiter",
+        "longitude": 81.77275551289881,
+        "tropicalLongitude": 105.65057222263515,
+        "latitude": -0.113162080519045,
+        "speed": -0.016690337466343408,
+        "retrograde": true,
+        "signIndex": 2,
+        "sign": "Gemini",
+        "degreesInSign": 21.77275551289881,
+        "nakshatra": "Punarvasu",
+        "house": 8,
+        "dignity": "enemy"
+      },
+      {
+        "id": "Venus",
+        "longitude": 184.9786392718221,
+        "tropicalLongitude": 208.8564559815584,
+        "latitude": 1.4307676501074331,
+        "speed": 1.2514421047305575,
+        "retrograde": false,
+        "signIndex": 6,
+        "sign": "Libra",
+        "degreesInSign": 4.9786392718220895,
+        "nakshatra": "Chitra",
+        "house": 12,
+        "dignity": "moolatrikona"
+      },
+      {
+        "id": "Saturn",
+        "longitude": 49.60236432732228,
+        "tropicalLongitude": 73.48018103705861,
+        "latitude": -1.8837067463611328,
+        "speed": -0.06681172625707177,
+        "retrograde": true,
+        "signIndex": 1,
+        "sign": "Taurus",
+        "degreesInSign": 19.602364327322277,
+        "nakshatra": "Rohini",
+        "house": 7,
+        "dignity": "friend"
+      },
+      {
+        "id": "Rahu",
+        "longitude": 65.35698875048796,
+        "tropicalLongitude": 89.2348054602243,
+        "latitude": 0,
+        "speed": -0.05293346614138272,
+        "retrograde": true,
+        "signIndex": 2,
+        "sign": "Gemini",
+        "degreesInSign": 5.356988750487957,
+        "nakshatra": "Mrigashira",
+        "house": 8,
+        "dignity": null
+      },
+      {
+        "id": "Ketu",
+        "longitude": 245.35698875048791,
+        "tropicalLongitude": 269.23480546022427,
+        "latitude": 0,
+        "speed": -0.05293346614138272,
+        "retrograde": true,
+        "signIndex": 8,
+        "sign": "Sagittarius",
+        "degreesInSign": 5.356988750487915,
+        "nakshatra": "Mula",
+        "house": 2,
+        "dignity": null
+      },
+      {
+        "id": "Ascendant",
+        "longitude": 239.8001485281713,
+        "tropicalLongitude": 263.67796523790764,
+        "latitude": 0,
+        "speed": 0,
+        "retrograde": false,
+        "signIndex": 7,
+        "sign": "Scorpio",
+        "degreesInSign": 29.80014852817129,
+        "nakshatra": "Jyeshtha",
+        "house": 1,
+        "dignity": null
+      },
+      {
+        "id": "Midheaven",
+        "longitude": 173.64525769747132,
+        "tropicalLongitude": 197.52307440720764,
+        "latitude": 0,
+        "speed": 0,
+        "retrograde": false,
+        "signIndex": 5,
+        "sign": "Virgo",
+        "degreesInSign": 23.645257697471322,
+        "nakshatra": "Chitra",
+        "house": 11,
+        "dignity": null
+      }
+    ],
+    "aspects": [
+      {
+        "from": "Sun",
+        "toSign": 0,
+        "distance": 7,
+        "strength": 1
+      },
+      {
+        "from": "Moon",
+        "toSign": 9,
+        "distance": 7,
+        "strength": 1
+      },
+      {
+        "from": "Mars",
+        "toSign": 0,
+        "distance": 4,
+        "strength": 1
+      },
+      {
+        "from": "Mars",
+        "toSign": 3,
+        "distance": 7,
+        "strength": 1
+      },
+      {
+        "from": "Mars",
+        "toSign": 4,
+        "distance": 8,
+        "strength": 1
+      },
+      {
+        "from": "Mercury",
+        "toSign": 0,
+        "distance": 7,
+        "strength": 1
+      },
+      {
+        "from": "Jupiter",
+        "toSign": 6,
+        "distance": 5,
+        "strength": 1
+      },
+      {
+        "from": "Jupiter",
+        "toSign": 8,
+        "distance": 7,
+        "strength": 1
+      },
+      {
+        "from": "Jupiter",
+        "toSign": 10,
+        "distance": 9,
+        "strength": 1
+      },
+      {
+        "from": "Venus",
+        "toSign": 0,
+        "distance": 7,
+        "strength": 1
+      },
+      {
+        "from": "Saturn",
+        "toSign": 3,
+        "distance": 3,
+        "strength": 1
+      },
+      {
+        "from": "Saturn",
+        "toSign": 7,
+        "distance": 7,
+        "strength": 1
+      },
+      {
+        "from": "Saturn",
+        "toSign": 10,
+        "distance": 10,
+        "strength": 1
+      }
+    ],
+    "ascendant": 239.8001485281713,
+    "ascendantSign": 7,
+    "sarva": [
+      29,
+      26,
+      22,
+      27,
+      38,
+      29,
+      23,
+      28,
+      27,
+      27,
+      30,
+      31
+    ],
+    "moonLongitude": 100.14996152076361,
+    "birthJd": 2452221.147222221,
+    "yearLength": "julian"
+  },
+  "saturnBand": [
+    {
+      "body": "Saturn",
+      "fromJd": 2448673.220062442,
+      "toJd": 2449052.043285556,
+      "signIndex": 9,
+      "sign": "Capricorn",
+      "bindus": 27,
+      "enteredRetrograde": false
+    },
+    {
+      "body": "Saturn",
+      "fromJd": 2449052.043285556,
+      "toJd": 2449275.7467691377,
+      "signIndex": 10,
+      "sign": "Aquarius",
+      "bindus": 30,
+      "enteredRetrograde": false
+    },
+    {
+      "body": "Saturn",
+      "fromJd": 2449275.7467691377,
+      "toJd": 2449301.510830112,
+      "signIndex": 9,
+      "sign": "Capricorn",
+      "bindus": 27,
+      "enteredRetrograde": true
+    },
+    {
+      "body": "Saturn",
+      "fromJd": 2449301.510830112,
+      "toJd": 2449870.720981784,
+      "signIndex": 10,
+      "sign": "Aquarius",
+      "bindus": 30,
+      "enteredRetrograde": false
+    },
+    {
+      "body": "Saturn",
+      "fromJd": 2449870.720981784,
+      "toJd": 2449939.340931125,
+      "signIndex": 11,
+      "sign": "Pisces",
+      "bindus": 31,
+      "enteredRetrograde": false
+    },
+    {
+      "body": "Saturn",
+      "fromJd": 2449939.340931125,
+      "toJd": 2450130.0398294404,
+      "signIndex": 10,
+      "sign": "Aquarius",
+      "bindus": 30,
+      "enteredRetrograde": true
+    },
+    {
+      "body": "Saturn",
+      "fromJd": 2450130.0398294404,
+      "toJd": 2450920.8183938935,
+      "signIndex": 11,
+      "sign": "Pisces",
+      "bindus": 31,
+      "enteredRetrograde": false
+    },
+    {
+      "body": "Saturn",
+      "fromJd": 2450920.8183938935,
+      "toJd": 2451702.299862094,
+      "signIndex": 0,
+      "sign": "Aries",
+      "bindus": 29,
+      "enteredRetrograde": false
+    },
+    {
+      "body": "Saturn",
+      "fromJd": 2451702.299862094,
+      "toJd": 2452478.594005771,
+      "signIndex": 1,
+      "sign": "Taurus",
+      "bindus": 26,
+      "enteredRetrograde": false
+    },
+    {
+      "body": "Saturn",
+      "fromJd": 2452478.594005771,
+      "toJd": 2452647.868389316,
+      "signIndex": 2,
+      "sign": "Gemini",
+      "bindus": 22,
+      "enteredRetrograde": false
+    },
+    {
+      "body": "Saturn",
+      "fromJd": 2452647.868389316,
+      "toJd": 2452737.101009555,
+      "signIndex": 1,
+      "sign": "Taurus",
+      "bindus": 26,
+      "enteredRetrograde": true
+    },
+    {
+      "body": "Saturn",
+      "fromJd": 2452737.101009555,
+      "toJd": 2453254.4644739106,
+      "signIndex": 2,
+      "sign": "Gemini",
+      "bindus": 22,
+      "enteredRetrograde": false
+    },
+    {
+      "body": "Saturn",
+      "fromJd": 2453254.4644739106,
+      "toJd": 2453383.8977319673,
+      "signIndex": 3,
+      "sign": "Cancer",
+      "bindus": 27,
+      "enteredRetrograde": false
+    },
+    {
+      "body": "Saturn",
+      "fromJd": 2453383.8977319673,
+      "toJd": 2453516.57612247,
+      "signIndex": 2,
+      "sign": "Gemini",
+      "bindus": 22,
+      "enteredRetrograde": true
+    },
+    {
+      "body": "Saturn",
+      "fromJd": 2453516.57612247,
+      "toJd": 2454040.55558414,
+      "signIndex": 3,
+      "sign": "Cancer",
+      "bindus": 27,
+      "enteredRetrograde": false
+    },
+    {
+      "body": "Saturn",
+      "fromJd": 2454040.55558414,
+      "toJd": 2454111.042118259,
+      "signIndex": 4,
+      "sign": "Leo",
+      "bindus": 38,
+      "enteredRetrograde": false
+    },
+    {
+      "body": "Saturn",
+      "fromJd": 2454111.042118259,
+      "toJd": 2454297.4630166963,
+      "signIndex": 3,
+      "sign": "Cancer",
+      "bindus": 27,
+      "enteredRetrograde": true
+    },
+    {
+      "body": "Saturn",
+      "fromJd": 2454297.4630166963,
+      "toJd": 2455084.281276889,
+      "signIndex": 4,
+      "sign": "Leo",
+      "bindus": 38,
+      "enteredRetrograde": false
+    },
+    {
+      "body": "Saturn",
+      "fromJd": 2455084.281276889,
+      "toJd": 2455880.7000467256,
+      "signIndex": 5,
+      "sign": "Virgo",
+      "bindus": 29,
+      "enteredRetrograde": false
+    },
+    {
+      "body": "Saturn",
+      "fromJd": 2455880.7000467256,
+      "toJd": 2456063.539531894,
+      "signIndex": 6,
+      "sign": "Libra",
+      "bindus": 23,
+      "enteredRetrograde": false
+    },
+    {
+      "body": "Saturn",
+      "fromJd": 2456063.539531894,
+      "toJd": 2456143.6404077485,
+      "signIndex": 5,
+      "sign": "Virgo",
+      "bindus": 29,
+      "enteredRetrograde": true
+    },
+    {
+      "body": "Saturn",
+      "fromJd": 2456143.6404077485,
+      "toJd": 2456964.1423227265,
+      "signIndex": 6,
+      "sign": "Libra",
+      "bindus": 23,
+      "enteredRetrograde": false
+    },
+    {
+      "body": "Saturn",
+      "fromJd": 2456964.1423227265,
+      "toJd": 2457780.081028171,
+      "signIndex": 7,
+      "sign": "Scorpio",
+      "bindus": 28,
+      "enteredRetrograde": false
+    },
+    {
+      "body": "Saturn",
+      "fromJd": 2457780.081028171,
+      "toJd": 2457925.470936008,
+      "signIndex": 8,
+      "sign": "Sagittarius",
+      "bindus": 27,
+      "enteredRetrograde": false
+    },
+    {
+      "body": "Saturn",
+      "fromJd": 2457925.470936008,
+      "toJd": 2458052.909603305,
+      "signIndex": 7,
+      "sign": "Scorpio",
+      "bindus": 28,
+      "enteredRetrograde": true
+    },
+    {
+      "body": "Saturn",
+      "fromJd": 2458052.909603305,
+      "toJd": 2458872.6901285127,
+      "signIndex": 8,
+      "sign": "Sagittarius",
+      "bindus": 27,
+      "enteredRetrograde": false
+    },
+    {
+      "body": "Saturn",
+      "fromJd": 2458872.6901285127,
+      "toJd": 2459698.597858615,
+      "signIndex": 9,
+      "sign": "Capricorn",
+      "bindus": 27,
+      "enteredRetrograde": false
+    },
+    {
+      "body": "Saturn",
+      "fromJd": 2459698.597858615,
+      "toJd": 2459772.8879892305,
+      "signIndex": 10,
+      "sign": "Aquarius",
+      "bindus": 30,
+      "enteredRetrograde": false
+    },
+    {
+      "body": "Saturn",
+      "fromJd": 2459772.8879892305,
+      "toJd": 2459962.0254632905,
+      "signIndex": 9,
+      "sign": "Capricorn",
+      "bindus": 27,
+      "enteredRetrograde": true
+    },
+    {
+      "body": "Saturn",
+      "fromJd": 2459962.0254632905,
+      "toJd": 2460764.1924020723,
+      "signIndex": 10,
+      "sign": "Aquarius",
+      "bindus": 30,
+      "enteredRetrograde": false
+    },
+    {
+      "body": "Saturn",
+      "fromJd": 2460764.1924020723,
+      "toJd": 2461559.5230829194,
+      "signIndex": 11,
+      "sign": "Pisces",
+      "bindus": 31,
+      "enteredRetrograde": false
+    },
+    {
+      "body": "Saturn",
+      "fromJd": 2461559.5230829194,
+      "toJd": 2461698.5338785127,
+      "signIndex": 0,
+      "sign": "Aries",
+      "bindus": 29,
+      "enteredRetrograde": false
+    },
+    {
+      "body": "Saturn",
+      "fromJd": 2461698.5338785127,
+      "toJd": 2461825.103809543,
+      "signIndex": 11,
+      "sign": "Pisces",
+      "bindus": 31,
+      "enteredRetrograde": true
+    },
+    {
+      "body": "Saturn",
+      "fromJd": 2461825.103809543,
+      "toJd": 2462356.806873508,
+      "signIndex": 0,
+      "sign": "Aries",
+      "bindus": 29,
+      "enteredRetrograde": false
+    },
+    {
+      "body": "Saturn",
+      "fromJd": 2462356.806873508,
+      "toJd": 2462414.961132236,
+      "signIndex": 1,
+      "sign": "Taurus",
+      "bindus": 26,
+      "enteredRetrograde": false
+    },
+    {
+      "body": "Saturn",
+      "fromJd": 2462414.961132236,
+      "toJd": 2462608.651745029,
+      "signIndex": 0,
+      "sign": "Aries",
+      "bindus": 29,
+      "enteredRetrograde": true
+    },
+    {
+      "body": "Saturn",
+      "fromJd": 2462608.651745029,
+      "toJd": 2463383.3957864717,
+      "signIndex": 1,
+      "sign": "Taurus",
+      "bindus": 26,
+      "enteredRetrograde": false
+    },
+    {
+      "body": "Saturn",
+      "fromJd": 2463383.3957864717,
+      "toJd": 2464156.465503879,
+      "signIndex": 2,
+      "sign": "Gemini",
+      "bindus": 22,
+      "enteredRetrograde": false
+    },
+    {
+      "body": "Saturn",
+      "fromJd": 2464156.465503879,
+      "toJd": 2464933.1212655976,
+      "signIndex": 3,
+      "sign": "Cancer",
+      "bindus": 27,
+      "enteredRetrograde": false
+    },
+    {
+      "body": "Saturn",
+      "fromJd": 2464933.1212655976,
+      "toJd": 2465718.9641763642,
+      "signIndex": 4,
+      "sign": "Leo",
+      "bindus": 38,
+      "enteredRetrograde": false
+    },
+    {
+      "body": "Saturn",
+      "fromJd": 2465718.9641763642,
+      "toJd": 2465884.1626855806,
+      "signIndex": 5,
+      "sign": "Virgo",
+      "bindus": 29,
+      "enteredRetrograde": false
+    },
+    {
+      "body": "Saturn",
+      "fromJd": 2465884.1626855806,
+      "toJd": 2465982.3464548066,
+      "signIndex": 4,
+      "sign": "Leo",
+      "bindus": 38,
+      "enteredRetrograde": true
+    },
+    {
+      "body": "Saturn",
+      "fromJd": 2465982.3464548066,
+      "toJd": 2466547.3095514253,
+      "signIndex": 5,
+      "sign": "Virgo",
+      "bindus": 29,
+      "enteredRetrograde": false
+    },
+    {
+      "body": "Saturn",
+      "fromJd": 2466547.3095514253,
+      "toJd": 2466556.983822055,
+      "signIndex": 6,
+      "sign": "Libra",
+      "bindus": 23,
+      "enteredRetrograde": false
+    },
+    {
+      "body": "Saturn",
+      "fromJd": 2466556.983822055,
+      "toJd": 2466788.527134128,
+      "signIndex": 5,
+      "sign": "Virgo",
+      "bindus": 29,
+      "enteredRetrograde": true
+    },
+    {
+      "body": "Saturn",
+      "fromJd": 2466788.527134128,
+      "toJd": 2467595.2416650727,
+      "signIndex": 6,
+      "sign": "Libra",
+      "bindus": 23,
+      "enteredRetrograde": false
+    },
+    {
+      "body": "Saturn",
+      "fromJd": 2467595.2416650727,
+      "toJd": 2467789.607059665,
+      "signIndex": 7,
+      "sign": "Scorpio",
+      "bindus": 28,
+      "enteredRetrograde": false
+    },
+    {
+      "body": "Saturn",
+      "fromJd": 2467789.607059665,
+      "toJd": 2467857.548504062,
+      "signIndex": 6,
+      "sign": "Libra",
+      "bindus": 23,
+      "enteredRetrograde": true
+    },
+    {
+      "body": "Saturn",
+      "fromJd": 2467857.548504062,
+      "toJd": 2468687.2779733613,
+      "signIndex": 7,
+      "sign": "Scorpio",
+      "bindus": 28,
+      "enteredRetrograde": false
+    },
+    {
+      "body": "Saturn",
+      "fromJd": 2468687.2779733613,
+      "toJd": 2469506.9758569673,
+      "signIndex": 8,
+      "sign": "Sagittarius",
+      "bindus": 27,
+      "enteredRetrograde": false
+    },
+    {
+      "body": "Saturn",
+      "fromJd": 2469506.9758569673,
+      "toJd": 2469632.309780307,
+      "signIndex": 9,
+      "sign": "Capricorn",
+      "bindus": 27,
+      "enteredRetrograde": false
+    },
+    {
+      "body": "Saturn",
+      "fromJd": 2469632.309780307,
+      "toJd": 2469779.6060220674,
+      "signIndex": 8,
+      "sign": "Sagittarius",
+      "bindus": 27,
+      "enteredRetrograde": true
+    },
+    {
+      "body": "Saturn",
+      "fromJd": 2469779.6060220674,
+      "toJd": 2470592.4438363984,
+      "signIndex": 9,
+      "sign": "Capricorn",
+      "bindus": 27,
+      "enteredRetrograde": false
+    },
+    {
+      "body": "Saturn",
+      "fromJd": 2470592.4438363984,
+      "toJd": 2471402.127941318,
+      "signIndex": 10,
+      "sign": "Aquarius",
+      "bindus": 30,
+      "enteredRetrograde": false
+    },
+    {
+      "body": "Saturn",
+      "fromJd": 2471402.127941318,
+      "toJd": 2471512.457714267,
+      "signIndex": 11,
+      "sign": "Pisces",
+      "bindus": 31,
+      "enteredRetrograde": false
+    },
+    {
+      "body": "Saturn",
+      "fromJd": 2471512.457714267,
+      "toJd": 2471669.0327341035,
+      "signIndex": 10,
+      "sign": "Aquarius",
+      "bindus": 30,
+      "enteredRetrograde": true
+    },
+    {
+      "body": "Saturn",
+      "fromJd": 2471669.0327341035,
+      "toJd": 2472460.604549594,
+      "signIndex": 11,
+      "sign": "Pisces",
+      "bindus": 31,
+      "enteredRetrograde": false
+    },
+    {
+      "body": "Saturn",
+      "fromJd": 2472460.604549594,
+      "toJd": 2473241.2707483247,
+      "signIndex": 0,
+      "sign": "Aries",
+      "bindus": 29,
+      "enteredRetrograde": false
+    },
+    {
+      "body": "Saturn",
+      "fromJd": 2473241.2707483247,
+      "toJd": 2474016.460460849,
+      "signIndex": 1,
+      "sign": "Taurus",
+      "bindus": 26,
+      "enteredRetrograde": false
+    },
+    {
+      "body": "Saturn",
+      "fromJd": 2474016.460460849,
+      "toJd": 2474233.808773227,
+      "signIndex": 2,
+      "sign": "Gemini",
+      "bindus": 22,
+      "enteredRetrograde": false
+    },
+    {
+      "body": "Saturn",
+      "fromJd": 2474233.808773227,
+      "toJd": 2474255.3668558076,
+      "signIndex": 1,
+      "sign": "Taurus",
+      "bindus": 26,
+      "enteredRetrograde": true
+    },
+    {
+      "body": "Saturn",
+      "fromJd": 2474255.3668558076,
+      "toJd": 2474790.783344455,
+      "signIndex": 2,
+      "sign": "Gemini",
+      "bindus": 22,
+      "enteredRetrograde": false
+    },
+    {
+      "body": "Saturn",
+      "fromJd": 2474790.783344455,
+      "toJd": 2474956.380764194,
+      "signIndex": 3,
+      "sign": "Cancer",
+      "bindus": 27,
+      "enteredRetrograde": false
+    },
+    {
+      "body": "Saturn",
+      "fromJd": 2474956.380764194,
+      "toJd": 2475049.885296054,
+      "signIndex": 2,
+      "sign": "Gemini",
+      "bindus": 22,
+      "enteredRetrograde": true
+    },
+    {
+      "body": "Saturn",
+      "fromJd": 2475049.885296054,
+      "toJd": 2475571.4301645234,
+      "signIndex": 3,
+      "sign": "Cancer",
+      "bindus": 27,
+      "enteredRetrograde": false
+    },
+    {
+      "body": "Saturn",
+      "fromJd": 2475571.4301645234,
+      "toJd": 2475685.178005405,
+      "signIndex": 4,
+      "sign": "Leo",
+      "bindus": 38,
+      "enteredRetrograde": false
+    },
+    {
+      "body": "Saturn",
+      "fromJd": 2475685.178005405,
+      "toJd": 2475834.728557773,
+      "signIndex": 3,
+      "sign": "Cancer",
+      "bindus": 27,
+      "enteredRetrograde": true
+    },
+    {
+      "body": "Saturn",
+      "fromJd": 2475834.728557773,
+      "toJd": 2476623.5870782807,
+      "signIndex": 4,
+      "sign": "Leo",
+      "bindus": 38,
+      "enteredRetrograde": false
+    },
+    {
+      "body": "Saturn",
+      "fromJd": 2476623.5870782807,
+      "toJd": 2477419.9172250703,
+      "signIndex": 5,
+      "sign": "Virgo",
+      "bindus": 29,
+      "enteredRetrograde": false
+    },
+    {
+      "body": "Saturn",
+      "fromJd": 2477419.9172250703,
+      "toJd": 2478244.021465488,
+      "signIndex": 6,
+      "sign": "Libra",
+      "bindus": 23,
+      "enteredRetrograde": false
+    },
+    {
+      "body": "Saturn",
+      "fromJd": 2478244.021465488,
+      "toJd": 2478297.6842615083,
+      "signIndex": 7,
+      "sign": "Scorpio",
+      "bindus": 28,
+      "enteredRetrograde": false
+    },
+    {
+      "body": "Saturn",
+      "fromJd": 2478297.6842615083,
+      "toJd": 2478504.011997409,
+      "signIndex": 6,
+      "sign": "Libra",
+      "bindus": 23,
+      "enteredRetrograde": true
+    },
+    {
+      "body": "Saturn",
+      "fromJd": 2478504.011997409,
+      "toJd": 2479318.9671976045,
+      "signIndex": 7,
+      "sign": "Scorpio",
+      "bindus": 28,
+      "enteredRetrograde": false
+    },
+    {
+      "body": "Saturn",
+      "fromJd": 2479318.9671976045,
+      "toJd": 2479495.295452304,
+      "signIndex": 8,
+      "sign": "Sagittarius",
+      "bindus": 27,
+      "enteredRetrograde": false
+    },
+    {
+      "body": "Saturn",
+      "fromJd": 2479495.295452304,
+      "toJd": 2479588.1920816377,
+      "signIndex": 7,
+      "sign": "Scorpio",
+      "bindus": 28,
+      "enteredRetrograde": true
+    },
+    {
+      "body": "Saturn",
+      "fromJd": 2479588.1920816377,
+      "toJd": 2480413.3276025727,
+      "signIndex": 8,
+      "sign": "Sagittarius",
+      "bindus": 27,
+      "enteredRetrograde": false
+    },
+    {
+      "body": "Saturn",
+      "fromJd": 2480413.3276025727,
+      "toJd": 2481231.4000741914,
+      "signIndex": 9,
+      "sign": "Capricorn",
+      "bindus": 27,
+      "enteredRetrograde": false
+    },
+    {
+      "body": "Saturn",
+      "fromJd": 2481231.4000741914,
+      "toJd": 2481344.693096347,
+      "signIndex": 10,
+      "sign": "Aquarius",
+      "bindus": 30,
+      "enteredRetrograde": false
+    },
+    {
+      "body": "Saturn",
+      "fromJd": 2481344.693096347,
+      "toJd": 2481501.3047449067,
+      "signIndex": 9,
+      "sign": "Capricorn",
+      "bindus": 27,
+      "enteredRetrograde": true
+    },
+    {
+      "body": "Saturn",
+      "fromJd": 2481501.3047449067,
+      "toJd": 2482304.4059793428,
+      "signIndex": 10,
+      "sign": "Aquarius",
+      "bindus": 30,
+      "enteredRetrograde": false
+    },
+    {
+      "body": "Saturn",
+      "fromJd": 2482304.4059793428,
+      "toJd": 2483097.1337701753,
+      "signIndex": 11,
+      "sign": "Pisces",
+      "bindus": 31,
+      "enteredRetrograde": false
+    },
+    {
+      "body": "Saturn",
+      "fromJd": 2483097.1337701753,
+      "toJd": 2483269.509922214,
+      "signIndex": 0,
+      "sign": "Aries",
+      "bindus": 29,
+      "enteredRetrograde": false
+    },
+    {
+      "body": "Saturn",
+      "fromJd": 2483269.509922214,
+      "toJd": 2483359.657802768,
+      "signIndex": 11,
+      "sign": "Pisces",
+      "bindus": 31,
+      "enteredRetrograde": true
+    },
+    {
+      "body": "Saturn",
+      "fromJd": 2483359.657802768,
+      "toJd": 2483885.565235324,
+      "signIndex": 0,
+      "sign": "Aries",
+      "bindus": 29,
+      "enteredRetrograde": false
+    },
+    {
+      "body": "Saturn",
+      "fromJd": 2483885.565235324,
+      "toJd": 2483990.561557956,
+      "signIndex": 1,
+      "sign": "Taurus",
+      "bindus": 26,
+      "enteredRetrograde": false
+    },
+    {
+      "body": "Saturn",
+      "fromJd": 2483990.561557956,
+      "toJd": 2484146.9724237397,
+      "signIndex": 0,
+      "sign": "Aries",
+      "bindus": 29,
+      "enteredRetrograde": true
+    },
+    {
+      "body": "Saturn",
+      "fromJd": 2484146.9724237397,
+      "toJd": 2484678.441562839,
+      "signIndex": 1,
+      "sign": "Taurus",
+      "bindus": 26,
+      "enteredRetrograde": false
+    },
+    {
+      "body": "Saturn",
+      "fromJd": 2484678.441562839,
+      "toJd": 2484714.809581943,
+      "signIndex": 2,
+      "sign": "Gemini",
+      "bindus": 22,
+      "enteredRetrograde": false
+    },
+    {
+      "body": "Saturn",
+      "fromJd": 2484714.809581943,
+      "toJd": 2484922.5124856904,
+      "signIndex": 1,
+      "sign": "Taurus",
+      "bindus": 26,
+      "enteredRetrograde": true
+    },
+    {
+      "body": "Saturn",
+      "fromJd": 2484922.5124856904,
+      "toJd": 2485696.007877536,
+      "signIndex": 2,
+      "sign": "Gemini",
+      "bindus": 22,
+      "enteredRetrograde": false
+    },
+    {
+      "body": "Saturn",
+      "fromJd": 2485696.007877536,
+      "toJd": 2486472.899639316,
+      "signIndex": 3,
+      "sign": "Cancer",
+      "bindus": 27,
+      "enteredRetrograde": false
+    },
+    {
+      "body": "Saturn",
+      "fromJd": 2486472.899639316,
+      "toJd": 2487257.9281351045,
+      "signIndex": 4,
+      "sign": "Leo",
+      "bindus": 38,
+      "enteredRetrograde": false
+    },
+    {
+      "body": "Saturn",
+      "fromJd": 2487257.9281351045,
+      "toJd": 2487461.0961420015,
+      "signIndex": 5,
+      "sign": "Virgo",
+      "bindus": 29,
+      "enteredRetrograde": false
+    },
+    {
+      "body": "Saturn",
+      "fromJd": 2487461.0961420015,
+      "toJd": 2487509.420391269,
+      "signIndex": 4,
+      "sign": "Leo",
+      "bindus": 38,
+      "enteredRetrograde": true
+    },
+    {
+      "body": "Saturn",
+      "fromJd": 2487509.420391269,
+      "toJd": 2488063.4880105928,
+      "signIndex": 5,
+      "sign": "Virgo",
+      "bindus": 29,
+      "enteredRetrograde": false
+    },
+    {
+      "body": "Saturn",
+      "fromJd": 2488063.4880105928,
+      "toJd": 2488144.7668954805,
+      "signIndex": 6,
+      "sign": "Libra",
+      "bindus": 23,
+      "enteredRetrograde": false
+    },
+    {
+      "body": "Saturn",
+      "fromJd": 2488144.7668954805,
+      "toJd": 2488327.989910312,
+      "signIndex": 5,
+      "sign": "Virgo",
+      "bindus": 29,
+      "enteredRetrograde": true
+    },
+    {
+      "body": "Saturn",
+      "fromJd": 2488327.989910312,
+      "toJd": 2489135.447757907,
+      "signIndex": 6,
+      "sign": "Libra",
+      "bindus": 23,
+      "enteredRetrograde": false
+    },
+    {
+      "body": "Saturn",
+      "fromJd": 2489135.447757907,
+      "toJd": 2490227.986019321,
+      "signIndex": 7,
+      "sign": "Scorpio",
+      "bindus": 28,
+      "enteredRetrograde": false
+    },
+    {
+      "body": "Saturn",
+      "fromJd": 2490227.986019321,
+      "toJd": 2491045.2753107026,
+      "signIndex": 8,
+      "sign": "Sagittarius",
+      "bindus": 27,
+      "enteredRetrograde": false
+    },
+    {
+      "body": "Saturn",
+      "fromJd": 2491045.2753107026,
+      "toJd": 2491200.418171115,
+      "signIndex": 9,
+      "sign": "Capricorn",
+      "bindus": 27,
+      "enteredRetrograde": false
+    },
+    {
+      "body": "Saturn",
+      "fromJd": 2491200.418171115,
+      "toJd": 2491317.5141336396,
+      "signIndex": 8,
+      "sign": "Sagittarius",
+      "bindus": 27,
+      "enteredRetrograde": true
+    },
+    {
+      "body": "Saturn",
+      "fromJd": 2491317.5141336396,
+      "toJd": 2492133.338825412,
+      "signIndex": 9,
+      "sign": "Capricorn",
+      "bindus": 27,
+      "enteredRetrograde": false
+    },
+    {
+      "body": "Saturn",
+      "fromJd": 2492133.338825412,
+      "toJd": 2492503.220062442,
+      "signIndex": 10,
+      "sign": "Aquarius",
+      "bindus": 30,
+      "enteredRetrograde": false
+    }
+  ],
+  "bySource": {
+    "Sun": [
+      4,
+      5,
+      3,
+      5,
+      7,
+      2,
+      3,
+      3,
+      3,
+      3,
+      2,
+      3
+    ],
+    "Moon": [
+      3,
+      7,
+      1,
+      2,
+      3,
+      5,
+      2,
+      2,
+      5,
+      2,
+      2,
+      3
+    ],
+    "Mars": [
+      5,
+      2,
+      3,
+      4,
+      4,
+      3,
+      6,
+      7,
+      2,
+      4,
+      5,
+      3
+    ],
+    "Mercury": [
+      1,
+      2,
+      5,
+      5,
+      7,
+      3,
+      3,
+      1,
+      5,
+      2,
+      6,
+      6
+    ],
+    "Jupiter": [
+      7,
+      3,
+      2,
+      2,
+      1,
+      2,
+      3,
+      4,
+      2,
+      4,
+      2,
+      4
+    ],
+    "Venus": [
+      2,
+      3,
+      4,
+      3,
+      6,
+      3,
+      2,
+      3,
+      3,
+      3,
+      4,
+      4
+    ],
+    "Saturn": [
+      1,
+      3,
+      2,
+      4,
+      4,
+      4,
+      3,
+      3,
+      4,
+      4,
+      4,
+      6
+    ],
+    "Ascendant": [
+      6,
+      1,
+      2,
+      2,
+      6,
+      7,
+      1,
+      5,
+      3,
+      5,
+      5,
+      2
+    ]
+  },
+  "kakshaRows": [
+    {
+      "subject": "Saturn",
+      "segments": [
+        {
+          "subject": "Saturn",
+          "fromJd": 2460946.5,
+          "toJd": 2460946.715789795,
+          "signIndex": 11,
+          "kakshaIndex": 1,
+          "lord": "Jupiter",
+          "hasBindu": false
+        },
+        {
+          "subject": "Saturn",
+          "fromJd": 2460946.715789795,
+          "toJd": 2461065.479370117,
+          "signIndex": 11,
+          "kakshaIndex": 0,
+          "lord": "Saturn",
+          "hasBindu": true
+        },
+        {
+          "subject": "Saturn",
+          "fromJd": 2461065.479370117,
+          "toJd": 2461100.5224609375,
+          "signIndex": 11,
+          "kakshaIndex": 1,
+          "lord": "Jupiter",
+          "hasBindu": false
+        },
+        {
+          "subject": "Saturn",
+          "fromJd": 2461100.5224609375,
+          "toJd": 2461130.9370117188,
+          "signIndex": 11,
+          "kakshaIndex": 2,
+          "lord": "Mars",
+          "hasBindu": true
+        },
+        {
+          "subject": "Saturn",
+          "fromJd": 2461130.9370117188,
+          "toJd": 2461162.2326660156,
+          "signIndex": 11,
+          "kakshaIndex": 3,
+          "lord": "Sun",
+          "hasBindu": false
+        },
+        {
+          "subject": "Saturn",
+          "fromJd": 2461162.2326660156,
+          "toJd": 2461201.844604492,
+          "signIndex": 11,
+          "kakshaIndex": 4,
+          "lord": "Venus",
+          "hasBindu": true
+        },
+        {
+          "subject": "Saturn",
+          "fromJd": 2461201.844604492,
+          "toJd": 2461295.61126709,
+          "signIndex": 11,
+          "kakshaIndex": 5,
+          "lord": "Mercury",
+          "hasBindu": true
+        },
+        {
+          "subject": "Saturn",
+          "fromJd": 2461295.61126709,
+          "toJd": 2461346.2879943848,
+          "signIndex": 11,
+          "kakshaIndex": 4,
+          "lord": "Venus",
+          "hasBindu": true
+        },
+        {
+          "subject": "Saturn",
+          "fromJd": 2461346.2879943848,
+          "toJd": 2461423.8769226074,
+          "signIndex": 11,
+          "kakshaIndex": 3,
+          "lord": "Sun",
+          "hasBindu": false
+        },
+        {
+          "subject": "Saturn",
+          "fromJd": 2461423.8769226074,
+          "toJd": 2461464.765106201,
+          "signIndex": 11,
+          "kakshaIndex": 4,
+          "lord": "Venus",
+          "hasBindu": true
+        },
+        {
+          "subject": "Saturn",
+          "fromJd": 2461464.765106201,
+          "toJd": 2461495.888824463,
+          "signIndex": 11,
+          "kakshaIndex": 5,
+          "lord": "Mercury",
+          "hasBindu": true
+        },
+        {
+          "subject": "Saturn",
+          "fromJd": 2461495.888824463,
+          "toJd": 2461525.8920288086,
+          "signIndex": 11,
+          "kakshaIndex": 6,
+          "lord": "Moon",
+          "hasBindu": false
+        },
+        {
+          "subject": "Saturn",
+          "fromJd": 2461525.8920288086,
+          "toJd": 2461559.5231018066,
+          "signIndex": 11,
+          "kakshaIndex": 7,
+          "lord": "Ascendant",
+          "hasBindu": false
+        },
+        {
+          "subject": "Saturn",
+          "fromJd": 2461559.5231018066,
+          "toJd": 2461698.533935547,
+          "signIndex": 0,
+          "kakshaIndex": 0,
+          "lord": "Saturn",
+          "hasBindu": false
+        },
+        {
+          "subject": "Saturn",
+          "fromJd": 2461698.533935547,
+          "toJd": 2461825.1038513184,
+          "signIndex": 11,
+          "kakshaIndex": 7,
+          "lord": "Ascendant",
+          "hasBindu": false
+        },
+        {
+          "subject": "Saturn",
+          "fromJd": 2461825.1038513184,
+          "toJd": 2461858.730255127,
+          "signIndex": 0,
+          "kakshaIndex": 0,
+          "lord": "Saturn",
+          "hasBindu": false
+        },
+        {
+          "subject": "Saturn",
+          "fromJd": 2461858.730255127,
+          "toJd": 2461888.4616394043,
+          "signIndex": 0,
+          "kakshaIndex": 1,
+          "lord": "Jupiter",
+          "hasBindu": true
+        },
+        {
+          "subject": "Saturn",
+          "fromJd": 2461888.4616394043,
+          "toJd": 2461919.054260254,
+          "signIndex": 0,
+          "kakshaIndex": 2,
+          "lord": "Mars",
+          "hasBindu": false
+        },
+        {
+          "subject": "Saturn",
+          "fromJd": 2461919.054260254,
+          "toJd": 2461956.9497680664,
+          "signIndex": 0,
+          "kakshaIndex": 3,
+          "lord": "Sun",
+          "hasBindu": true
+        },
+        {
+          "subject": "Saturn",
+          "fromJd": 2461956.9497680664,
+          "toJd": 2462056.841491699,
+          "signIndex": 0,
+          "kakshaIndex": 4,
+          "lord": "Venus",
+          "hasBindu": false
+        },
+        {
+          "subject": "Saturn",
+          "fromJd": 2462056.841491699,
+          "toJd": 2462106.753753662,
+          "signIndex": 0,
+          "kakshaIndex": 3,
+          "lord": "Sun",
+          "hasBindu": true
+        },
+        {
+          "subject": "Saturn",
+          "fromJd": 2462106.753753662,
+          "toJd": 2462176.7642211914,
+          "signIndex": 0,
+          "kakshaIndex": 2,
+          "lord": "Mars",
+          "hasBindu": false
+        },
+        {
+          "subject": "Saturn",
+          "fromJd": 2462176.7642211914,
+          "toJd": 2462218.6495056152,
+          "signIndex": 0,
+          "kakshaIndex": 3,
+          "lord": "Sun",
+          "hasBindu": true
+        },
+        {
+          "subject": "Saturn",
+          "fromJd": 2462218.6495056152,
+          "toJd": 2462249.610809326,
+          "signIndex": 0,
+          "kakshaIndex": 4,
+          "lord": "Venus",
+          "hasBindu": false
+        },
+        {
+          "subject": "Saturn",
+          "fromJd": 2462249.610809326,
+          "toJd": 2462278.942840576,
+          "signIndex": 0,
+          "kakshaIndex": 5,
+          "lord": "Mercury",
+          "hasBindu": false
+        },
+        {
+          "subject": "Saturn",
+          "fromJd": 2462278.942840576,
+          "toJd": 2462310.745147705,
+          "signIndex": 0,
+          "kakshaIndex": 6,
+          "lord": "Moon",
+          "hasBindu": false
+        },
+        {
+          "subject": "Saturn",
+          "fromJd": 2462310.745147705,
+          "toJd": 2462356.8068847656,
+          "signIndex": 0,
+          "kakshaIndex": 7,
+          "lord": "Ascendant",
+          "hasBindu": true
+        },
+        {
+          "subject": "Saturn",
+          "fromJd": 2462356.8068847656,
+          "toJd": 2462406.5,
+          "signIndex": 1,
+          "kakshaIndex": 0,
+          "lord": "Saturn",
+          "hasBindu": false
+        }
+      ]
+    },
+    {
+      "subject": "Jupiter",
+      "segments": [
+        {
+          "subject": "Jupiter",
+          "fromJd": 2460946.5,
+          "toJd": 2460967.106628418,
+          "signIndex": 2,
+          "kakshaIndex": 7,
+          "lord": "Ascendant",
+          "hasBindu": false
+        },
+        {
+          "subject": "Jupiter",
+          "fromJd": 2460967.106628418,
+          "toJd": 2461014.9846191406,
+          "signIndex": 3,
+          "kakshaIndex": 0,
+          "lord": "Saturn",
+          "hasBindu": true
+        },
+        {
+          "subject": "Jupiter",
+          "fromJd": 2461014.9846191406,
+          "toJd": 2461048.153564453,
+          "signIndex": 2,
+          "kakshaIndex": 7,
+          "lord": "Ascendant",
+          "hasBindu": false
+        },
+        {
+          "subject": "Jupiter",
+          "fromJd": 2461048.153564453,
+          "toJd": 2461078.563659668,
+          "signIndex": 2,
+          "kakshaIndex": 6,
+          "lord": "Moon",
+          "hasBindu": false
+        },
+        {
+          "subject": "Jupiter",
+          "fromJd": 2461078.563659668,
+          "toJd": 2461143.1232299805,
+          "signIndex": 2,
+          "kakshaIndex": 5,
+          "lord": "Mercury",
+          "hasBindu": true
+        },
+        {
+          "subject": "Jupiter",
+          "fromJd": 2461143.1232299805,
+          "toJd": 2461171.9630126953,
+          "signIndex": 2,
+          "kakshaIndex": 6,
+          "lord": "Moon",
+          "hasBindu": false
+        },
+        {
+          "subject": "Jupiter",
+          "fromJd": 2461171.9630126953,
+          "toJd": 2461193.3505249023,
+          "signIndex": 2,
+          "kakshaIndex": 7,
+          "lord": "Ascendant",
+          "hasBindu": false
+        },
+        {
+          "subject": "Jupiter",
+          "fromJd": 2461193.3505249023,
+          "toJd": 2461212.1641845703,
+          "signIndex": 3,
+          "kakshaIndex": 0,
+          "lord": "Saturn",
+          "hasBindu": true
+        },
+        {
+          "subject": "Jupiter",
+          "fromJd": 2461212.1641845703,
+          "toJd": 2461229.764892578,
+          "signIndex": 3,
+          "kakshaIndex": 1,
+          "lord": "Jupiter",
+          "hasBindu": true
+        },
+        {
+          "subject": "Jupiter",
+          "fromJd": 2461229.764892578,
+          "toJd": 2461246.814758301,
+          "signIndex": 3,
+          "kakshaIndex": 2,
+          "lord": "Mars",
+          "hasBindu": true
+        },
+        {
+          "subject": "Jupiter",
+          "fromJd": 2461246.814758301,
+          "toJd": 2461263.7830810547,
+          "signIndex": 3,
+          "kakshaIndex": 3,
+          "lord": "Sun",
+          "hasBindu": true
+        },
+        {
+          "subject": "Jupiter",
+          "fromJd": 2461263.7830810547,
+          "toJd": 2461281.1040649414,
+          "signIndex": 3,
+          "kakshaIndex": 4,
+          "lord": "Venus",
+          "hasBindu": true
+        },
+        {
+          "subject": "Jupiter",
+          "fromJd": 2461281.1040649414,
+          "toJd": 2461299.3536987305,
+          "signIndex": 3,
+          "kakshaIndex": 5,
+          "lord": "Mercury",
+          "hasBindu": true
+        },
+        {
+          "subject": "Jupiter",
+          "fromJd": 2461299.3536987305,
+          "toJd": 2461319.588317871,
+          "signIndex": 3,
+          "kakshaIndex": 6,
+          "lord": "Moon",
+          "hasBindu": false
+        },
+        {
+          "subject": "Jupiter",
+          "fromJd": 2461319.588317871,
+          "toJd": 2461344.777404785,
+          "signIndex": 3,
+          "kakshaIndex": 7,
+          "lord": "Ascendant",
+          "hasBindu": true
+        },
+        {
+          "subject": "Jupiter",
+          "fromJd": 2461344.777404785,
+          "toJd": 2461430.3317871094,
+          "signIndex": 4,
+          "kakshaIndex": 0,
+          "lord": "Saturn",
+          "hasBindu": false
+        },
+        {
+          "subject": "Jupiter",
+          "fromJd": 2461430.3317871094,
+          "toJd": 2461459.4201660156,
+          "signIndex": 3,
+          "kakshaIndex": 7,
+          "lord": "Ascendant",
+          "hasBindu": true
+        },
+        {
+          "subject": "Jupiter",
+          "fromJd": 2461459.4201660156,
+          "toJd": 2461558.094055176,
+          "signIndex": 3,
+          "kakshaIndex": 6,
+          "lord": "Moon",
+          "hasBindu": false
+        },
+        {
+          "subject": "Jupiter",
+          "fromJd": 2461558.094055176,
+          "toJd": 2461582.489868164,
+          "signIndex": 3,
+          "kakshaIndex": 7,
+          "lord": "Ascendant",
+          "hasBindu": true
+        },
+        {
+          "subject": "Jupiter",
+          "fromJd": 2461582.489868164,
+          "toJd": 2461602.7037963867,
+          "signIndex": 4,
+          "kakshaIndex": 0,
+          "lord": "Saturn",
+          "hasBindu": false
+        },
+        {
+          "subject": "Jupiter",
+          "fromJd": 2461602.7037963867,
+          "toJd": 2461621.1221313477,
+          "signIndex": 4,
+          "kakshaIndex": 1,
+          "lord": "Jupiter",
+          "hasBindu": true
+        },
+        {
+          "subject": "Jupiter",
+          "fromJd": 2461621.1221313477,
+          "toJd": 2461638.687072754,
+          "signIndex": 4,
+          "kakshaIndex": 2,
+          "lord": "Mars",
+          "hasBindu": true
+        },
+        {
+          "subject": "Jupiter",
+          "fromJd": 2461638.687072754,
+          "toJd": 2461655.9663085938,
+          "signIndex": 4,
+          "kakshaIndex": 3,
+          "lord": "Sun",
+          "hasBindu": true
+        },
+        {
+          "subject": "Jupiter",
+          "fromJd": 2461655.9663085938,
+          "toJd": 2461673.4490966797,
+          "signIndex": 4,
+          "kakshaIndex": 4,
+          "lord": "Venus",
+          "hasBindu": true
+        },
+        {
+          "subject": "Jupiter",
+          "fromJd": 2461673.4490966797,
+          "toJd": 2461691.7072143555,
+          "signIndex": 4,
+          "kakshaIndex": 5,
+          "lord": "Mercury",
+          "hasBindu": true
+        },
+        {
+          "subject": "Jupiter",
+          "fromJd": 2461691.7072143555,
+          "toJd": 2461711.723876953,
+          "signIndex": 4,
+          "kakshaIndex": 6,
+          "lord": "Moon",
+          "hasBindu": true
+        },
+        {
+          "subject": "Jupiter",
+          "fromJd": 2461711.723876953,
+          "toJd": 2461736.0466308594,
+          "signIndex": 4,
+          "kakshaIndex": 7,
+          "lord": "Ascendant",
+          "hasBindu": true
+        },
+        {
+          "subject": "Jupiter",
+          "fromJd": 2461736.0466308594,
+          "toJd": 2461830.083251953,
+          "signIndex": 5,
+          "kakshaIndex": 0,
+          "lord": "Saturn",
+          "hasBindu": true
+        },
+        {
+          "subject": "Jupiter",
+          "fromJd": 2461830.083251953,
+          "toJd": 2461859.667236328,
+          "signIndex": 4,
+          "kakshaIndex": 7,
+          "lord": "Ascendant",
+          "hasBindu": true
+        },
+        {
+          "subject": "Jupiter",
+          "fromJd": 2461859.667236328,
+          "toJd": 2461951.2373657227,
+          "signIndex": 4,
+          "kakshaIndex": 6,
+          "lord": "Moon",
+          "hasBindu": true
+        },
+        {
+          "subject": "Jupiter",
+          "fromJd": 2461951.2373657227,
+          "toJd": 2461976.917236328,
+          "signIndex": 4,
+          "kakshaIndex": 7,
+          "lord": "Ascendant",
+          "hasBindu": true
+        },
+        {
+          "subject": "Jupiter",
+          "fromJd": 2461976.917236328,
+          "toJd": 2461997.641418457,
+          "signIndex": 5,
+          "kakshaIndex": 0,
+          "lord": "Saturn",
+          "hasBindu": true
+        },
+        {
+          "subject": "Jupiter",
+          "fromJd": 2461997.641418457,
+          "toJd": 2462016.3166503906,
+          "signIndex": 5,
+          "kakshaIndex": 1,
+          "lord": "Jupiter",
+          "hasBindu": true
+        },
+        {
+          "subject": "Jupiter",
+          "fromJd": 2462016.3166503906,
+          "toJd": 2462034.0233154297,
+          "signIndex": 5,
+          "kakshaIndex": 2,
+          "lord": "Mars",
+          "hasBindu": false
+        },
+        {
+          "subject": "Jupiter",
+          "fromJd": 2462034.0233154297,
+          "toJd": 2462051.380493164,
+          "signIndex": 5,
+          "kakshaIndex": 3,
+          "lord": "Sun",
+          "hasBindu": false
+        },
+        {
+          "subject": "Jupiter",
+          "fromJd": 2462051.380493164,
+          "toJd": 2462068.900756836,
+          "signIndex": 5,
+          "kakshaIndex": 4,
+          "lord": "Venus",
+          "hasBindu": false
+        },
+        {
+          "subject": "Jupiter",
+          "fromJd": 2462068.900756836,
+          "toJd": 2462087.19732666,
+          "signIndex": 5,
+          "kakshaIndex": 5,
+          "lord": "Mercury",
+          "hasBindu": false
+        },
+        {
+          "subject": "Jupiter",
+          "fromJd": 2462087.19732666,
+          "toJd": 2462107.2864379883,
+          "signIndex": 5,
+          "kakshaIndex": 6,
+          "lord": "Moon",
+          "hasBindu": false
+        },
+        {
+          "subject": "Jupiter",
+          "fromJd": 2462107.2864379883,
+          "toJd": 2462131.838745117,
+          "signIndex": 5,
+          "kakshaIndex": 7,
+          "lord": "Ascendant",
+          "hasBindu": true
+        },
+        {
+          "subject": "Jupiter",
+          "fromJd": 2462131.838745117,
+          "toJd": 2462224.875366211,
+          "signIndex": 6,
+          "kakshaIndex": 0,
+          "lord": "Saturn",
+          "hasBindu": true
+        },
+        {
+          "subject": "Jupiter",
+          "fromJd": 2462224.875366211,
+          "toJd": 2462254.8803710938,
+          "signIndex": 5,
+          "kakshaIndex": 7,
+          "lord": "Ascendant",
+          "hasBindu": true
+        },
+        {
+          "subject": "Jupiter",
+          "fromJd": 2462254.8803710938,
+          "toJd": 2462347.8299560547,
+          "signIndex": 5,
+          "kakshaIndex": 6,
+          "lord": "Moon",
+          "hasBindu": false
+        },
+        {
+          "subject": "Jupiter",
+          "fromJd": 2462347.8299560547,
+          "toJd": 2462373.315979004,
+          "signIndex": 5,
+          "kakshaIndex": 7,
+          "lord": "Ascendant",
+          "hasBindu": true
+        },
+        {
+          "subject": "Jupiter",
+          "fromJd": 2462373.315979004,
+          "toJd": 2462393.866760254,
+          "signIndex": 6,
+          "kakshaIndex": 0,
+          "lord": "Saturn",
+          "hasBindu": true
+        },
+        {
+          "subject": "Jupiter",
+          "fromJd": 2462393.866760254,
+          "toJd": 2462406.5,
+          "signIndex": 6,
+          "kakshaIndex": 1,
+          "lord": "Jupiter",
+          "hasBindu": false
+        }
+      ]
+    }
+  ],
+  "kakshaWindow": {
+    "fromJd": 2460946.5,
+    "toJd": 2462406.5
+  },
+  "events": [
+    {
+      "id": "example-study",
+      "jd": 2461131.5,
+      "label": "Example: study began",
+      "detail": "Fictional demonstration annotation.",
+      "precision": "day"
+    },
+    {
+      "id": "example-move",
+      "jd": 2460111.5,
+      "label": "Example: relocation",
+      "detail": "Fictional demonstration annotation; recorded only to the month.",
+      "precision": "month"
+    }
+  ]
+}

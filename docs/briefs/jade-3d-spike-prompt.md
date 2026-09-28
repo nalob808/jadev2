@@ -57,7 +57,7 @@ int16 Dec, uint8 mag = 5 bytes/star). Measured sizes gzipped: magnitude ≤6.0 i
 5,080 stars at **24.5 KB**; ≤6.5 is 8,404 stars at **40.4 KB**. The entire
 naked-eye sky in one draw call, sharp at every zoom, and astronomically correct —
 which matters here, because users will look for Citrā/Spica and Rohiṇī/Aldebaran
-against the planets. A blurry 4K star JPEG would be larger *and* worse.
+against the planets. A blurry 4K star JPEG would be larger _and_ worse.
 
 Do **not** use the HYG database for this: it is CC BY-SA 4.0, and the ShareAlike
 attaches to the data you would ship. MIT with 9,096 naked-eye stars strictly
@@ -148,7 +148,7 @@ Show Nalu the spike beside the existing 2D wheel for the same moment and ask one
 question: **does the sphere teach something the wheel does not?**
 
 The honest case for yes: geocentric viewer-at-centre spatial intuition, real
-declination (planets are *near* the ecliptic, not on it), planets against actual
+declination (planets are _near_ the ecliptic, not on it), planets against actual
 stars, and the retrograde loop as visible geometry rather than a curve on a graph.
 
 The honest case for no: the data is one scalar per body — ecliptic longitude —

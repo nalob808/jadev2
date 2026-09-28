@@ -1,0 +1,13 @@
+{
+  "//": "Used only by `pnpm assets:visual` (tsx). The automatic JSX runtime must reach the workspace packages the generator renders, not just this folder.",
+  "extends": "../tsconfig.json",
+  "compilerOptions": { "jsx": "react-jsx" },
+  "include": [
+    "./**/*.ts",
+    "./**/*.tsx",
+    "../src/**/*.ts",
+    "../src/**/*.tsx",
+    "../../../packages/*/src/**/*.ts",
+    "../../../packages/*/src/**/*.tsx"
+  ]
+}

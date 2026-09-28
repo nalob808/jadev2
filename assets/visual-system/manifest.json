@@ -1,0 +1,34 @@
+{
+  "format": "jade.visual-assets.v1",
+  "referenceBirthJd": 2452221.147222221,
+  "initialCursorJd": 2461311.5,
+  "frame": {
+    "ayanamsa": "lahiri",
+    "nodeType": "mean",
+    "positionBasis": "apparent"
+  },
+  "houseSystem": "whole_sign",
+  "dashaYear": "julian",
+  "provider": "astronomy-engine",
+  "precisionClass": "interactive",
+  "fictionalEventAnnotations": true,
+  "regeneration": "pnpm assets:visual",
+  "files": [
+    "README.md",
+    "ashtakavarga.svg",
+    "contributor-multiples.svg",
+    "dasha-timeline.svg",
+    "data.json",
+    "fonts",
+    "graphic-ephemeris-longitude.svg",
+    "graphic-ephemeris-nakshatra.svg",
+    "graphic-ephemeris-rashi.svg",
+    "index.html",
+    "kaksha-transits.svg",
+    "nakshatra-ring.svg",
+    "notices",
+    "preview.css",
+    "preview.js",
+    "sarva-profile.svg"
+  ]
+}

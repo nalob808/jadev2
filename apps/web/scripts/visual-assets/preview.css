@@ -1,12 +1,64 @@
-html { scroll-behavior: auto; }
-body { margin: 0; }
-main { max-width: 1560px; padding: 42px 36px 64px; margin: 0 auto; }
-.asset-header { border-top: 2px solid var(--accent); padding-top: 20px; margin-bottom: 30px; }
-.asset-eyebrow { font: 500 11px var(--font-mono), monospace; letter-spacing: .18em; color: var(--accent); }
-.asset-header h1 { font: 600 clamp(34px, 4vw, 56px)/1.08 var(--font-display), sans-serif; margin: 12px 0; }
-.asset-header p { max-width: 82ch; }
-.asset-note, .asset-footer { color: var(--ink-muted); font-size: 13px; line-height: 1.55; margin-top: 12px; }
-.asset-header nav { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 20px; }
-.asset-header nav a, .asset-header nav button { color: var(--accent); border: 1px solid var(--rule); padding: 6px 9px; font: 500 11px var(--font-mono), monospace; }
-.asset-footer { border-top: 1px solid var(--rule); padding-top: 18px; margin-top: 28px; }
-@media (max-width: 700px) { main { padding: 22px 16px 40px; } }
+html {
+  scroll-behavior: auto;
+}
+body {
+  margin: 0;
+}
+main {
+  max-width: 1560px;
+  padding: 42px 36px 64px;
+  margin: 0 auto;
+}
+.asset-header {
+  border-top: 2px solid var(--accent);
+  padding-top: 20px;
+  margin-bottom: 30px;
+}
+.asset-eyebrow {
+  font:
+    500 11px var(--font-mono),
+    monospace;
+  letter-spacing: 0.18em;
+  color: var(--accent);
+}
+.asset-header h1 {
+  font:
+    600 clamp(34px, 4vw, 56px)/1.08 var(--font-display),
+    sans-serif;
+  margin: 12px 0;
+}
+.asset-header p {
+  max-width: 82ch;
+}
+.asset-note,
+.asset-footer {
+  color: var(--ink-muted);
+  font-size: 13px;
+  line-height: 1.55;
+  margin-top: 12px;
+}
+.asset-header nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 20px;
+}
+.asset-header nav a,
+.asset-header nav button {
+  color: var(--accent);
+  border: 1px solid var(--rule);
+  padding: 6px 9px;
+  font:
+    500 11px var(--font-mono),
+    monospace;
+}
+.asset-footer {
+  border-top: 1px solid var(--rule);
+  padding-top: 18px;
+  margin-top: 28px;
+}
+@media (max-width: 700px) {
+  main {
+    padding: 22px 16px 40px;
+  }
+}

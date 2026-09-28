@@ -27,7 +27,7 @@ genuinely needs artwork, plus two small optional sets.
 
 These are the real ask. Each nakṣatra has traditional iconography that is
 centuries old, specific, and currently rendered nowhere on the web as a coherent
-set. They are not decorative — the symbol *is* how the nakṣatra is identified in
+set. They are not decorative — the symbol _is_ how the nakṣatra is identified in
 the classical literature.
 
 ### Style specification — apply to all 27
@@ -55,35 +55,35 @@ the classical literature.
 Use the traditional symbol. Where I have given an alternative, either is fine —
 pick whichever renders more clearly at 24px.
 
-| # | Nakṣatra | Symbol to draw |
-|---|---|---|
-| 1 | Aśvinī | A horse's head, in profile |
-| 2 | Bharaṇī | A yoni, rendered as an abstract almond/vesica form — geometric, not anatomical |
-| 3 | Kṛttikā | A flame, or a razor / blade |
-| 4 | Rohiṇī | An ox-cart, or a single ox head |
-| 5 | Mṛgaśira | A deer's head with antlers |
-| 6 | Ārdrā | A single teardrop, or a faceted gem |
-| 7 | Punarvasu | A quiver of arrows |
-| 8 | Puṣya | A cow's udder, rendered abstractly, or a lotus flower |
-| 9 | Āśleṣā | A coiled serpent |
-| 10 | Maghā | A royal throne, seen from the side |
-| 11 | Pūrva Phalgunī | The front legs of a bed / a bed frame, front half |
-| 12 | Uttara Phalgunī | The back legs of a bed / a bed frame, rear half |
-| 13 | Hasta | An open hand, palm forward |
-| 14 | Citrā | A single bright star, or a pearl |
-| 15 | Svātī | A young shoot bending in wind, or a single coral branch |
-| 16 | Viśākhā | A decorated archway / triumphal gate |
-| 17 | Anurādhā | A lotus flower, seen from above |
-| 18 | Jyeṣṭhā | A circular amulet or earring |
-| 19 | Mūla | A bundle of tied roots |
-| 20 | Pūrva Āṣāḍhā | A hand fan, or an elephant's tusk |
-| 21 | Uttara Āṣāḍhā | An elephant's tusk, or a small planked bed |
-| 22 | Śravaṇa | An ear, or three footprints in a line |
-| 23 | Dhaniṣṭhā | A drum (mṛdaṅga), or a flute |
-| 24 | Śatabhiṣaj | An empty circle, or a ship's wheel / hundred-spoked wheel |
-| 25 | Pūrva Bhādrapadā | A sword, or the front half of a funeral cot |
-| 26 | Uttara Bhādrapadā | Twin legs of a cot, or twin water vessels |
-| 27 | Revatī | A fish, or a drum beaten to keep time |
+| #   | Nakṣatra          | Symbol to draw                                                                 |
+| --- | ----------------- | ------------------------------------------------------------------------------ |
+| 1   | Aśvinī            | A horse's head, in profile                                                     |
+| 2   | Bharaṇī           | A yoni, rendered as an abstract almond/vesica form — geometric, not anatomical |
+| 3   | Kṛttikā           | A flame, or a razor / blade                                                    |
+| 4   | Rohiṇī            | An ox-cart, or a single ox head                                                |
+| 5   | Mṛgaśira          | A deer's head with antlers                                                     |
+| 6   | Ārdrā             | A single teardrop, or a faceted gem                                            |
+| 7   | Punarvasu         | A quiver of arrows                                                             |
+| 8   | Puṣya             | A cow's udder, rendered abstractly, or a lotus flower                          |
+| 9   | Āśleṣā            | A coiled serpent                                                               |
+| 10  | Maghā             | A royal throne, seen from the side                                             |
+| 11  | Pūrva Phalgunī    | The front legs of a bed / a bed frame, front half                              |
+| 12  | Uttara Phalgunī   | The back legs of a bed / a bed frame, rear half                                |
+| 13  | Hasta             | An open hand, palm forward                                                     |
+| 14  | Citrā             | A single bright star, or a pearl                                               |
+| 15  | Svātī             | A young shoot bending in wind, or a single coral branch                        |
+| 16  | Viśākhā           | A decorated archway / triumphal gate                                           |
+| 17  | Anurādhā          | A lotus flower, seen from above                                                |
+| 18  | Jyeṣṭhā           | A circular amulet or earring                                                   |
+| 19  | Mūla              | A bundle of tied roots                                                         |
+| 20  | Pūrva Āṣāḍhā      | A hand fan, or an elephant's tusk                                              |
+| 21  | Uttara Āṣāḍhā     | An elephant's tusk, or a small planked bed                                     |
+| 22  | Śravaṇa           | An ear, or three footprints in a line                                          |
+| 23  | Dhaniṣṭhā         | A drum (mṛdaṅga), or a flute                                                   |
+| 24  | Śatabhiṣaj        | An empty circle, or a ship's wheel / hundred-spoked wheel                      |
+| 25  | Pūrva Bhādrapadā  | A sword, or the front half of a funeral cot                                    |
+| 26  | Uttara Bhādrapadā | Twin legs of a cot, or twin water vessels                                      |
+| 27  | Revatī            | A fish, or a drum beaten to keep time                                          |
 
 ### Prompt template
 
@@ -112,7 +112,7 @@ Fill in the subject and use it unchanged otherwise, so the set stays consistent:
 
 Jade already has licensed glyphs for the planets from the Telllu pack, and those
 stay — they are the correct astronomical symbols and they are what practitioners
-read. A *sigil* set is different and purely additive: a larger, more
+read. A _sigil_ set is different and purely additive: a larger, more
 characterful mark for use on a card header or a period card, where a 12px glyph
 is too small to carry a heading.
 
