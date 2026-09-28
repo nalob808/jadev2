@@ -1,4 +1,3 @@
-import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import {
   AstronomyEngineProvider,
@@ -14,7 +13,7 @@ import { getClock } from '@/lib/clock';
 import { getDatabase } from '@/lib/db';
 import { getOrComputeChart } from '@/lib/chart';
 import { saturnBand } from '@/lib/saturnBand';
-import { Kicker, Shell } from '@/components/Shell';
+import { Shell } from '@/components/Shell';
 import { InstrumentWorkspace } from '@/components/InstrumentWorkspace';
 
 export const dynamic = 'force-dynamic';
@@ -123,20 +122,10 @@ export default async function InstrumentPage({ params }: { params: Promise<{ id:
     .flatMap((graha) => signsAspectedBy(graha, chart.points[graha]!.signIndex));
 
   return (
-    <Shell email={session.email}>
-      <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <Kicker>The instrument</Kicker>
-          <h1 className="font-display text-4xl">{subject.displayName}</h1>
-        </div>
-        <Link
-          href={`/people/${subject.id}`}
-          className="border border-[var(--rule-strong)] px-3 py-2 font-mono text-[10px] uppercase tracking-wider transition-colors hover:border-[var(--accent)] hover:text-[var(--accent)]"
-        >
-          Full chart page
-        </Link>
-      </div>
-
+    <Shell
+      email={session.email}
+      subject={{ id: subject.id, name: subject.displayName, kicker: 'The instrument' }}
+    >
       <InstrumentWorkspace
         todayJd={clock.nowJd}
         natal={{

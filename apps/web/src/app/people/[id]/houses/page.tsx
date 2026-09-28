@@ -1,4 +1,3 @@
-import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { jdFromUnixMs, vimshottari } from '@jade/astro';
 import { buildScopeIndex, glossaryContextFor, houseReadings } from '@jade/interpret';
@@ -7,7 +6,7 @@ import { getSession } from '@/lib/auth';
 import { getClock } from '@/lib/clock';
 import { getDatabase } from '@/lib/db';
 import { getOrComputeChart } from '@/lib/chart';
-import { Kicker, Shell } from '@/components/Shell';
+import { Shell } from '@/components/Shell';
 import { GlossaryProvider } from '@/components/Glossary';
 import { HouseCard, HouseChips } from '@/components/HouseCards';
 
@@ -91,23 +90,15 @@ export default async function HousesPage({
   const occupied = readings.filter((reading) => reading.occupants.length > 0).length;
 
   return (
-    <Shell email={session.email}>
+    <Shell
+      email={session.email}
+      subject={{
+        id: record.subject.id,
+        name: record.subject.displayName,
+        kicker: 'The twelve houses',
+      }}
+    >
       <GlossaryProvider lines={glossary.lines} scopes={scopes}>
-        <div className="flex flex-wrap items-baseline justify-between gap-x-4">
-          <div>
-            <Kicker>The twelve houses</Kicker>
-            <h1 className="mt-1 font-display text-4xl leading-none">
-              {record.subject.displayName}
-            </h1>
-          </div>
-          <Link
-            href={`/people/${id}`}
-            className="font-mono text-[11px] uppercase tracking-wider text-[var(--accent)] underline underline-offset-4"
-          >
-            ← the whole chart
-          </Link>
-        </div>
-
         <p className="mt-2 max-w-prose text-[15px] leading-relaxed text-[var(--ink-muted)]">
           Each house with the sign on it, its lord and where that lord went, what sits in it and
           what aspects it — then what those four things come to, with the placements printed beside

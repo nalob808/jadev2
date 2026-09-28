@@ -99,7 +99,7 @@ export default async function BookSkyPage(): Promise<React.ReactElement> {
   const withCharts = subjects.filter((record) => record.birthEvent);
   if (withCharts.length === 0 || !profile) {
     return (
-      <Shell>
+      <Shell email={session.email}>
         <Kicker>The book today</Kicker>
         <h1 className="mt-1 font-display text-4xl leading-none">Nobody in the book yet</h1>
         <p className="mt-3 max-w-prose text-[15px] leading-relaxed text-[var(--ink-muted)]">
@@ -198,7 +198,7 @@ export default async function BookSkyPage(): Promise<React.ReactElement> {
   const withHits = rows.filter((row) => row.hits.length > 0).length;
 
   return (
-    <Shell>
+    <Shell email={session.email}>
       <GlossaryProvider lines={lines} scopes={{}}>
         <div className="flex flex-wrap items-baseline justify-between gap-x-4">
           <div>
@@ -207,12 +207,6 @@ export default async function BookSkyPage(): Promise<React.ReactElement> {
               {rows.length} {rows.length === 1 ? 'person' : 'people'}, one sky
             </h1>
           </div>
-          <Link
-            href="/timing"
-            className="font-mono text-[11px] uppercase tracking-wider text-[var(--accent)] underline underline-offset-4"
-          >
-            ← the timeline
-          </Link>
         </div>
 
         <p className="mt-1 font-mono text-[11px] text-[var(--ink-faint)]">

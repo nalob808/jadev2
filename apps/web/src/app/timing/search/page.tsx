@@ -89,7 +89,7 @@ export default async function EventSearchPage({
   const withCharts = subjects.filter((record) => record.birthEvent);
   if (withCharts.length === 0 || !profile) {
     return (
-      <Shell>
+      <Shell email={session.email}>
         <Kicker>Event search</Kicker>
         <h1 className="mt-1 font-display text-4xl leading-none">Nothing to search yet</h1>
         <p className="mt-3 max-w-prose text-[15px] leading-relaxed text-[var(--ink-muted)]">
@@ -292,24 +292,16 @@ export default async function EventSearchPage({
   }
 
   return (
-    <Shell>
+    <Shell
+      email={session.email}
+      subject={{
+        id: current.subject.id,
+        name: current.subject.displayName,
+        kicker: 'Event search',
+      }}
+    >
       <GlossaryProvider lines={glossary.lines} scopes={{}}>
-        <div className="flex flex-wrap items-baseline justify-between gap-x-4">
-          <div>
-            <Kicker>Event search</Kicker>
-            <h1 className="mt-1 font-display text-4xl leading-none">When do these line up?</h1>
-          </div>
-          <Link
-            href={`/timing?person=${current.subject.id}`}
-            className="font-mono text-[11px] uppercase tracking-wider text-[var(--accent)] underline underline-offset-4"
-          >
-            ← the timeline
-          </Link>
-        </div>
-
-        <p className="mt-2 max-w-prose text-[15px] leading-relaxed text-[var(--ink-muted)]">
-          Searching {current.subject.displayName}&rsquo;s chart.
-        </p>
+        <h1 className="font-display text-3xl leading-none">When do these line up?</h1>
 
         {/* ------------------------------------------------------- the presets */}
         <div className="mt-4 flex flex-wrap gap-1.5">

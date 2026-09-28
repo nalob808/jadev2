@@ -1,8 +1,10 @@
 import Link from 'next/link';
+import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { listSubjects } from '@jade/db';
 import { getSession } from '@/lib/auth';
 import { getDatabase } from '@/lib/db';
+import { workbenchHref } from '@/lib/nav';
 
 export const dynamic = 'force-dynamic';
 
@@ -71,7 +73,10 @@ export default async function ReadIndexPage(): Promise<React.ReactElement> {
 
       <p className="mt-10 border-t border-[var(--rule)] pt-4 text-[13px] leading-relaxed text-[var(--ink-muted)]">
         Looking for the charts, the vargas and the daśās?{' '}
-        <Link href="/home" className="text-[var(--accent)] underline underline-offset-4">
+        <Link
+          href={workbenchHref('/home', headers().get('host'))}
+          className="text-[var(--accent)] underline underline-offset-4"
+        >
           The full instrument is here
         </Link>
         .

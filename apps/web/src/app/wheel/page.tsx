@@ -205,20 +205,14 @@ export default async function WheelPage({
   }));
 
   return (
-    <Shell email={session.email}>
-      <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <Kicker>The wheel</Kicker>
-          <h1 className="font-display text-4xl">{current.subject.displayName}</h1>
-        </div>
-        <Link
-          href={`/people/${current.subject.id}`}
-          className="border border-[var(--rule-strong)] px-3 py-2 font-mono text-[10px] uppercase tracking-wider transition-colors hover:border-[var(--accent)] hover:text-[var(--accent)]"
-        >
-          Full chart page
-        </Link>
-      </div>
-
+    <Shell
+      email={session.email}
+      subject={{
+        id: current.subject.id,
+        name: current.subject.displayName,
+        kicker: 'The wheel',
+      }}
+    >
       <GlossaryProvider lines={glossary.lines} scopes={scopes}>
         <WheelWorkspace
           people={roster}

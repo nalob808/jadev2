@@ -95,7 +95,7 @@ export default async function TimingPage({
   const withCharts = subjects.filter((record) => record.birthEvent);
   if (withCharts.length === 0 || !profile) {
     return (
-      <Shell>
+      <Shell email={session.email}>
         <Kicker>Timing</Kicker>
         <h1 className="mt-1 font-display text-4xl leading-none">Nothing to time yet</h1>
         <p className="mt-3 max-w-prose text-[15px] leading-relaxed text-[var(--ink-muted)]">
@@ -206,40 +206,24 @@ export default async function TimingPage({
   };
 
   return (
-    <Shell>
+    <Shell
+      email={session.email}
+      subject={{ id: current.subject.id, name: current.subject.displayName, kicker: 'Timing' }}
+    >
       <GlossaryProvider lines={glossary.lines} scopes={{}}>
-        <Kicker>Timing</Kicker>
-        <h1 className="mt-1 font-display text-4xl leading-none">
-          {current.subject.displayName} &middot; {span.label}
-        </h1>
+        <h1 className="font-display text-3xl leading-none">{span.label}</h1>
         <p className="mt-2 max-w-prose text-[15px] leading-relaxed text-[var(--ink-muted)]">
           Every <T id="antardasha">antardaśā</T> in the window, with the slow transits that land
           inside it. A period is marked when the transiting graha is also one of its own{' '}
           <T id="dasha">daśā</T> lords — the classical reason to read a date twice.
         </p>
 
-        {/* Every surface is a way in. The three timing screens answer one
-            question each and each names the other two. */}
-        <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1">
-          <Link
-            href={`/timing/search?person=${current.subject.id}`}
-            className="font-mono text-[11px] uppercase tracking-wider text-[var(--accent)] underline underline-offset-4"
-          >
-            Search for a window →
-          </Link>
-          <Link
-            href="/timing/sky"
-            className="font-mono text-[11px] uppercase tracking-wider text-[var(--accent)] underline underline-offset-4"
-          >
-            The whole book today →
-          </Link>
-          <Link
-            href={`/people/${current.subject.id}`}
-            className="font-mono text-[11px] uppercase tracking-wider text-[var(--accent)] underline underline-offset-4"
-          >
-            {current.subject.displayName}&rsquo;s chart →
-          </Link>
-        </div>
+        {/*
+          The hand-written row of sideways links that used to sit here is gone.
+          It named the other two timing screens and the person's chart, which is
+          exactly what the section row and the lens tabs now name on every page
+          — and three copies of a link are three chances to forget one.
+        */}
 
         {/* ------------------------------------------------------- controls */}
         <div className="mt-5 flex flex-col gap-3 border-y border-[var(--rule)] py-3">

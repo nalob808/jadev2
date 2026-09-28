@@ -233,48 +233,54 @@ export default async function PersonPage({
   });
 
   return (
-    <Shell email={session.email}>
-      <GlossaryProvider lines={glossary.lines} scopes={scopes}>
-        <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <Kicker>{subject.relationship.replace('_', ' ')}</Kicker>
-            <h1 className="font-display text-4xl">{subject.displayName}</h1>
-            <p className="font-mono text-[11px] text-[var(--ink-muted)]">
-              {birthEvent.localDatetime.replace('T', ' ').slice(0, 16)} ·{' '}
-              {formatOffset(birthEvent.utcOffsetMinutes)} · {birthEvent.placeName}
-            </p>
-          </div>
-          <div className="flex items-center gap-3 font-mono text-[11px]">
+    <Shell
+      email={session.email}
+      subject={{
+        id: subject.id,
+        name: subject.displayName,
+        kicker: subject.relationship.replace('_', ' '),
+        line: `${birthEvent.localDatetime.replace('T', ' ').slice(0, 16)} · ${formatOffset(
+          birthEvent.utcOffsetMinutes,
+        )} · ${birthEvent.placeName}`,
+        actions: (
+          <>
             <Link
-              className="border border-[var(--accent)] px-2.5 py-1 uppercase tracking-wider text-[var(--accent)] no-underline transition-colors hover:bg-[var(--accent)] hover:text-white"
+              className="border border-[var(--accent)] px-2.5 py-1 font-mono text-[10px] uppercase tracking-wider text-[var(--accent)] no-underline transition-colors hover:bg-[var(--accent)] hover:text-white"
               href={`${base}/edit`}
             >
               edit
             </Link>
-            <Link className="underline" href={`${base}/instrument`}>
-              instrument
-            </Link>
-            <Link className="underline" href={`${base}/rectify`}>
-              rectify
-            </Link>
-            <Link className="underline" href={`${base}/report`}>
-              report
-            </Link>
-            <Link className="underline" href={`${base}/report?notes=1`}>
-              report + notes
-            </Link>
-            <a className="underline" href={`/api/people/${subject.id}/export`}>
-              export
-            </a>
-            <form action={removePerson}>
-              <input type="hidden" name="id" value={subject.id} />
-              <button type="submit" className="underline">
-                remove
-              </button>
-            </form>
-          </div>
-        </div>
-
+            {/*
+              Export and remove are not views of a chart, so they are not in the
+              row of views. Removing a person used to be one word away from the
+              word that opens the instrument, in the same size and the same
+              colour — a misclick away from deleting the chart you meant to
+              explore. They live behind a disclosure now.
+            */}
+            <details className="group relative">
+              <summary className="cursor-pointer list-none font-mono text-[10px] uppercase tracking-wider text-[var(--ink-faint)] transition-colors hover:text-[var(--ink)]">
+                manage
+              </summary>
+              <div className="absolute right-0 z-20 mt-2 flex w-max flex-col items-start gap-2 border border-[var(--rule-strong)] bg-[var(--paper)] p-3 font-mono text-[10px] uppercase tracking-wider shadow-lg">
+                <Link className="hover:text-[var(--accent)]" href={`${base}/report?notes=1`}>
+                  report with notes
+                </Link>
+                <a className="hover:text-[var(--accent)]" href={`/api/people/${subject.id}/export`}>
+                  export json
+                </a>
+                <form action={removePerson}>
+                  <input type="hidden" name="id" value={subject.id} />
+                  <button type="submit" className="uppercase hover:text-[var(--clay)]">
+                    remove person
+                  </button>
+                </form>
+              </div>
+            </details>
+          </>
+        ),
+      }}
+    >
+      <GlossaryProvider lines={glossary.lines} scopes={scopes}>
         {query.saved ? (
           <p className="mb-5 border-l-2 border-[var(--jade)] bg-[var(--surface)] px-4 py-3 text-sm text-[var(--jade)]">
             Saved. The chart below was recast from the corrected details.

@@ -4,7 +4,7 @@ import { getSubject } from '@jade/db';
 import { getSession } from '@/lib/auth';
 import { getDatabase } from '@/lib/db';
 import { PersonForm, type PersonDefaults } from '@/components/PersonForm';
-import { Kicker, Panel, Shell } from '@/components/Shell';
+import { Panel, Shell } from '@/components/Shell';
 
 export const dynamic = 'force-dynamic';
 
@@ -50,10 +50,11 @@ export default async function EditPersonPage({
   };
 
   return (
-    <Shell email={session.email}>
+    <Shell
+      email={session.email}
+      subject={{ id: subject.id, name: subject.displayName, kicker: 'Editing the birth data' }}
+    >
       <div className="mb-6">
-        <Kicker>Editing</Kicker>
-        <h1 className="font-display text-4xl">{subject.displayName}</h1>
         <p className="mt-2 max-w-[58ch] text-[var(--ink-muted)]">
           Changing the moment or the place recasts the chart from scratch, including the time zone
           offset — a new city means a new offset, so the two are never patched separately.

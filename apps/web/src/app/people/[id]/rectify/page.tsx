@@ -130,9 +130,12 @@ export default async function RectifyPage({
   };
 
   return (
-    <Shell email={session.email}>
+    <Shell
+      email={session.email}
+      subject={{ id: subject.id, name: subject.displayName, kicker: 'Rectification' }}
+    >
       <div className="jade-rise mb-6">
-        <Kicker>Rectification · {subject.displayName}</Kicker>
+        <Kicker>Rectification</Kicker>
         <h1 className="font-display text-[2.6rem] font-semibold leading-[1.06]">
           Which birth time fits the life?
         </h1>

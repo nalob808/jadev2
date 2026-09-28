@@ -288,6 +288,7 @@ export default async function HomePage() {
           <Stat
             n={outlook.ingresses.length + outlook.stations.length}
             label="Sky events this week"
+            href="/timing/sky"
           />
         </div>
 
@@ -351,12 +352,33 @@ export default async function HomePage() {
                       </AutoTerms>
                     </p>
                   </Scope>
-                  <Link
-                    href={`/people/${personal.id}`}
-                    className="mt-3 inline-block font-mono text-[10px] uppercase tracking-wider text-[var(--accent)] transition-opacity hover:opacity-70"
-                  >
-                    Open the chart →
-                  </Link>
+                  {/*
+                    Three ways in rather than one.
+
+                    "Open the chart" was the only link out of this panel, so the
+                    instrument and the plain reading were a page-hop away from
+                    the one chart somebody opens every day.
+                  */}
+                  <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 font-mono text-[10px] uppercase tracking-wider">
+                    <Link
+                      href={`/people/${personal.id}`}
+                      className="text-[var(--accent)] transition-opacity hover:opacity-70"
+                    >
+                      the chart →
+                    </Link>
+                    <Link
+                      href={`/people/${personal.id}/instrument`}
+                      className="text-[var(--accent)] transition-opacity hover:opacity-70"
+                    >
+                      instrument →
+                    </Link>
+                    <Link
+                      href={`/read/${personal.id}`}
+                      className="text-[var(--accent)] transition-opacity hover:opacity-70"
+                    >
+                      in plain english →
+                    </Link>
+                  </div>
                 </Panel>
 
                 <Panel>
@@ -493,6 +515,14 @@ export default async function HomePage() {
                 True of everyone. Nothing here is about you — these are <T id="gochara">transits</T>
                 , not your chart.
               </p>
+              <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 font-mono text-[10px] uppercase tracking-wider">
+                <Link href="/timing/sky" className="text-[var(--accent)] hover:opacity-70">
+                  who this lands on →
+                </Link>
+                <Link href="/timing/search" className="text-[var(--accent)] hover:opacity-70">
+                  find a window →
+                </Link>
+              </div>
             </div>
 
             <div className="overflow-x-auto border border-[var(--rule)] bg-[var(--surface)]">

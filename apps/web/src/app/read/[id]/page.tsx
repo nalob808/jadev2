@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { headers } from 'next/headers';
 import { notFound, redirect } from 'next/navigation';
 import {
   AstronomyEngineProvider,
@@ -20,6 +21,7 @@ import { getSession } from '@/lib/auth';
 import { getClock } from '@/lib/clock';
 import { getDatabase } from '@/lib/db';
 import { getOrComputeChart } from '@/lib/chart';
+import { workbenchHref } from '@/lib/nav';
 import {
   PeriodBar,
   ReadingCard,
@@ -81,6 +83,15 @@ export default async function ReadingPage({
 }): Promise<React.ReactElement> {
   const session = await getSession();
   if (!session) redirect('/sign-in');
+
+  /*
+   * The host this page is being served from.
+   *
+   * Needed because the reading mode answers on read.jadeapp.co as well as on
+   * /read here, and a link back to the workbench has to leave that host
+   * explicitly. See `workbenchHref`.
+   */
+  const host = headers().get('host');
 
   const { id } = await params;
   const { view } = await searchParams;
@@ -174,7 +185,7 @@ export default async function ReadingPage({
           </h1>
         </div>
         <Link
-          href={`/people/${id}`}
+          href={workbenchHref(`/people/${id}`, host)}
           className="font-mono text-[10px] uppercase tracking-wider text-[var(--accent)] underline underline-offset-4"
         >
           the technical chart →
@@ -305,7 +316,7 @@ export default async function ReadingPage({
               paragraphs={house.paragraphs}
               footer={
                 <Link
-                  href={`/people/${id}/houses?h=${house.house}`}
+                  href={workbenchHref(`/people/${id}/houses?h=${house.house}`, host)}
                   className="font-mono text-[10px] uppercase tracking-wider text-[var(--accent)] underline underline-offset-4"
                 >
                   technical reading →

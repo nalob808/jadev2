@@ -16,3 +16,20 @@ packages/astro/test/fixtures/swisseph-transits.json
 # minified bundles and JSON the formatter would fight with. The README is authored.
 assets/visual-system/*
 !assets/visual-system/README.md
+
+# Build output. Not ignored by default the way node_modules is, so a repo that
+# has ever been built fails `format:check` on generated manifests — and the fix
+# people reach for, `pnpm format`, quietly rewrites Next's build output instead
+# of saying so. Order matters here: `pnpm verify` checks formatting before it
+# builds, so a clean clone passed and every working tree did not.
+.next/
+.turbo/
+out/
+**/dist/
+coverage/
+playwright-report/
+test-results/
+
+# Scratch directories that are not part of the project.
+_to_delete/
+Claude outputs/

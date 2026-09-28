@@ -1,25 +1,7 @@
 import Link from 'next/link';
 import { devSignOut } from '@/app/actions';
-import { NavLink } from './NavLink';
+import { LensTabs, PrimaryLinks, SectionRow } from './AppNav';
 import { AutoTerms } from './Glossary';
-
-const LINKS: Array<{ href: string; label: string }> = [
-  { href: '/home', label: 'Home' },
-  { href: '/people', label: 'People' },
-  { href: '/wheel', label: 'Wheel' },
-  // The library existed from Phase 13 and was reachable only by typing the URL.
-  // It is a read path into `public_figures`; nothing here writes a client into
-  // that table and nothing joins the two (Phase 13's separation stands).
-  { href: '/charts', label: 'Library' },
-  { href: '/houses', label: 'Houses' },
-  { href: '/relationships', label: 'Relationships' },
-  { href: '/timing', label: 'Timing' },
-  // Shown to everyone, including tiers that cannot open it. Clicking through
-  // to a wall that explains the feature sells it; a padlock teaches nothing.
-  { href: '/sessions', label: 'Sessions' },
-  { href: '/notes', label: 'Notes' },
-  { href: '/settings', label: 'Settings' },
-];
 
 /**
  * The masthead and navigation.
@@ -28,11 +10,15 @@ const LINKS: Array<{ href: string; label: string }> = [
  * Without that, every navigation blanks the header for as long as the server
  * takes, and the page appears to rebuild itself from nothing rather than
  * filling in one region.
+ *
+ * What is in the rows, and why they are rows rather than one list, is in
+ * `lib/nav.ts`. This component only lays them out: five words and the account
+ * corner on the first line, the current section's parts on the second.
  */
 export function Nav({ email }: { email?: string | undefined }): React.ReactElement {
   return (
-    <header className="mb-8">
-      <div className="flex flex-wrap items-baseline gap-x-4 gap-y-2 pb-3">
+    <header className="mb-7">
+      <div className="flex flex-wrap items-baseline gap-x-4 gap-y-2 pb-1">
         <Link
           href="/home"
           className="font-display text-2xl font-semibold tracking-[0.22em] text-[var(--ink)]"
@@ -43,57 +29,120 @@ export function Nav({ email }: { email?: string | undefined }): React.ReactEleme
           sidereal practice
         </span>
 
-        {/*
-          Wraps rather than overflowing.
+        <PrimaryLinks />
 
-          This row held seven items and did not need to wrap. Timing, Library and
-          Houses took it to ten, which overflows the masthead on a phone — so it
-          wraps now and the masthead grows a line instead of hiding its right
-          edge. Ten flat items is still more than a reader should have to scan;
-          grouping them belongs to §16.7, and is noted there rather than bolted
-          on here.
+        {/*
+          The account corner, outside the five.
+
+          Settings used to be the tenth item in the menu, which spent a tenth of
+          the masthead on somewhere you go twice a year. Here it is reachable in
+          one click and costs the working words nothing.
         */}
-        <nav
-          aria-label="Main"
-          className="ml-auto flex flex-wrap items-center justify-end gap-x-1 gap-y-0.5 text-sm"
-        >
-          {LINKS.map((link) => (
-            <NavLink key={link.href} href={link.href}>
-              {link.label}
-            </NavLink>
-          ))}
-        </nav>
+        <div className="flex items-baseline gap-2 border-l border-[var(--rule)] pl-3">
+          <Link
+            href="/settings"
+            className="font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--ink-faint)] transition-colors hover:text-[var(--ink)]"
+          >
+            Settings
+          </Link>
+          {email ? (
+            <form action={devSignOut}>
+              <button
+                type="submit"
+                title={email}
+                className="font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--ink-faint)] transition-colors hover:text-[var(--ink)]"
+              >
+                Sign out
+              </button>
+            </form>
+          ) : null}
+        </div>
       </div>
 
-      {/* The one ambient thing in the app — see .jade-ecliptic in globals.css. */}
-      <div className="jade-ecliptic" aria-hidden="true" />
+      <SectionRow />
 
-      {email ? (
-        <div className="flex justify-end pt-2">
-          <form action={devSignOut}>
-            <button
-              type="submit"
-              className="font-mono text-[10px] tracking-wide text-[var(--ink-faint)] transition-colors hover:text-[var(--ink)]"
-            >
-              {email} · sign out
-            </button>
-          </form>
-        </div>
-      ) : null}
+      {/* The one ambient thing in the app — see .jade-ecliptic in globals.css. */}
+      <div className="jade-ecliptic mt-3" aria-hidden="true" />
     </header>
+  );
+}
+
+/**
+ * Who you are looking at, and the ways of looking at them.
+ *
+ * This is the piece that makes the app feel like one thing. Every surface that
+ * is about a single person renders it, so the name, the birth data the chart
+ * was cast from, and the seven lenses are in the same place on the sheet, the
+ * houses, the instrument, the reading and that person's timing — and moving
+ * between them is one click from anywhere rather than a trip back to the
+ * person page.
+ *
+ * The birth line is here rather than on each page for a second reason: a
+ * degree is only meaningful given the moment it was cast for, and a screen
+ * showing positions with the birth data scrolled off the top invites someone to
+ * read the wrong chart.
+ */
+export function SubjectBar({
+  id,
+  name,
+  kicker,
+  line,
+  actions,
+}: {
+  id: string;
+  name: string;
+  kicker?: string | undefined;
+  line?: string | undefined;
+  actions?: React.ReactNode;
+}): React.ReactElement {
+  return (
+    <div className="jade-rise mb-6 border-b border-[var(--rule)] pb-3">
+      <div className="flex flex-wrap items-end justify-between gap-x-5 gap-y-2">
+        <div>
+          {kicker ? <Kicker>{kicker}</Kicker> : null}
+          <h1 className="font-display text-[2.1rem] font-semibold leading-[1.1] tracking-[-0.01em]">
+            {name}
+          </h1>
+          {line ? (
+            <p className="mt-0.5 font-mono text-[11px] text-[var(--ink-muted)]">{line}</p>
+          ) : null}
+        </div>
+        {actions ? <div className="flex items-center gap-3">{actions}</div> : null}
+      </div>
+      <div className="mt-3">
+        <LensTabs id={id} />
+      </div>
+    </div>
   );
 }
 
 export function Shell({
   children,
   email,
+  subject,
 }: {
   children: React.ReactNode;
   email?: string | undefined;
+  /**
+   * The person this page is about, when it is about one.
+   *
+   * Passing it here rather than having each page render its own heading is what
+   * keeps the lens tabs from being seven different rows in seven files.
+   */
+  subject?:
+    | {
+        id: string;
+        name: string;
+        kicker?: string | undefined;
+        line?: string | undefined;
+        actions?: React.ReactNode;
+      }
+    | undefined;
 }) {
   return (
     <div className="mx-auto max-w-5xl px-5 pb-24 pt-7 sm:px-8">
       <Nav email={email} />
+      {subject ? <SubjectBar {...subject} /> : null}
       {children}
     </div>
   );
