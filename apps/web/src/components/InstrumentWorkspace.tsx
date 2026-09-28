@@ -34,6 +34,7 @@ import {
 import { InstrumentProvider, useInstrument, type Selection } from '@/lib/instrument';
 import { transitRing, type RingFrame } from '@/lib/transitRing';
 import { InstrumentTimeBar, useInstrumentKeys } from './InstrumentTimeBar';
+import { GraphicEphemerisPanel } from './GraphicEphemerisPanel';
 
 /**
  * Every visual-system view on one screen, all projections of one instrument.
@@ -63,6 +64,8 @@ export interface InstrumentWorkspaceProps {
   readonly todayJd: number;
   readonly natal: InstrumentNatal;
   readonly frame: RingFrame;
+  /** Apparent or true positions — from the settings profile, never assumed. */
+  readonly positionBasis: 'apparent' | 'true';
   /** "Lahiri", "mean nodes", "whole sign" — the settings in words. */
   readonly settingsLabel: string;
   /** Saturn's sign over the lifetime, scored by sarva — the timeline's context band. */
@@ -92,6 +95,7 @@ function Instrument({
   bySource,
   kakshaRows,
   kakshaWindow,
+  positionBasis,
 }: InstrumentWorkspaceProps): React.ReactElement {
   const { jd, selection, setSelection, setJd, scrubTo, endScrub } = useInstrument();
   const onKeyDown = useInstrumentKeys();
@@ -161,6 +165,16 @@ function Instrument({
     }));
   }, [saturnBand, natal.sarva]);
 
+  /** Memoised: the ephemeris panel recomputes when these change identity. */
+  const ephemerisFrame = useMemo(() => ({ ...frame, positionBasis }), [frame, positionBasis]);
+  const ephemerisNatal = useMemo(
+    () =>
+      natal.points
+        .filter((point) => point.id !== 'Midheaven')
+        .map((point) => ({ id: point.id as InstrumentMark['id'], longitude: point.longitude })),
+    [natal.points],
+  );
+
   const wheelFocus = selection?.kind === 'graha' ? selection.id : null;
 
   return (
@@ -221,6 +235,11 @@ function Instrument({
           </p>
         </aside>
       </div>
+
+      <section aria-label="Graphic ephemeris" className="min-w-0">
+        <Heading>Graphic ephemeris · transits against natal points</Heading>
+        <GraphicEphemerisPanel frame={ephemerisFrame} natal={ephemerisNatal} />
+      </section>
 
       <section aria-label="Aṣṭakavarga" className="min-w-0">
         <Heading>Aṣṭakavarga · where the strength is, and who gives it</Heading>

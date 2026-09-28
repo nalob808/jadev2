@@ -9,7 +9,7 @@ import {
   useSyncExternalStore,
   type ReactNode,
 } from 'react';
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import { createInstrumentStore, type InstrumentStore, type Selection } from './instrumentStore';
 
 export type { InstrumentState, Selection } from './instrumentStore';
@@ -64,18 +64,16 @@ export function InstrumentProvider({
   readonly todayJd: number;
   readonly children: ReactNode;
 }): React.ReactElement {
-  const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
 
   /**
-   * The router's `push` is asynchronous, so the adapter mirrors the query it
-   * last wrote and reads that back. Without the mirror, a selection made and
-   * then immediately read would still see the old URL for one render.
+   * The adapter mirrors the query it last wrote and reads that back, so a
+   * selection made and immediately read never sees the old URL for a render.
    */
   const mirror = useRef(params.toString());
-  const routerRef = useRef({ router, pathname });
-  routerRef.current = { router, pathname };
+  const pathRef = useRef(pathname);
+  pathRef.current = pathname;
 
   const store = useMemo(
     () =>
@@ -84,9 +82,17 @@ export function InstrumentProvider({
           read: () => mirror.current,
           push: (query) => {
             mirror.current = query;
-            const { router: r, pathname: path } = routerRef.current;
-            // scroll: false — a selection must not throw the page to the top.
-            r.push(query ? `${path}?${query}` : path, { scroll: false });
+            const path = pathRef.current;
+            /*
+             * Native history, not `router.push`. Since Next 14.1 `pushState`
+             * updates `useSearchParams` without a server round trip; the
+             * router would re-render the whole (force-dynamic) page on the
+             * server for every click on a nakṣatra — re-running the chart
+             * load and handing every view fresh props for nothing. Nothing on
+             * the server reads `?t=` or `?sel=`, so there is nothing to fetch.
+             * It also never scrolls, which is what a selection must not do.
+             */
+            window.history.pushState(null, '', query ? `${path}?${query}` : path);
           },
         },
         todayJd,

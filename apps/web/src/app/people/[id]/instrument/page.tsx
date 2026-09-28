@@ -153,6 +153,7 @@ export default async function InstrumentPage({ params }: { params: Promise<{ id:
         bySource={sarvaByContributor(chart.ashtakavarga)}
         kakshaRows={kakshaRows}
         kakshaWindow={kakshaWindow}
+        positionBasis={profile.positionBasis}
         events={events}
         frame={{
           ayanamsa: profile.ayanamsa,
