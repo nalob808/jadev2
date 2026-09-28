@@ -10,22 +10,65 @@ import { NextResponse, type NextRequest } from 'next/server';
  *
  * Does nothing in dev auth mode, which uses a plain cookie.
  */
+/**
+ * The reading subdomain.
+ *
+ * `read.jadeapp.co` is not a second application. It is the same Jade — same
+ * session, same people, same charts — wearing a friendlier register, so it is a
+ * route group behind a host rewrite rather than a separate deploy.
+ *
+ * That decision is worth recording, because a second Next app was the obvious
+ * shape and it is the wrong one here. It would need its own build, its own
+ * environment, and a session shared across two origins by hand — cookie domain
+ * juggling that breaks quietly and in production. A rewrite keeps one deploy and
+ * one session, and `/read` also works on the apex domain, so the feature ships
+ * and can be used before any DNS record exists.
+ */
+const READING_HOST = 'read.';
+
+function readingRewrite(request: NextRequest): URL | null {
+  const host = request.headers.get('host') ?? '';
+  if (!host.startsWith(READING_HOST)) return null;
+  // Already inside the group — rewriting again would double the prefix.
+  if (request.nextUrl.pathname.startsWith('/read')) return null;
+  const url = request.nextUrl.clone();
+  url.pathname = `/read${request.nextUrl.pathname === '/' ? '' : request.nextUrl.pathname}`;
+  return url;
+}
+
 export async function middleware(request: NextRequest): Promise<NextResponse> {
-  if (process.env.AUTH_MODE !== 'supabase') return NextResponse.next();
+  const rewrite = readingRewrite(request);
+
+  if (process.env.AUTH_MODE !== 'supabase') {
+    return rewrite ? NextResponse.rewrite(rewrite) : NextResponse.next();
+  }
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   if (!url || !key) return NextResponse.next();
 
-  let response = NextResponse.next({ request });
+  let response = rewrite ? NextResponse.rewrite(rewrite) : NextResponse.next({ request });
 
   const supabase = createServerClient(url, key, {
     cookies: {
       getAll: () => request.cookies.getAll(),
       setAll: (toSet) => {
         for (const { name, value } of toSet) request.cookies.set(name, value);
-        response = NextResponse.next({ request });
-        for (const { name, value, options } of toSet) response.cookies.set(name, value, options);
+        response = rewrite ? NextResponse.rewrite(rewrite) : NextResponse.next({ request });
+        for (const { name, value, options } of toSet) {
+          /*
+           * The session cookie has to be readable on both hosts.
+           *
+           * Without an explicit domain the cookie is scoped to whichever host
+           * set it, so signing in at jadeapp.co leaves read.jadeapp.co signed
+           * out and vice versa — the single most likely way this feature breaks,
+           * and it breaks only in production, where the two hosts differ.
+           * `COOKIE_DOMAIN` should be set to `.jadeapp.co` there and left unset
+           * in development, where everything is localhost.
+           */
+          const domain = process.env.COOKIE_DOMAIN;
+          response.cookies.set(name, value, domain ? { ...options, domain } : options);
+        }
       },
     },
   });

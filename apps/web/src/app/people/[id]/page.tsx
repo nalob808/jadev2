@@ -575,6 +575,23 @@ export default async function PersonPage({
             rather than in the nav alone, because this is where somebody reading
             the lords starts wanting the rest.
           */}
+          {/*
+            The way out to the plain-English reading.
+            Sits beside the technical one rather than replacing it: the same
+            chart, said for somebody who does not have the vocabulary yet.
+          */}
+          <Link
+            href={`/read/${subject.id}`}
+            className="mt-3 flex flex-wrap items-baseline gap-x-3 border border-[var(--accent-soft)] bg-[var(--accent-wash)] p-3 hover:border-[var(--accent)]"
+          >
+            <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--accent)]">
+              Explain this chart in plain English
+            </span>
+            <span className="text-[12.5px] leading-relaxed text-[var(--ink-muted)]">
+              No jargon, house by house — with the placements behind every paragraph if you want
+              them.
+            </span>
+          </Link>
           <Link
             href={`/people/${subject.id}/houses`}
             className="mt-3 flex flex-wrap items-baseline gap-x-3 border border-[var(--rule)] p-3 hover:border-[var(--accent)]"

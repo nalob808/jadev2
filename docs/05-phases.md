@@ -1233,6 +1233,76 @@ is more than a reader should scan. Grouping it is §16.7's job.
 
 ---
 
+## Phase 16.9 — The reading surface ✅ FIRST CUT
+
+Nalu asked for "a subdomain that does interpretations and is separate from the
+constitution so it can help people understand the meaning of their charts". It
+ships as `read.jadeapp.co`, and the constitution question got a more useful
+answer than yes or no.
+
+### Not a second app
+
+A separate Next application was the obvious shape and the wrong one. It would
+need its own build, its own environment, and a session shared across two origins
+by hand — cookie-domain juggling that breaks quietly and only in production. The
+reading surface is a **route group behind a host rewrite** in `middleware.ts`:
+one deploy, one session, and `/read` also answers on the apex domain, so the
+feature works before any DNS record exists. The one production-only detail is
+`COOKIE_DOMAIN=.jadeapp.co`, without which signing in on one host leaves the
+other signed out.
+
+### Which rules relaxed, and which did not
+
+**Relaxed — presentation.** The technical surfaces print every factor inline in
+mono type beside its claim. That is right for a practitioner and it is exactly
+what makes Jade unreadable for everyone else. On the reading surface the
+workings move _behind_ a disclosure rather than away: `Workings.tsx` is a plain
+`<details>`, one tap, no JavaScript, keyboard and screen-reader reachable. A test
+asserts no paragraph has zero workings, because a paragraph without them is a
+free-floating claim.
+
+**Relaxed — synthesis.** The technical register may not join two factors into one
+claim. The plain one may, because "these four house rulers all land in the same
+place" is what a person actually wants to know. The remaining constraint is that
+the joining must be _mechanical_ — a count of what the chart contains, never an
+inference about the person.
+
+**Not relaxed — CLAUDE.md #6.** No death, illness or legal outcome, and the guard
+runs at full strength against the composed output. This matters more here than
+anywhere else in Jade: prose written to be believed is believed, and a warm
+second-person sentence about somebody's eighth house would be read as a medical
+opinion by the person least equipped to discount it. The test caught the first
+violation immediately — the eighth-house text named longevity even while
+disclaiming it, which plants the idea regardless. Rewritten rather than exempted.
+
+**Not relaxed — #4.** Same birth data, same sensitivity, and GDPR does not care
+which host it is served from.
+
+### Components, not combinations
+
+Twelve house rulers times twelve destinations is 144 paragraphs before dignity,
+occupancy or aspect. Nobody finishes writing that and the parts that do get
+written go stale unevenly. `voice/library.ts` holds **components** — what each
+house is, how each graha behaves, what each dignity does, and what each _shape_
+of connection between two houses means — and `plainReading.ts` composes them.
+Thirty-six written blocks cover every chart, and improving one block improves
+every reading that uses it.
+
+The connection shapes are the compression that makes this work, and they are the
+tradition's own: a house five or nine away is a trine, four seven or ten a
+pillar, six eight or twelve a hard road. Six shapes rather than 144 texts. A test
+checks they are counted **from the house being read** rather than from the
+ascendant — the bug that would make eleven houses in twelve subtly wrong.
+
+### Still to do
+
+The library is a first cut covering houses, grahas, dignities and connections.
+Not yet written in the plain register: nakṣatras, daśā periods, transits, yogas,
+vargas. Each is a new component block rather than a rewrite. The reading surface
+also has no navigation of its own yet beyond the index and a link back.
+
+---
+
 ## Phase 8 — Beyond (ongoing)
 
 Ranked by expected return:

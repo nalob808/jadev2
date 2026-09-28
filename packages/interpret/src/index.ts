@@ -31,3 +31,5 @@ export * from './glossaryContext.js';
 export * from './glossaryScope.js';
 export * from './lords.js';
 export * from './houseReading.js';
+export * from './voice/library.js';
+export * from './plainReading.js';
