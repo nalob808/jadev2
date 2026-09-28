@@ -39,12 +39,41 @@ export function polar(cx: number, cy: number, radius: number, angleDeg: number):
   return [cx + radius * Math.cos(radians), cy - radius * Math.sin(radians)];
 }
 
+/**
+ * A number as it is written into an SVG attribute: three decimals, no more.
+ *
+ * The wheel is server-rendered and then hydrated, and V8 on the server and the
+ * browser's engine disagree about `Math.cos`/`Math.sin` in the last digit —
+ * `8.34732007723425` against `8.347320077234258`. React compares attributes as
+ * strings, so every path and every glyph position mismatched on hydration.
+ * Rounding after the trig makes both sides print the same string, because
+ * multiply, round and divide are exact IEEE operations everywhere. A
+ * thousandth of a unit in a 100-unit viewBox is far below a pixel.
+ *
+ * Geometry stays exact; only what is *emitted* is rounded. Anything that
+ * writes a computed coordinate into markup goes through this or `svgPolar`.
+ */
+export function svgNum(value: number): number {
+  return Math.round(value * 1000) / 1000;
+}
+
+/** `polar`, rounded for emission. Use this for anything written into markup. */
+export function svgPolar(
+  cx: number,
+  cy: number,
+  radius: number,
+  angleDeg: number,
+): [number, number] {
+  const [x, y] = polar(cx, cy, radius, angleDeg);
+  return [svgNum(x), svgNum(y)];
+}
+
 /** An arc along one radius, drawn counterclockwise from `from` to `to`. */
 export function arcPath(cx: number, cy: number, r: number, from: number, to: number): string {
-  const [x1, y1] = polar(cx, cy, r, from);
-  const [x2, y2] = polar(cx, cy, r, to);
+  const [x1, y1] = svgPolar(cx, cy, r, from);
+  const [x2, y2] = svgPolar(cx, cy, r, to);
   const large = (to - from + 360) % 360 > 180 ? 1 : 0;
-  return `M ${x1} ${y1} A ${r} ${r} 0 ${large} 0 ${x2} ${y2}`;
+  return `M ${x1} ${y1} A ${svgNum(r)} ${svgNum(r)} 0 ${large} 0 ${x2} ${y2}`;
 }
 
 /**
@@ -63,15 +92,17 @@ export function annulusSector(
   to: number,
 ): string {
   const large = (to - from + 360) % 360 > 180 ? 1 : 0;
-  const [ox1, oy1] = polar(cx, cy, rOuter, from);
-  const [ox2, oy2] = polar(cx, cy, rOuter, to);
-  const [ix2, iy2] = polar(cx, cy, rInner, to);
-  const [ix1, iy1] = polar(cx, cy, rInner, from);
+  const [ox1, oy1] = svgPolar(cx, cy, rOuter, from);
+  const [ox2, oy2] = svgPolar(cx, cy, rOuter, to);
+  const [ix2, iy2] = svgPolar(cx, cy, rInner, to);
+  const [ix1, iy1] = svgPolar(cx, cy, rInner, from);
+  const ro = svgNum(rOuter);
+  const ri = svgNum(rInner);
   return [
     `M ${ox1} ${oy1}`,
-    `A ${rOuter} ${rOuter} 0 ${large} 0 ${ox2} ${oy2}`,
+    `A ${ro} ${ro} 0 ${large} 0 ${ox2} ${oy2}`,
     `L ${ix2} ${iy2}`,
-    `A ${rInner} ${rInner} 0 ${large} 1 ${ix1} ${iy1}`,
+    `A ${ri} ${ri} 0 ${large} 1 ${ix1} ${iy1}`,
     'Z',
   ].join(' ');
 }

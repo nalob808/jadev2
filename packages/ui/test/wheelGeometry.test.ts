@@ -5,6 +5,8 @@ import {
   degreesLabel,
   polar,
   spread,
+  svgNum,
+  svgPolar,
 } from '../src/charts/wheelGeometry.js';
 
 describe('angleFor', () => {
@@ -125,5 +127,34 @@ describe('degreesLabel', () => {
   it('carries the minute at the top of a degree', () => {
     expect(degreesLabel(29.99999)).toBe('30°00′');
     expect(degreesLabel(5.9999)).toBe('6°00′');
+  });
+});
+
+describe('svgNum and svgPolar', () => {
+  // Server and browser trig differ in the last digit; what reaches markup must
+  // not, or hydration fails on every path. See `svgNum`.
+  it('rounds to three decimals', () => {
+    expect(svgNum(8.34732007723425)).toBe(8.347);
+    expect(svgNum(8.347320077234258)).toBe(8.347);
+    expect(svgNum(-0.0004)).toBe(-0);
+    expect(String(svgNum(-0.0004))).toBe('0');
+  });
+
+  it('agrees with polar to within the rounding', () => {
+    for (let a = 0; a < 360; a += 13.7) {
+      const [x, y] = polar(50, 50, 41, a);
+      const [sx, sy] = svgPolar(50, 50, 41, a);
+      expect(Math.abs(sx - x)).toBeLessThanOrEqual(0.0005);
+      expect(Math.abs(sy - y)).toBeLessThanOrEqual(0.0005);
+      expect(String(sx).split('.')[1]?.length ?? 0).toBeLessThanOrEqual(3);
+      expect(String(sy).split('.')[1]?.length ?? 0).toBeLessThanOrEqual(3);
+    }
+  });
+
+  it('emits sector paths with no long tails', () => {
+    const d = annulusSector(50, 50, 21.3, 41.7, 17.123, 47.123);
+    for (const n of d.match(/-?\d*\.?\d+/g) ?? []) {
+      expect(n.split('.')[1]?.length ?? 0).toBeLessThanOrEqual(3);
+    }
   });
 });
