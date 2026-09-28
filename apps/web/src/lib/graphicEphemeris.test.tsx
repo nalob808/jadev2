@@ -6,7 +6,7 @@ import {
   graphicEphemerisSeries,
   type GraphicEphemerisFold,
 } from '@jade/astro';
-import { GraphicEphemeris, foldedPath } from '@jade/ui';
+import { DEFAULT_DIAL_BODIES, GraphicEphemeris, foldedPath } from '@jade/ui';
 
 /**
  * The graphic ephemeris drawing (brief §3), asserted in the DOM.
@@ -36,6 +36,14 @@ const SERIES = graphicEphemerisSeries(provider, WINDOW, frame, {
   toleranceDays: 1e-4,
 });
 const CURSOR = 2_460_500.5;
+
+/** The contacts a dial draws by default: only its default bodies'. */
+function shownByDefault(fold: GraphicEphemerisFold) {
+  const bodies = DEFAULT_DIAL_BODIES[fold];
+  return SERIES.contacts[fold]!.filter(
+    (c) => bodies === 'all' || (bodies as readonly string[]).includes(c.transiting),
+  );
+}
 
 function draw(
   fold: GraphicEphemerisFold,
@@ -71,7 +79,7 @@ describe('the graphic ephemeris drawing', () => {
   });
 
   it('draws one curve per body and one dashed line per natal point', () => {
-    const markup = draw('nakshatra');
+    const markup = draw('longitude');
     expect(tagsWith(markup, 'data-track').map((t) => t['data-track'])).toEqual([
       'Sun',
       'Mars',
@@ -85,6 +93,44 @@ describe('the graphic ephemeris drawing', () => {
     expect(tagsWith(markup, 'data-legend')).toHaveLength(3);
   });
 
+  it('opens the nakṣatra dial on the slow grahas, with every body still toggleable', () => {
+    const markup = draw('nakshatra');
+    expect(tagsWith(markup, 'data-track').map((t) => t['data-track'])).toEqual([
+      'Jupiter',
+      'Saturn',
+      'Rahu',
+    ]);
+    const toggles = tagsWith(markup, 'data-body-toggle');
+    expect(toggles.map((t) => t['data-body-toggle'])).toEqual([
+      'Sun',
+      'Mars',
+      'Jupiter',
+      'Saturn',
+      'Rahu',
+    ]);
+    expect(toggles.map((t) => t['aria-pressed'])).toEqual([
+      'false',
+      'false',
+      'true',
+      'true',
+      'true',
+    ]);
+  });
+
+  it('always draws a selected graha, even one the dial hides by default', () => {
+    const markup = renderToStaticMarkup(
+      <GraphicEphemeris
+        series={SERIES}
+        fold="nakshatra"
+        contacts={SERIES.contacts.nakshatra!}
+        jd={CURSOR}
+        selection={{ kind: 'graha', id: 'Sun' }}
+        frameLabel="lahiri · mean nodes"
+      />,
+    );
+    expect(tagsWith(markup, 'data-track').map((t) => t['data-track'])).toContain('Sun');
+  });
+
   it('seats every crossing on its natal point’s line, on every dial', () => {
     for (const fold of ['longitude', 'rashi', 'nakshatra'] as const) {
       const markup = draw(fold);
@@ -92,7 +138,7 @@ describe('the graphic ephemeris drawing', () => {
         tagsWith(markup, 'data-natal').map((l) => [l['data-natal'], l['data-folded']]),
       );
       const contacts = tagsWith(markup, 'data-contact');
-      expect(contacts.length, fold).toBe(SERIES.contacts[fold]!.length);
+      expect(contacts.length, fold).toBe(shownByDefault(fold).length);
       expect(contacts.length, fold).toBeGreaterThan(0);
       for (const contact of contacts) {
         expect(contact['data-folded']).toBe(lines.get(contact['data-natal-point']));
@@ -102,7 +148,7 @@ describe('the graphic ephemeris drawing', () => {
 
   it('names each crossing on hover: body, natal point, nakṣatra and date', () => {
     const markup = draw('nakshatra');
-    const first = SERIES.contacts.nakshatra![0]!;
+    const first = shownByDefault('nakshatra')[0]!;
     const date = new Date((first.jdUt - 2440587.5) * 86400000).toISOString().slice(0, 10);
     expect(markup).toMatch(
       new RegExp(`<title>${first.transiting}[^<]*natal[^<]*in [^<]*· ${date}</title>`),
@@ -131,7 +177,7 @@ describe('the graphic ephemeris drawing', () => {
   it('mirrors the crossings in a hidden table', () => {
     const markup = draw('rashi');
     const table = markup.slice(markup.indexOf('<table'), markup.indexOf('</table>'));
-    expect(table.match(/<th scope="row">/g)).toHaveLength(SERIES.contacts.rashi!.length);
+    expect(table.match(/<th scope="row">/g)).toHaveLength(shownByDefault('rashi').length);
   });
 });
 

@@ -134,7 +134,13 @@ export function SarvaProfile({
           const bindus = sarva[signIndex]!;
           const isSelected = selected === signIndex;
           const above = bindus > SARVA_MEAN;
-          const [lx, ly] = polar(C, C, radiusOf(bindus) + 9, from + 15);
+          // Outside both the bar and the mean ring, so a count never sits on the dashes.
+          const [lx, ly] = polar(
+            C,
+            C,
+            Math.max(radiusOf(bindus), radiusOf(SARVA_MEAN)) + 9,
+            from + 15,
+          );
           const [sx, sy] = polar(C, C, R_LABEL_RING, from + 15);
           return (
             <g

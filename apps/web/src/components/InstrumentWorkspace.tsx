@@ -186,7 +186,15 @@ function Instrument({
     >
       <InstrumentTimeBar />
 
-      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_19rem]">
+      {/*
+        The graphic ephemeris with the wheel beside it (brief §3): drag the
+        cursor on one and the transit ring on the other moves with it.
+      */}
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
+        <section aria-label="Graphic ephemeris" className="min-w-0">
+          <Heading>Graphic ephemeris · transits against natal points</Heading>
+          <GraphicEphemerisPanel frame={ephemerisFrame} natal={ephemerisNatal} />
+        </section>
         <section aria-label="Wheel" className="min-w-0">
           <Heading>Wheel · natal inside, transits outside</Heading>
           <Wheel
@@ -203,7 +211,9 @@ function Instrument({
             size={640}
           />
         </section>
+      </div>
 
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_19rem]">
         <section aria-label="Nakṣatra ring" className="min-w-0">
           <Heading>Nakṣatra ring</Heading>
           <NakshatraRing
@@ -218,7 +228,6 @@ function Instrument({
             size={640}
           />
         </section>
-
         <aside aria-label="Selection" className="min-w-0">
           <SelectionPanel
             selection={selection}
@@ -235,11 +244,6 @@ function Instrument({
           </p>
         </aside>
       </div>
-
-      <section aria-label="Graphic ephemeris" className="min-w-0">
-        <Heading>Graphic ephemeris · transits against natal points</Heading>
-        <GraphicEphemerisPanel frame={ephemerisFrame} natal={ephemerisNatal} />
-      </section>
 
       <section aria-label="Aṣṭakavarga" className="min-w-0">
         <Heading>Aṣṭakavarga · where the strength is, and who gives it</Heading>

@@ -37,6 +37,13 @@ to Latin + Latin Extended Additional as
 in `OFL-FiraSansCondensed.txt`. Used because Barlow Condensed has no
 underdotted IAST glyphs — see `docs/10-sphere-spike.md`.
 
+The same subset now serves the whole app as the **"Jade IAST"** fallback face
+(`apps/web/src/fonts/`, declared in `apps/web/src/app/fonts.css`, licence text
+beside it), limited by `unicode-range` to Latin Extended Additional so it
+supplies only the underdotted letters Barlow, Barlow Condensed and IBM Plex Mono
+lack. It is also embedded in the generated visual-system assets
+(`assets/visual-system/`, licence copied to `notices/`).
+
 ## Tools that are not dependencies
 
 **PyJHora** (AGPL-3.0) has been used as a _reference implementation_ for

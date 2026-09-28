@@ -43,9 +43,11 @@ export const tokens = {
     },
   },
   font: {
-    display: '"Barlow Condensed", "Barlow", sans-serif',
-    body: '"Barlow", -apple-system, BlinkMacSystemFont, sans-serif',
-    mono: '"IBM Plex Mono", ui-monospace, monospace',
+    // "Jade IAST" supplies only the underdotted IAST letters (ṣ ṇ ṭ ḍ ṛ ḥ ṁ ṅ ḷ)
+    // that Barlow and Plex lack; see apps/web/src/app/fonts.css.
+    display: '"Barlow Condensed", "Jade IAST", "Barlow", sans-serif',
+    body: '"Barlow", "Jade IAST", -apple-system, BlinkMacSystemFont, sans-serif',
+    mono: '"IBM Plex Mono", "Jade IAST", ui-monospace, monospace',
   },
   radius: { none: '0px', sm: '2px' },
   space: [0, 4, 8, 12, 16, 20, 24, 32, 40, 56, 72, 96] as const,

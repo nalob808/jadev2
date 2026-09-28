@@ -103,9 +103,11 @@
   --panel-shadow-lifted: 0 2px 4px rgba(22, 34, 46, 0.06), 0 12px 28px -12px rgba(22, 34, 46, 0.2);
   --grid-line: rgba(22, 34, 46, 0.028);
 
-  --font-body: 'Barlow';
-  --font-display: 'Barlow Condensed';
-  --font-mono: 'IBM Plex Mono';
+  /* Each face is followed by 'Jade IAST', which fills in only the underdotted
+     IAST letters these three do not have — see fonts.css. */
+  --font-body: 'Barlow', 'Jade IAST';
+  --font-display: 'Barlow Condensed', 'Jade IAST';
+  --font-mono: 'IBM Plex Mono', 'Jade IAST';
 }
 
 @media (prefers-color-scheme: dark) {

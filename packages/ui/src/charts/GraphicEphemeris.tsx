@@ -12,6 +12,7 @@ import {
   NAKSHATRA_IAST,
   foldLongitude,
   unixMsFromJd,
+  type GraphicEphemerisBody,
   type GraphicEphemerisContact,
   type GraphicEphemerisFold,
   type GraphicEphemerisSeries,
@@ -97,6 +98,26 @@ const FOLD_LABEL: Record<GraphicEphemerisFold, string> = {
 
 const tintOf = (id: string): string => DRISHTI_TINT[id] ?? ACCENT;
 
+/**
+ * Which bodies a dial shows until the reader chooses otherwise.
+ *
+ * On a 13°20′ dial the Sun, Mercury and Venus wrap roughly every two weeks
+ * and Mars every three: over a two-year span they draw a wall of near-vertical
+ * lines and some two thousand crossings, and the slow contacts the fold exists
+ * to show disappear under them. Found by rendering it, not by a test. The
+ * dial practice this borrows from reads a tight modulus with slow bodies
+ * only, so that is the default here — and every body keeps a toggle, so
+ * nothing is withheld, only defaulted.
+ */
+export const DEFAULT_DIAL_BODIES: Record<
+  GraphicEphemerisFold,
+  readonly GraphicEphemerisBody[] | 'all'
+> = {
+  nakshatra: ['Jupiter', 'Saturn', 'Rahu', 'Ketu'],
+  rashi: ['Mars', 'Jupiter', 'Saturn', 'Rahu', 'Ketu'],
+  longitude: 'all',
+};
+
 function isoDate(jd: number): string {
   return new Date(unixMsFromJd(jd)).toISOString().slice(0, 10);
 }
@@ -177,6 +198,10 @@ export function GraphicEphemeris({
   const uid = useId().replace(/:/g, '');
   const [hovered, setHovered] = useState<GraphicEphemerisContact | null>(null);
   const [dragJd, setDragJd] = useState<number | null>(null);
+  /** The reader's own choice of bodies, per dial, once they have made one. */
+  const [chosen, setChosen] = useState<Partial<Record<GraphicEphemerisFold, readonly string[]>>>(
+    {},
+  );
 
   const modulus = GRAPHIC_EPHEMERIS_MODULI[fold];
   const { fromJd, toJd } = series.window;
@@ -186,6 +211,17 @@ export function GraphicEphemeris({
     Math.max(fromJd, Math.min(toJd, fromJd + ((px - PLOT_X) / PLOT_W) * (toJd - fromJd)));
 
   const focus = selection?.kind === 'graha' ? selection.id : null;
+  const allBodies = series.tracks.map((track) => track.body);
+  const defaults = DEFAULT_DIAL_BODIES[fold];
+  const visibleList =
+    chosen[fold] ??
+    (defaults === 'all' ? allBodies : allBodies.filter((b) => defaults.includes(b)));
+  /** A selected graha is always drawn — selecting it is asking to see it. */
+  const visible = new Set<string>([...visibleList, ...(focus ? [focus] : [])]);
+  const toggleBody = (body: string): void => {
+    const next = visible.has(body) ? visibleList.filter((b) => b !== body) : [...visibleList, body];
+    setChosen((previous) => ({ ...previous, [fold]: next }));
+  };
   const involves = (contact: GraphicEphemerisContact): boolean =>
     focus === null || contact.transiting === focus || contact.natalPoint === focus;
 
@@ -206,7 +242,8 @@ export function GraphicEphemeris({
 
   const shownJd = dragJd ?? jd;
   const cursorInView = shownJd >= fromJd && shownJd <= toJd;
-  const relevant = (contacts ?? []).filter(involves);
+  const shownContacts = (contacts ?? []).filter((contact) => visible.has(contact.transiting));
+  const relevant = shownContacts.filter(involves);
 
   const jumpContact = (direction: 1 | -1): void => {
     const next =
@@ -291,6 +328,23 @@ export function GraphicEphemeris({
           </button>
         ))}
         <span style={{ flex: 1 }} />
+        {allBodies.map((body) => (
+          <button
+            key={body}
+            type="button"
+            aria-pressed={visible.has(body)}
+            data-body-toggle={body}
+            style={{
+              ...(visible.has(body) ? CONTROL_PRESSED : CONTROL_STYLE),
+              borderColor: visible.has(body) ? tintOf(body) : undefined,
+              color: visible.has(body) ? tintOf(body) : undefined,
+            }}
+            onClick={() => toggleBody(body)}
+          >
+            {body}
+          </button>
+        ))}
+        <span style={{ flexBasis: '100%', height: 0 }} />
         <button type="button" style={CONTROL_STYLE} onClick={() => jumpContact(-1)}>
           ← Previous crossing
         </button>
@@ -385,31 +439,33 @@ export function GraphicEphemeris({
 
         {/* ------------------------------------------ transiting curves */}
         <g data-layer="tracks">
-          {paths.map(({ body, d, retrogradeDays }) => {
-            const dim = focus !== null && body !== focus;
-            return (
-              <path
-                key={body}
-                data-track={body}
-                data-retrograde-samples={retrogradeDays}
-                d={d}
-                fill="none"
-                stroke={tintOf(body)}
-                strokeWidth={body === focus ? 2.4 : 1.4}
-                opacity={dim ? 0.18 : 0.95}
-                strokeLinejoin="round"
-                onClick={() => onSelect?.(body === focus ? null : { kind: 'graha', id: body })}
-                style={{ cursor: 'pointer' }}
-              >
-                <title>{`${body} (transit) — click to follow`}</title>
-              </path>
-            );
-          })}
+          {paths
+            .filter(({ body }) => visible.has(body))
+            .map(({ body, d, retrogradeDays }) => {
+              const dim = focus !== null && body !== focus;
+              return (
+                <path
+                  key={body}
+                  data-track={body}
+                  data-retrograde-samples={retrogradeDays}
+                  d={d}
+                  fill="none"
+                  stroke={tintOf(body)}
+                  strokeWidth={body === focus ? 2.4 : 1.4}
+                  opacity={dim ? 0.18 : 0.95}
+                  strokeLinejoin="round"
+                  onClick={() => onSelect?.(body === focus ? null : { kind: 'graha', id: body })}
+                  style={{ cursor: 'pointer' }}
+                >
+                  <title>{`${body} (transit) — click to follow`}</title>
+                </path>
+              );
+            })}
         </g>
 
         {/* --------------------------------------------------- contacts */}
         <g data-layer="contacts">
-          {(contacts ?? []).map((contact, index) => {
+          {shownContacts.map((contact, index) => {
             const on = involves(contact);
             return (
               <g
@@ -518,6 +574,9 @@ export function GraphicEphemeris({
         <p style={{ margin: '3px 0 0' }}>
           Solid: transiting grahas. Dashed: natal points, keyed at right. A downward run is
           retrograde motion. The Moon is omitted — it crosses every line daily.
+          {defaults !== 'all' && !chosen[fold]
+            ? ' This dial opens on the slow grahas; the faster ones wrap too often to read at this span — add them above.'
+            : ''}
         </p>
         <p style={{ margin: '3px 0 0', color: FAINT }}>
           {frameLabel} · sidereal ecliptic longitude folded mod {dms(modulus)}; latitude not plotted

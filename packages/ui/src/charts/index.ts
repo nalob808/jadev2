@@ -31,5 +31,10 @@ export type {
 } from './DashaTimeline.js';
 export { SarvaProfile, ContributorMultiples, KakshaBand, SARVA_MEAN } from './AshtakavargaView.js';
 export type { KakshaRow } from './AshtakavargaView.js';
-export { GraphicEphemeris, foldedPath, describeContact } from './GraphicEphemeris.js';
+export {
+  GraphicEphemeris,
+  foldedPath,
+  describeContact,
+  DEFAULT_DIAL_BODIES,
+} from './GraphicEphemeris.js';
 export type { GraphicEphemerisProps } from './GraphicEphemeris.js';

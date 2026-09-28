@@ -33,3 +33,29 @@
    proportional face makes a column of numbers an edge the eye cannot scan. */
 @import '@fontsource/ibm-plex-mono/400.css';
 @import '@fontsource/ibm-plex-mono/500.css';
+
+/*
+ * IAST — the underdotted letters.
+ *
+ * Barlow, Barlow Condensed and IBM Plex Mono have no glyphs for ṣ ṇ ṭ ḍ ṛ ḥ ṁ ṅ ḷ
+ * (Latin Extended Additional, U+1E00–1EFF); the macron vowels and ś they do
+ * have. Without this, every Jyeṣṭhā, Bharaṇī and ayanāṁśa in the app was
+ * silently set in whatever system font the browser found for those letters,
+ * mid-word — found by the 3D spike with fontTools against the Google Fonts
+ * files, and recorded in docs/10-sphere-spike.md.
+ *
+ * Fira Sans Condensed Medium covers all of them except ṝ and ṃ, which no Jade
+ * string uses. It sits second in every stack (globals.css, tokens.ts), so the
+ * browser takes only the letters Barlow lacks from it, glyph by glyph, and the
+ * unicode-range means the file is fetched only by pages that contain one.
+ * Subset and licence: src/fonts/, NOTICE.md. A relative url so Next and the
+ * portable asset build (scripts/build-visual-assets.tsx) both bundle the file.
+ */
+@font-face {
+  font-family: 'Jade IAST';
+  src: url('../fonts/fira-sans-condensed-500-iast.woff') format('woff');
+  font-weight: 300 800;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+1E00-1EFF;
+}
