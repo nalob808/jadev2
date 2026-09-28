@@ -32,3 +32,7 @@ docs/email-templates/*.preview.html
 # Zip drops from the Cowork session — deliverables, not source
 "Claude outputs"/
 *.zip
+
+# Claude Code worktrees and local launch config. The worktree is a full
+# duplicate of the repo (558MB, its own node_modules) — never commit it.
+.claude/
