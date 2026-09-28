@@ -18,3 +18,8 @@ export * from './wheelGeometry.js';
 // two charts are read as equals rather than one against the other's houses.
 export { Wheel, DRISHTI_TINT } from './Wheel.js';
 export type { WheelProps, WheelPoint, WheelAspect } from './Wheel.js';
+export * from './instrumentShared.js';
+export * from './nakshatraRingLayout.js';
+export { NakshatraRing } from './NakshatraRing.js';
+export type { NakshatraRingProps, Zoom as NakshatraRingZoom } from './NakshatraRing.js';
+export { NakshatraDetail } from './NakshatraDetail.js';

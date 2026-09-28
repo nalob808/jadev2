@@ -32,6 +32,45 @@ export const NAKSHATRA_NAMES = [
 ] as const;
 
 /**
+ * The same 27 in IAST, for anything a reader sees.
+ *
+ * `NAKSHATRA_NAMES` above stays ASCII because it is an identifier — it is
+ * stored, compared and matched against user input. These are for display, and
+ * inside an SVG in particular: romanisation is shaped by any font, where
+ * Devanagari in a chart risks broken conjuncts the browser's text engine would
+ * only get right in DOM text.
+ */
+export const NAKSHATRA_IAST = [
+  'Aśvinī',
+  'Bharaṇī',
+  'Kṛttikā',
+  'Rohiṇī',
+  'Mṛgaśirā',
+  'Ārdrā',
+  'Punarvasu',
+  'Puṣya',
+  'Āśleṣā',
+  'Maghā',
+  'Pūrva Phalgunī',
+  'Uttara Phalgunī',
+  'Hasta',
+  'Citrā',
+  'Svātī',
+  'Viśākhā',
+  'Anurādhā',
+  'Jyeṣṭhā',
+  'Mūla',
+  'Pūrva Āṣāḍhā',
+  'Uttara Āṣāḍhā',
+  'Śravaṇa',
+  'Dhaniṣṭhā',
+  'Śatabhiṣā',
+  'Pūrva Bhādrapadā',
+  'Uttara Bhādrapadā',
+  'Revatī',
+] as const;
+
+/**
  * Nakṣatra lords in Vimśottarī order, repeating every nine nakṣatras.
  * This ordering is what makes the daśā start from the Moon's nakṣatra.
  */

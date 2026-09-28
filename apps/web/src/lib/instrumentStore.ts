@@ -1,4 +1,5 @@
 import { GRAHAS, POINT_DISPLAY_ORDER, type Graha, type PointId } from '@jade/astro';
+import type { InstrumentSelection } from '@jade/ui';
 
 /**
  * The instrument's one piece of state, without React and without Next.
@@ -18,16 +19,11 @@ import { GRAHAS, POINT_DISPLAY_ORDER, type Graha, type PointId } from '@jade/ast
  * `WheelWorkspace.tsx` for why days rather than a date).
  */
 
-export type Selection =
-  | { readonly kind: 'graha'; readonly id: PointId }
-  | { readonly kind: 'house'; readonly house: number }
-  | { readonly kind: 'sign'; readonly signIndex: number }
-  /** 0–26, Aśvinī first. */
-  | { readonly kind: 'nakshatra'; readonly index: number }
-  /** `nakshatra` 0–26, `pada` 1–4. */
-  | { readonly kind: 'pada'; readonly nakshatra: number; readonly pada: number }
-  /** A daśā period, outermost lord first: ['Saturn', 'Mercury'] is Saturn–Mercury. */
-  | { readonly kind: 'period'; readonly lords: readonly Graha[] };
+/**
+ * One selection for the whole app. Defined beside the charts that read it, in
+ * `@jade/ui`, so a chart and the store can never disagree about its shape.
+ */
+export type Selection = InstrumentSelection;
 
 export interface InstrumentState {
   /** The moment every view is showing. Julian Day (UT). */
