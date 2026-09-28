@@ -68,7 +68,7 @@ const TRANSIT_BODIES: readonly PointId[] = [
  */
 const PROVIDERS = new Map<string, AstronomyEngineProvider>();
 
-function providerFor(nodeType: 'mean' | 'true'): AstronomyEngineProvider {
+export function providerFor(nodeType: 'mean' | 'true'): AstronomyEngineProvider {
   const existing = PROVIDERS.get(nodeType);
   if (existing) return existing;
   const made = new AstronomyEngineProvider({ nodeType });

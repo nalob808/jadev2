@@ -28,3 +28,7 @@ _to_delete/
 /apps/*/*.png
 /packages/*/*.png
 docs/email-templates/*.preview.html
+
+# Zip drops from the Cowork session — deliverables, not source
+"Claude outputs"/
+*.zip
