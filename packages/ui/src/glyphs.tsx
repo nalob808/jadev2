@@ -50,6 +50,8 @@
  * would flatten exactly the differences the designer put there.
  */
 
+import { svgNum } from './charts/wheelGeometry.js';
+
 export const SIGN_NAMES = [
   'Aries',
   'Taurus',
@@ -463,7 +465,7 @@ export function GlyphGroup({
   const scale = size / source;
   return (
     <g
-      transform={`translate(${x} ${y}) scale(${scale}) translate(${-centre} ${-centre})`}
+      transform={`translate(${svgNum(x)} ${svgNum(y)}) scale(${scale}) translate(${-centre} ${-centre})`}
       fill={filled ? (color ?? 'currentColor') : 'none'}
       stroke={filled ? 'none' : (color ?? 'currentColor')}
       /* Left unscaled on purpose, for the drawn glyphs. Inside a scaled group

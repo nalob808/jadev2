@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react';
 import { GLYPHS } from '../tokens.js';
 import { GlyphGroup, GRAHA_NATURE, hasGlyph, SIGN_NAMES as GLYPH_SIGN_NAMES } from '../glyphs.js';
-import { angleFor, annulusSector, degreesLabel, polar, spread } from './wheelGeometry.js';
+import { angleFor, annulusSector, degreesLabel, spread, svgPolar } from './wheelGeometry.js';
 
 /**
  * The circular chart, and the one screen in Jade a practitioner operates
@@ -377,7 +377,7 @@ export function Wheel({
               const start = angleFor(signIndex * 30, ascendant);
               // The classical range runs about 19–39 across the twelve.
               const t = Math.max(0, Math.min(1, (bindus - 18) / 20));
-              const [tx, ty] = polar(cx, cy, rInner + 3.6, start + 15);
+              const [tx, ty] = svgPolar(cx, cy, rInner + 3.6, start + 15);
               return (
                 <g key={`sarva-${signIndex}`}>
                   <path
@@ -408,9 +408,9 @@ export function Wheel({
         {on.chalit && bhavaCusps.length === 12
           ? bhavaCusps.map((cusp, houseIndex) => {
               const angle = angleFor(cusp, ascendant);
-              const [x1, y1] = polar(cx, cy, rInner, angle);
-              const [x2, y2] = polar(cx, cy, rOuter, angle);
-              const [lx, ly] = polar(cx, cy, rInner - 2.4, angle + 15);
+              const [x1, y1] = svgPolar(cx, cy, rInner, angle);
+              const [x2, y2] = svgPolar(cx, cy, rOuter, angle);
+              const [lx, ly] = svgPolar(cx, cy, rInner - 2.4, angle + 15);
               return (
                 <g key={`chalit-${houseIndex}`}>
                   <line
@@ -442,10 +442,10 @@ export function Wheel({
           const signIndex = i;
           const start = angleFor(signIndex * 30, ascendant);
           const end = start + 30;
-          const [x1, y1] = polar(cx, cy, rInner, start);
-          const [x2, y2] = polar(cx, cy, rOuter, start);
+          const [x1, y1] = svgPolar(cx, cy, rInner, start);
+          const [x2, y2] = svgPolar(cx, cy, rOuter, start);
           const element = ELEMENT_OF_SIGN[signIndex % 4]!;
-          const [mx, my] = polar(cx, cy, (rSign + rOuter) / 2, start + 15);
+          const [mx, my] = svgPolar(cx, cy, (rSign + rOuter) / 2, start + 15);
 
           return (
             <g key={`sign-${signIndex}`}>
@@ -481,8 +481,8 @@ export function Wheel({
         {on.nakshatras
           ? Array.from({ length: 27 }, (_, i) => {
               const start = angleFor((i * 360) / 27, ascendant);
-              const [x1, y1] = polar(cx, cy, rSign, start);
-              const [x2, y2] = polar(cx, cy, rSign - 2.4, start);
+              const [x1, y1] = svgPolar(cx, cy, rSign, start);
+              const [x2, y2] = svgPolar(cx, cy, rSign - 2.4, start);
               return (
                 <line
                   key={`nak-${i}`}
@@ -514,7 +514,7 @@ export function Wheel({
         {Array.from({ length: 12 }, (_, i) => {
           const cuspLongitude = firstCuspLongitude + i * 30;
           const start = angleFor(cuspLongitude, ascendant);
-          const [lx, ly] = polar(cx, cy, rInner, start + 15);
+          const [lx, ly] = svgPolar(cx, cy, rInner, start + 15);
           return on.houses ? (
             <text
               key={`house-${i}`}
@@ -534,17 +534,17 @@ export function Wheel({
         {/* The horizon: ascendant at the left, exactly. */}
         <g>
           <line
-            x1={polar(cx, cy, rOuter, 0)[0]}
-            y1={polar(cx, cy, rOuter, 0)[1]}
-            x2={polar(cx, cy, rOuter, 180)[0]}
-            y2={polar(cx, cy, rOuter, 180)[1]}
+            x1={svgPolar(cx, cy, rOuter, 0)[0]}
+            y1={svgPolar(cx, cy, rOuter, 0)[1]}
+            x2={svgPolar(cx, cy, rOuter, 180)[0]}
+            y2={svgPolar(cx, cy, rOuter, 180)[1]}
             stroke="var(--accent, #33668F)"
             strokeWidth={0.4}
             opacity={0.7}
           />
           <text
-            x={polar(cx, cy, rOuter - 3.5, 0)[0]}
-            y={polar(cx, cy, rOuter - 3.5, 0)[1]}
+            x={svgPolar(cx, cy, rOuter - 3.5, 0)[0]}
+            y={svgPolar(cx, cy, rOuter - 3.5, 0)[1]}
             textAnchor="middle"
             dominantBaseline="central"
             fontSize={2.6}
@@ -559,8 +559,8 @@ export function Wheel({
         {shownAspects.map((aspect, i) => {
           const source = placed.find((p) => p.point.id === aspect.from);
           if (!source) return null;
-          const [x1, y1] = polar(cx, cy, rInner - 0.5, source.trueAngle);
-          const [x2, y2] = polar(
+          const [x1, y1] = svgPolar(cx, cy, rInner - 0.5, source.trueAngle);
+          const [x2, y2] = svgPolar(
             cx,
             cy,
             rInner - 0.5,
@@ -603,9 +603,9 @@ export function Wheel({
         {/* Transit ring */}
         {on.transits
           ? placedTransits.map(({ point, angle, trueAngle }) => {
-              const [gx, gy] = polar(cx, cy, rTransit, angle);
-              const [tx, ty] = polar(cx, cy, rSign - 0.6, trueAngle);
-              const [tx2, ty2] = polar(cx, cy, rSign - 2, trueAngle);
+              const [gx, gy] = svgPolar(cx, cy, rTransit, angle);
+              const [tx, ty] = svgPolar(cx, cy, rSign - 0.6, trueAngle);
+              const [tx2, ty2] = svgPolar(cx, cy, rSign - 2, trueAngle);
               return (
                 <g key={`t-${point.id}`} opacity={0.75}>
                   <line
@@ -632,9 +632,9 @@ export function Wheel({
 
         {/* Natal grahas */}
         {placed.map(({ point, angle, trueAngle }) => {
-          const [gx, gy] = polar(cx, cy, rGraha, angle);
-          const [tickOuter, tickOuterY] = polar(cx, cy, rSign - 0.6, trueAngle);
-          const [tickInner, tickInnerY] = polar(cx, cy, rSign - 2.6, trueAngle);
+          const [gx, gy] = svgPolar(cx, cy, rGraha, angle);
+          const [tickOuter, tickOuterY] = svgPolar(cx, cy, rSign - 0.6, trueAngle);
+          const [tickInner, tickInnerY] = svgPolar(cx, cy, rSign - 2.6, trueAngle);
           const dim = selected !== null && selected !== point.id;
 
           return (
@@ -701,7 +701,7 @@ export function Wheel({
               */}
               {point.retrograde
                 ? (() => {
-                    const [rx, ry] = polar(cx, cy, rGraha - 3.6, angle);
+                    const [rx, ry] = svgPolar(cx, cy, rGraha - 3.6, angle);
                     return (
                       <text
                         x={rx}
@@ -718,8 +718,8 @@ export function Wheel({
                 : null}
               {on.degrees ? (
                 <text
-                  x={polar(cx, cy, rGraha - 4.4, angle)[0]}
-                  y={polar(cx, cy, rGraha - 4.4, angle)[1]}
+                  x={svgPolar(cx, cy, rGraha - 4.4, angle)[0]}
+                  y={svgPolar(cx, cy, rGraha - 4.4, angle)[1]}
                   textAnchor="middle"
                   dominantBaseline="central"
                   fontSize={2.1}

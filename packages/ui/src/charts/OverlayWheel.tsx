@@ -1,4 +1,5 @@
 import { GLYPHS, SIGN_GLYPHS } from '../tokens.js';
+import { svgNum } from './wheelGeometry.js';
 
 const SIZE = 420;
 const CENTRE = SIZE / 2;
@@ -58,9 +59,11 @@ export function OverlayWheel({
     return ((180 + house * 30 + degreesInSign) * Math.PI) / 180;
   };
 
+  // Rounded for emission: server and browser trig differ in the last digit,
+  // which breaks hydration. See `svgNum`.
   const at = (radius: number, angle: number): { x: number; y: number } => ({
-    x: CENTRE + radius * Math.cos(angle),
-    y: CENTRE - radius * Math.sin(angle),
+    x: svgNum(CENTRE + radius * Math.cos(angle)),
+    y: svgNum(CENTRE - radius * Math.sin(angle)),
   });
 
   const spokes = Array.from({ length: 12 }, (_, house) => {
@@ -142,7 +145,7 @@ export function OverlayWheel({
           <g key={h.house}>
             <text
               x={h.x}
-              y={h.y - 7}
+              y={svgNum(h.y - 7)}
               textAnchor="middle"
               dominantBaseline="central"
               fill={MUTED}
@@ -152,7 +155,7 @@ export function OverlayWheel({
             </text>
             <text
               x={h.x}
-              y={h.y + 7}
+              y={svgNum(h.y + 7)}
               textAnchor="middle"
               dominantBaseline="central"
               fill={MUTED}
