@@ -1,6 +1,13 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { AstronomyEngineProvider, computeChart, type ComputedChart } from '@jade/astro';
+import {
+  AstronomyEngineProvider,
+  computeChart,
+  dashaChainAt,
+  skyNow,
+  vimshottari,
+  type ComputedChart,
+} from '@jade/astro';
 import {
   GRAHA_VOICE,
   HOUSES,
@@ -8,6 +15,10 @@ import {
   connectionShape,
   houseReadings,
   plainChartReading,
+  plainPeriods,
+  plainPlanets,
+  plainSadeSati,
+  plainTransits,
 } from '../src/index.js';
 
 interface GoldenCase {
@@ -259,6 +270,149 @@ describe('connection shapes', () => {
       for (let to = 1; to <= 12; to += 1) {
         expect(connectionShape(from, to), `${from}→${to}`).toBeTruthy();
       }
+    }
+  });
+});
+
+describe('the timing reading', () => {
+  const nowJd = 2461000.5; // a fixed instant — the composers take their clock as an argument
+  const provider = new AstronomyEngineProvider({ nodeType: 'mean' });
+  const frame = { ayanamsa: 'lahiri' as const };
+  const SLOW = ['Jupiter', 'Saturn', 'Rahu', 'Ketu'] as const;
+
+  const cases = charts.map(({ label, chart }) => {
+    const dashas = vimshottari(chart.points.Moon!.longitude, 2451545, {
+      levels: 3,
+      yearLength: 'julian',
+    });
+    const sky = skyNow(provider, nowJd, frame, [...SLOW], 'mean');
+    return {
+      label,
+      chart,
+      periods: plainPeriods(chart, dashaChainAt(dashas, nowJd), nowJd),
+      transits: plainTransits(chart, sky),
+      sadeSati: plainSadeSati(
+        chart,
+        sky.find((p) => p.id === 'Saturn'),
+      ),
+      planets: plainPlanets(chart),
+    };
+  });
+
+  /**
+   * The guard, extended to the surface that most invites a forecast.
+   *
+   * A period or a transit is exactly where classical literature makes
+   * predictions, and where a reader is most primed to receive one. If #6 is
+   * going to be broken anywhere in Jade it will be broken here, so the guard
+   * runs over every composed sentence of every timing layer.
+   */
+  it('never predicts death, illness or a legal outcome, in any timing layer', () => {
+    for (const entry of cases) {
+      const everyParagraph = [
+        ...entry.periods.flatMap((period) => period.paragraphs),
+        ...entry.transits,
+        ...(entry.sadeSati ? [entry.sadeSati] : []),
+        ...entry.planets.flatMap((planet) => planet.paragraphs),
+      ];
+      expect(everyParagraph.length, entry.label).toBeGreaterThan(0);
+      for (const paragraph of everyParagraph) {
+        expect(paragraph.text, `${entry.label}: ${paragraph.text.slice(0, 60)}`).not.toMatch(
+          FORBIDDEN_PREDICTION,
+        );
+      }
+    }
+  });
+
+  it('keeps the workings behind every timing paragraph too', () => {
+    for (const entry of cases) {
+      const everyParagraph = [
+        ...entry.periods.flatMap((period) => period.paragraphs),
+        ...entry.transits,
+        ...(entry.sadeSati ? [entry.sadeSati] : []),
+        ...entry.planets.flatMap((planet) => planet.paragraphs),
+      ];
+      for (const paragraph of everyParagraph) {
+        expect(paragraph.workings.length, paragraph.text.slice(0, 60)).toBeGreaterThan(0);
+        expect(paragraph.text, entry.label).not.toMatch(BROKEN);
+        expect(paragraph.text.trim(), entry.label).toMatch(/[.!?]$/);
+      }
+    }
+  });
+
+  it('reads the running chain, outermost first, with sane progress', () => {
+    for (const entry of cases) {
+      expect(entry.periods.length, entry.label).toBeGreaterThan(0);
+      for (let i = 0; i < entry.periods.length; i += 1) {
+        const period = entry.periods[i]!;
+        expect(period.level, entry.label).toBe(i + 1);
+        expect(period.startJd).toBeLessThanOrEqual(nowJd);
+        expect(period.endJd).toBeGreaterThan(nowJd);
+        expect(period.elapsed).toBeGreaterThanOrEqual(0);
+        expect(period.elapsed).toBeLessThanOrEqual(1);
+        expect(period.remainingDays).toBeGreaterThan(0);
+      }
+      // Each level sits inside the one above it.
+      for (let i = 1; i < entry.periods.length; i += 1) {
+        expect(entry.periods[i]!.startJd).toBeGreaterThanOrEqual(entry.periods[i - 1]!.startJd);
+        expect(entry.periods[i]!.endJd).toBeLessThanOrEqual(entry.periods[i - 1]!.endJd + 1e-6);
+      }
+    }
+  });
+
+  it('reads only the slow transits, and places each in a real house', () => {
+    for (const entry of cases) {
+      expect(entry.transits).toHaveLength(SLOW.length);
+      for (const paragraph of entry.transits) {
+        const house = paragraph.workings.find((w) => w.label === 'Crossing');
+        expect(house, entry.label).toBeDefined();
+        expect(house!.detail).toMatch(
+          /your (first|second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth|eleventh|twelfth) house/,
+        );
+      }
+    }
+  });
+
+  /**
+   * Sade sati is reported by position, never by severity.
+   *
+   * The most-searched idea in Vedic astrology and the most badly handled. The
+   * test asserts Jade states where Saturn actually is and, whenever the stretch
+   * is running, prints the caveat refusing to say what it means for the reader.
+   */
+  it('states sade sati by position and refuses to rate it', () => {
+    for (const entry of cases) {
+      const paragraph = entry.sadeSati;
+      expect(paragraph, entry.label).not.toBeNull();
+      const moonSign = entry.chart.points.Moon!.signIndex;
+      const saturn = skyNow(provider, nowJd, frame, ['Saturn'], 'mean')[0]!;
+      const running =
+        saturn.signIndex === moonSign ||
+        saturn.signIndex === (moonSign + 1) % 12 ||
+        saturn.signIndex === (moonSign + 11) % 12;
+      if (running) {
+        expect(paragraph!.text, entry.label).toContain('not a verdict');
+      } else {
+        expect(paragraph!.text, entry.label).toMatch(/not running/);
+      }
+      expect(paragraph!.text).not.toMatch(/\b(severe|dangerous|terrible|devastating|doomed)\b/i);
+    }
+  });
+
+  it('reads all nine planets and agrees with the chart about each', () => {
+    for (const entry of cases) {
+      expect(entry.planets, entry.label).toHaveLength(9);
+      for (const planet of entry.planets) {
+        const point = entry.chart.points[planet.id]!;
+        expect(planet.sign, `${entry.label} ${planet.id}`).toBe(point.sign);
+        expect(planet.house).toBe(point.house);
+        expect(planet.retrograde).toBe(point.retrograde);
+        // A planet rules zero, one or two houses — never more.
+        expect(planet.rules.length).toBeLessThanOrEqual(2);
+      }
+      // Across the chart, the twelve houses are ruled by exactly seven planets.
+      const ruling = entry.planets.filter((planet) => planet.rules.length > 0);
+      expect(ruling.reduce((sum, planet) => sum + planet.rules.length, 0)).toBe(12);
     }
   });
 });

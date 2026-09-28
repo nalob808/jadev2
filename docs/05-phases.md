@@ -1294,12 +1294,49 @@ pillar, six eight or twelve a hard road. Six shapes rather than 144 texts. A tes
 checks they are counted **from the house being read** rather than from the
 ascendant — the bug that would make eleven houses in twelve subtly wrong.
 
+### Second pass — timing, planets, and an interface
+
+The first cut was a single column of paragraphs with disclosure toggles. Nalu's
+word for it was "blog", and he was right: an article is read top to bottom once,
+an instrument is scanned, returned to and operated. Four things changed.
+
+**A snapshot strip.** Rising sign, Moon and nakṣatra, main period, sub-period —
+the facts a reader checks constantly, kept where they can be checked instead of
+buried in prose.
+
+**Four sections, because they are four questions.** _Overall_ is the shape of the
+chart. _Houses_ answers "what about my seventh". _Planets_ answers "what is my
+Saturn doing" — a planet rules two houses and sits in a third, so its story is
+scattered across the house view and gathered nowhere. _Right now_ answers the
+question people actually arrive with. The section lives in the URL, so reload
+keeps it, back walks it, and the page needs no JavaScript to operate.
+
+**Cards, not paragraphs.** Every card has the same three zones — what this is,
+the numbers, the reading — so learning one teaches all of them. Type tightened to
+15px at 1.55 from 17 at 1.65: scanning wants density, reading wants air, and this
+surface does both.
+
+**Timing, which was missing entirely.** `voice/timing.ts` and `plainTiming.ts`
+add the running daśā chain at all three levels with a progress bar and the
+remaining span, the slow transits by house and by contact within 3°, a reading
+per planet, and sade sati.
+
+Sade sati gets its own treatment because it is the most-searched idea in Vedic
+astrology and the most badly served. Jade states which of the three signs Saturn
+is actually in, says what the tradition holds the stretch to be like, and prints
+an explicit refusal to say what it means for the reader's life. A test asserts
+the refusal appears whenever the stretch is running, and that no severity word
+appears at all.
+
+The daśā reading does the one join that makes it a reading rather than a lookup:
+a period's ruler is also a _house_ ruler, so a Saturn period means something
+different depending on which houses Saturn runs and where it sits. That is stated
+rather than left implicit.
+
 ### Still to do
 
-The library is a first cut covering houses, grahas, dignities and connections.
-Not yet written in the plain register: nakṣatras, daśā periods, transits, yogas,
-vargas. Each is a new component block rather than a rewrite. The reading surface
-also has no navigation of its own yet beyond the index and a link back.
+Not yet in the plain register: nakṣatras, yogas, vargas, and the varga charts.
+Each is a new component block rather than a rewrite.
 
 ---
 

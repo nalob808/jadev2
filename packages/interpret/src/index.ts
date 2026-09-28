@@ -33,3 +33,5 @@ export * from './lords.js';
 export * from './houseReading.js';
 export * from './voice/library.js';
 export * from './plainReading.js';
+export * from './voice/timing.js';
+export * from './plainTiming.js';
