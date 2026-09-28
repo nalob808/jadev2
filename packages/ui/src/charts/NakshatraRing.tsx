@@ -3,7 +3,7 @@
 import { useId, useMemo, useState, type KeyboardEvent } from 'react';
 import { NAKSHATRA_IAST, NAKSHATRA_NAMES, SIGNS, nakshatraOf, type PointId } from '@jade/astro';
 import { GlyphGroup, hasGlyph } from '../glyphs.js';
-import { annulusSector, polar, spread } from './wheelGeometry.js';
+import { annulusSector, spread, svgNum, svgPolar } from './wheelGeometry.js';
 import {
   CONTROL_PRESSED,
   CONTROL_STYLE,
@@ -133,8 +133,8 @@ const norm = (a: number): number => ((a % 360) + 360) % 360;
 function labelArc(r: number, from: number, to: number): string {
   const mid = norm((from + to) / 2);
   const bottom = mid > 0 && mid < 180;
-  const [x1, y1] = polar(C, C, r, from);
-  const [x2, y2] = polar(C, C, r, to);
+  const [x1, y1] = svgPolar(C, C, r, from);
+  const [x2, y2] = svgPolar(C, C, r, to);
   return bottom
     ? `M ${x1} ${y1} A ${r} ${r} 0 0 0 ${x2} ${y2}`
     : `M ${x2} ${y2} A ${r} ${r} 0 0 1 ${x1} ${y1}`;
@@ -217,9 +217,9 @@ export function NakshatraRing({
 
   const viewBox = useMemo(() => {
     if (zoom === 1) return `0 0 ${C * 2} ${C * 2}`;
-    const [x, y] = polar(C, C, (R_BAND_OUT + R_PADA_IN) / 2, focusLongitude - rotation);
+    const [x, y] = svgPolar(C, C, (R_BAND_OUT + R_PADA_IN) / 2, focusLongitude - rotation);
     const w = (C * 2) / zoom;
-    return `${x - w / 2} ${y - w / 2} ${w} ${w}`;
+    return `${svgNum(x - w / 2)} ${svgNum(y - w / 2)} ${w} ${w}`;
   }, [zoom, focusLongitude, rotation]);
 
   /** Everything is sized for the screen, so it is divided by the zoom. */
@@ -406,7 +406,7 @@ export function NakshatraRing({
                   ? [R_LABEL - 4.2, R_LABEL + 4.2]
                   : [R_LABEL + 4.2, R_LABEL - 4.2];
             const showPadas = zoom >= 2 || isSelected;
-            const [lx, ly] = polar(C, C, R_LORD, (from + to) / 2);
+            const [lx, ly] = svgPolar(C, C, R_LORD, (from + to) / 2);
 
             return (
               <g
@@ -486,8 +486,8 @@ export function NakshatraRing({
                   const pFrom = angleOf(pada.startArcmin);
                   const pTo = angleOf(pada.endArcmin);
                   const padaSelected = isSelected && selectedPada === pada.pada;
-                  const [px, py] = polar(C, C, (R_PADA_IN + R_PADA_OUT) / 2, (pFrom + pTo) / 2);
-                  const [nx, ny] = polar(C, C, R_PADA_IN - u(6), (pFrom + pTo) / 2);
+                  const [px, py] = svgPolar(C, C, (R_PADA_IN + R_PADA_OUT) / 2, (pFrom + pTo) / 2);
+                  const [nx, ny] = svgPolar(C, C, R_PADA_IN - u(6), (pFrom + pTo) / 2);
                   return (
                     <g
                       key={pada.pada}
@@ -750,9 +750,9 @@ function Mark({
   onSelect: () => void;
 }): React.ReactElement {
   const nak = nakshatraOf(mark.longitude);
-  const [x, y] = polar(C, C, radius, angle);
-  const [t1x, t1y] = polar(C, C, tickFrom, trueAngle);
-  const [t2x, t2y] = polar(C, C, tickTo, trueAngle);
+  const [x, y] = svgPolar(C, C, radius, angle);
+  const [t1x, t1y] = svgPolar(C, C, tickFrom, trueAngle);
+  const [t2x, t2y] = svgPolar(C, C, tickTo, trueAngle);
   const colour = selected ? ACCENT : kind === 'transit' ? CLAY : INK;
   const glyphSize = (selected ? 13 : 11) / zoom;
   return (
@@ -771,7 +771,13 @@ function Mark({
         {`${mark.id}${kind === 'transit' ? ' (transit)' : ''} — ${dms(mark.longitude % 30)} ${SIGNS[Math.floor(mark.longitude / 30)]}, ${NAKSHATRA_IAST[nak.index]} pada ${nak.pada}${mark.retrograde ? ', retrograde' : ''}`}
       </title>
       <line x1={t1x} y1={t1y} x2={t2x} y2={t2y} stroke={colour} strokeWidth={1.1 / zoom} />
-      <circle cx={x} cy={y} r={glyphSize * 0.75} fill="var(--paper, #EFEFE9)" fillOpacity={0.85} />
+      <circle
+        cx={x}
+        cy={y}
+        r={svgNum(glyphSize * 0.75)}
+        fill="var(--paper, #EFEFE9)"
+        fillOpacity={0.85}
+      />
       {hasGlyph(mark.id) ? (
         <GlyphGroup name={mark.id} x={x} y={y} size={glyphSize} color={colour} />
       ) : (
@@ -788,8 +794,8 @@ function Mark({
       )}
       {mark.retrograde ? (
         <text
-          x={x + glyphSize * 0.75}
-          y={y + glyphSize * 0.55}
+          x={svgNum(x + glyphSize * 0.75)}
+          y={svgNum(y + glyphSize * 0.55)}
           fontSize={4.6 / zoom}
           fill={colour}
           fontStyle="italic"

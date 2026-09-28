@@ -11,7 +11,7 @@ import {
   type KakshaSegment,
 } from '@jade/astro';
 import { GRAHA_NATURE } from '../glyphs.js';
-import { annulusSector, polar } from './wheelGeometry.js';
+import { annulusSector, svgNum, svgPolar } from './wheelGeometry.js';
 import { SIGN_ABBREVIATIONS } from './shared.js';
 import {
   CONTROL_STYLE,
@@ -135,13 +135,13 @@ export function SarvaProfile({
           const isSelected = selected === signIndex;
           const above = bindus > SARVA_MEAN;
           // Outside both the bar and the mean ring, so a count never sits on the dashes.
-          const [lx, ly] = polar(
+          const [lx, ly] = svgPolar(
             C,
             C,
             Math.max(radiusOf(bindus), radiusOf(SARVA_MEAN)) + 9,
             from + 15,
           );
-          const [sx, sy] = polar(C, C, R_LABEL_RING, from + 15);
+          const [sx, sy] = svgPolar(C, C, R_LABEL_RING, from + 15);
           return (
             <g
               key={sign}
@@ -196,7 +196,7 @@ export function SarvaProfile({
         <circle
           cx={C}
           cy={C}
-          r={radiusOf(SARVA_MEAN)}
+          r={svgNum(radiusOf(SARVA_MEAN))}
           fill="none"
           stroke={INK}
           strokeWidth={0.7}
