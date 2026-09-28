@@ -1,11 +1,12 @@
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { POINT_DISPLAY_ORDER, jdFromUnixMs, signsAspectedBy } from '@jade/astro';
-import { getSettingsProfile, getSubject } from '@jade/db';
+import { getSettingsProfile, getSubject, listLifeEvents } from '@jade/db';
 import { getSession } from '@/lib/auth';
 import { getClock } from '@/lib/clock';
 import { getDatabase } from '@/lib/db';
 import { getOrComputeChart } from '@/lib/chart';
+import { saturnBand } from '@/lib/saturnBand';
 import { Kicker, Shell } from '@/components/Shell';
 import { InstrumentWorkspace } from '@/components/InstrumentWorkspace';
 
@@ -31,9 +32,10 @@ export default async function InstrumentPage({ params }: { params: Promise<{ id:
   const { subject, birthEvent } = record;
   if (!birthEvent) notFound();
 
-  const [profile, clock] = await Promise.all([
+  const [profile, clock, lifeEvents] = await Promise.all([
     getSettingsProfile(database, session.workspaceId, session.settingsProfileId),
     getClock(session.workspaceId),
+    listLifeEvents(database, session.workspaceId, subject.id),
   ]);
   if (!profile) notFound();
 
@@ -46,6 +48,33 @@ export default async function InstrumentPage({ params }: { params: Promise<{ id:
   );
   /** Stated, not defaulted (CLAUDE.md #3) — and shown beside the timeline. */
   const YEAR_LENGTH = 'julian' as const;
+
+  /** The daśā timeline's context band — see `lib/saturnBand.ts`. */
+  const band = saturnBand(
+    birthJd,
+    {
+      ayanamsa: profile.ayanamsa,
+      customAyanamsaAtJ2000: profile.customAyanamsaAtJ2000 ?? undefined,
+      nodeType: profile.nodeType,
+    },
+    chart.ashtakavarga.sarva,
+  );
+
+  /**
+   * Life events, pinned to the timeline. The brief asks for dated notes, but
+   * `notes` has no event date — only `life_events` records when something
+   * happened, and with what precision — so that is the table read here.
+   */
+  const events = lifeEvents
+    .filter((event) => event.enabled)
+    .map((event) => ({
+      id: event.id,
+      jd: jdFromUnixMs(Date.parse(`${event.occurredOn}T00:00:00Z`)),
+      label: event.kind.replace(/_/g, ' '),
+      detail: event.note ?? undefined,
+      precision: event.precision as 'day' | 'month' | 'year',
+    }))
+    .filter((event) => Number.isFinite(event.jd));
 
   const points = POINT_DISPLAY_ORDER.filter((pointId) => chart.points[pointId]).map((pointId) => {
     const point = chart.points[pointId]!;
@@ -92,6 +121,8 @@ export default async function InstrumentPage({ params }: { params: Promise<{ id:
           birthJd,
           yearLength: YEAR_LENGTH,
         }}
+        saturnBand={band}
+        events={events}
         frame={{
           ayanamsa: profile.ayanamsa,
           customAyanamsaAtJ2000: profile.customAyanamsaAtJ2000 ?? undefined,

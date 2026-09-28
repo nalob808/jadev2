@@ -23,3 +23,9 @@ export * from './nakshatraRingLayout.js';
 export { NakshatraRing } from './NakshatraRing.js';
 export type { NakshatraRingProps, Zoom as NakshatraRingZoom } from './NakshatraRing.js';
 export { NakshatraDetail } from './NakshatraDetail.js';
+export { DashaTimeline } from './DashaTimeline.js';
+export type {
+  DashaTimelineProps,
+  DashaTimelineEvent,
+  DashaStrengthSegment,
+} from './DashaTimeline.js';

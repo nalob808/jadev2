@@ -1,17 +1,25 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import {
   ayanamsa,
   jdTtFromJdUt,
   NAKSHATRA_IAST,
   nakshatraOf,
   SIGNS,
+  vimshottari,
+  dashaChainAt,
+  unixMsFromJd,
+  type SarvaTransitSegment,
+  type VimshottariResult,
   type YearLength,
 } from '@jade/astro';
 import {
   dms,
+  DashaTimeline,
   NakshatraDetail,
+  type DashaStrengthSegment,
+  type DashaTimelineEvent,
   NakshatraRing,
   Wheel,
   type InstrumentMark,
@@ -52,6 +60,10 @@ export interface InstrumentWorkspaceProps {
   readonly frame: RingFrame;
   /** "Lahiri", "mean nodes", "whole sign" — the settings in words. */
   readonly settingsLabel: string;
+  /** Saturn's sign over the lifetime, scored by sarva — the timeline's context band. */
+  readonly saturnBand: readonly SarvaTransitSegment[];
+  /** Dated life events to pin on the timeline. */
+  readonly events: readonly DashaTimelineEvent[];
 }
 
 export function InstrumentWorkspace(props: InstrumentWorkspaceProps): React.ReactElement {
@@ -62,8 +74,14 @@ export function InstrumentWorkspace(props: InstrumentWorkspaceProps): React.Reac
   );
 }
 
-function Instrument({ natal, frame, settingsLabel }: InstrumentWorkspaceProps): React.ReactElement {
-  const { jd, selection, setSelection } = useInstrument();
+function Instrument({
+  natal,
+  frame,
+  settingsLabel,
+  saturnBand,
+  events,
+}: InstrumentWorkspaceProps): React.ReactElement {
+  const { jd, selection, setSelection, setJd, scrubTo, endScrub } = useInstrument();
   const onKeyDown = useInstrumentKeys();
 
   const transits = useMemo(
@@ -103,6 +121,33 @@ function Instrument({ natal, frame, settingsLabel }: InstrumentWorkspaceProps): 
     includeNutation: true,
   });
   const frameLabel = `sidereal, ${frame.ayanamsa} ${dms(ayanamsaValue)} on this date · ${frame.nodeType} nodes · ecliptic longitude only, latitude not drawn`;
+
+  /** Built once from the birth Moon; moving the cursor only asks it a new question. */
+  const dashas = useMemo(
+    () =>
+      vimshottari(natal.moonLongitude, natal.birthJd, { levels: 3, yearLength: natal.yearLength }),
+    [natal.moonLongitude, natal.birthJd, natal.yearLength],
+  );
+  /**
+   * Open on the mahādaśā running when the page loaded, where a reader always
+   * starts. Read once: the timeline's own zoom belongs to the reader after that.
+   */
+  const [openingJd] = useState(jd);
+  const initialMaha = useMemo(() => dashaChainAt(dashas, openingJd)[0], [dashas, openingJd]);
+  const strength: DashaStrengthSegment[] = useMemo(() => {
+    const most = Math.max(...natal.sarva);
+    return saturnBand.map((segment) => ({
+      id: `${segment.fromJd}`,
+      fromJd: segment.fromJd,
+      toJd: segment.toJd,
+      value: segment.bindus / most,
+      label: `Saturn in ${segment.sign} — ${segment.bindus} sarva bindus`,
+      factors: [
+        `natal sarvāṣṭakavarga ${segment.bindus} in ${segment.sign} (chart maximum ${most})`,
+        segment.enteredRetrograde ? 'entered by retrograde motion' : 'entered direct',
+      ],
+    }));
+  }, [saturnBand, natal.sarva]);
 
   const wheelFocus = selection?.kind === 'graha' ? selection.id : null;
 
@@ -151,6 +196,7 @@ function Instrument({ natal, frame, settingsLabel }: InstrumentWorkspaceProps): 
         <aside aria-label="Selection" className="min-w-0">
           <SelectionPanel
             selection={selection}
+            dashas={dashas}
             natal={natalMarks}
             transits={transitMarks}
             natalMoonLongitude={natal.moonLongitude}
@@ -163,6 +209,27 @@ function Instrument({ natal, frame, settingsLabel }: InstrumentWorkspaceProps): 
           </p>
         </aside>
       </div>
+
+      <section aria-label="Daśā timeline" className="min-w-0">
+        <Heading>Vimśottarī daśā · Saturn&rsquo;s transit by sarva bindus beneath</Heading>
+        <DashaTimeline
+          dashas={dashas}
+          jd={jd}
+          selection={selection}
+          onSelect={setSelection}
+          onScrub={scrubTo}
+          onScrubEnd={(next) => {
+            setJd(next);
+            endScrub();
+          }}
+          events={events}
+          strength={strength}
+          initialWindow={
+            initialMaha ? { fromJd: initialMaha.startJd, toJd: initialMaha.endJd } : undefined
+          }
+          frameLabel="context band: Saturn's sign, height = natal sarva bindus in it"
+        />
+      </section>
     </div>
   );
 }
@@ -178,11 +245,13 @@ function Heading({ children }: { children: React.ReactNode }): React.ReactElemen
 /** Whatever is selected, described — the one panel every view writes into. */
 function SelectionPanel({
   selection,
+  dashas,
   natal,
   transits,
   natalMoonLongitude,
 }: {
   selection: Selection | null;
+  dashas: VimshottariResult;
   natal: readonly InstrumentMark[];
   transits: readonly InstrumentMark[];
   natalMoonLongitude: number;
@@ -238,15 +307,47 @@ function SelectionPanel({
     );
   }
 
-  const label =
-    selection.kind === 'sign'
-      ? SIGNS[selection.signIndex]
-      : selection.kind === 'house'
-        ? `House ${selection.house}`
-        : `${selection.lords.join('–')} period`;
+  if (selection.kind === 'period') {
+    const period = findPeriod(dashas, selection.lords);
+    return (
+      <div className="border border-[var(--accent)] bg-[var(--surface)] p-4">
+        <p className="font-display text-2xl leading-none">{selection.lords.join('–')}</p>
+        <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.13em] text-[var(--ink-faint)]">
+          {['mahādaśā', 'antardaśā', 'pratyantardaśā'][selection.lords.length - 1] ?? 'period'}
+        </p>
+        {period ? (
+          <p className="mt-2 text-[13px]">
+            {isoDate(period.startJd)} → {isoDate(period.endJd)} ·{' '}
+            {((period.endJd - period.startJd) / 365.25).toFixed(2)} years
+          </p>
+        ) : null}
+        <p className="mt-2 text-[12.5px] leading-relaxed text-[var(--ink-muted)]">
+          The ring lights the three nakṣatras {selection.lords[selection.lords.length - 1]} rules.
+        </p>
+      </div>
+    );
+  }
+
+  const label = selection.kind === 'sign' ? SIGNS[selection.signIndex] : `House ${selection.house}`;
   return (
     <div className="border border-[var(--accent)] bg-[var(--surface)] p-4">
       <p className="font-display text-2xl leading-none">{label}</p>
     </div>
   );
+}
+
+function isoDate(jd: number): string {
+  return new Date(unixMsFromJd(jd)).toISOString().slice(0, 10);
+}
+
+/** The period in the tree with exactly these lords, outermost first. */
+function findPeriod(dashas: VimshottariResult, lords: readonly string[]) {
+  let level = dashas.periods;
+  let found: (typeof dashas.periods)[number] | undefined;
+  for (const lord of lords) {
+    found = level.find((period) => period.lord === lord);
+    if (!found) return undefined;
+    level = found.children ?? [];
+  }
+  return found;
 }
