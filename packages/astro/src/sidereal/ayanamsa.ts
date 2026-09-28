@@ -47,6 +47,23 @@ const MEAN_AYANAMSA_FIT: Partial<Record<AyanamsaMode, readonly [number, number, 
     lahiri: [23.85709236051419, 1.396887925035841, 0.0003070810067976883, 1.5866507414720884e-8],
   };
 
+/**
+ * The modes that can actually be computed today.
+ *
+ * Derived from the fit table rather than written out again, so fitting Raman
+ * is one edit: add its coefficients above and it becomes selectable, guarded
+ * and documented everywhere at once. A second hand-kept list would be a second
+ * thing to forget.
+ *
+ * `custom` is included whenever Lahiri is, because a custom offset is defined
+ * as a constant shift from Lahiri's precession rate — it has no fit of its own
+ * and cannot outlive the one it borrows.
+ */
+export const FITTED_AYANAMSAS: readonly AyanamsaMode[] = [
+  ...(Object.keys(MEAN_AYANAMSA_FIT) as AyanamsaMode[]),
+  ...(MEAN_AYANAMSA_FIT.lahiri ? (['custom'] as const) : []),
+];
+
 export interface AyanamsaOptions {
   readonly mode: AyanamsaMode;
   /** Only used when mode === 'custom': degrees at J2000. */

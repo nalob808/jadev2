@@ -2,11 +2,14 @@ import { redirect } from 'next/navigation';
 import { getHomeZone, getSettingsProfile, getWorkspaceBilling } from '@jade/db';
 import { availableZones } from '@jade/atlas';
 import {
+  AYANAMSA_LABELS,
   IMPLEMENTED_CHART_STYLES,
   IMPLEMENTED_HOUSE_SYSTEMS,
   PLANNED_CHART_STYLES,
   PLANNED_HOUSE_SYSTEMS,
+  isFittedAyanamsa,
 } from '@jade/astro';
+import { AYANAMSA_OPTIONS, UNFITTED_AYANAMSAS } from '@/lib/ayanamsaOptions';
 import { getSession } from '@/lib/auth';
 import { getEntitlement } from '@/lib/entitlements';
 import { PlanPanel } from '@/components/PlanPanel';
@@ -25,26 +28,12 @@ export const dynamic = 'force-dynamic';
  * Each carries a plain description, because "which ayanāṁśa" is the single
  * most consequential setting in the app and the names alone assume you already
  * know. A student changing this should be able to see what it does to the
- * chart and read what she just chose.
+ * chart and read what she just chose — and, when Jade cannot cast in one yet,
+ * read that too rather than discovering it as a broken page afterwards.
+ *
+ * The list itself is `lib/ayanamsaOptions.ts`, derived from the core so a
+ * zodiac cannot be offered that the core cannot compute.
  */
-const AYANAMSAS: Array<{ id: string; name: string; note: string }> = [
-  {
-    id: 'lahiri',
-    name: 'Lahiri (Chitrapakṣa)',
-    note: 'The Indian government standard. Most widely used.',
-  },
-  {
-    id: 'lahiri_true_chitra',
-    name: 'True Citrā',
-    note: 'Spica fixed at exactly 180°. Differs from Lahiri by minutes.',
-  },
-  { id: 'raman', name: 'Raman', note: 'B. V. Raman’s value.' },
-  { id: 'krishnamurti', name: 'Krishnamurti (KP)', note: 'Required for KP technique.' },
-  { id: 'yukteshwar', name: 'Yukteshwar', note: 'From The Holy Science.' },
-  { id: 'fagan_bradley', name: 'Fagan–Bradley', note: 'The Western sidereal standard.' },
-  { id: 'suryasiddhanta', name: 'Sūrya Siddhānta', note: 'The classical text’s own value.' },
-  { id: 'custom', name: 'Custom', note: 'Your own value at J2000, in degrees.' },
-];
 
 const HOUSE_LABELS: Record<string, string> = {
   whole_sign: 'Whole sign',
@@ -148,6 +137,25 @@ export default async function SettingsPage({
         </p>
       ) : null}
 
+      {/*
+        A workspace already stored in an unfitted zodiac.
+
+        The guard in `updateSettings` stops this happening from now on, but a
+        profile saved before it existed is still sitting in a frame the core
+        refuses, and every page that casts a chart fails until it changes. This
+        page is the one that still loads — it casts nothing — so it is where the
+        sentence explaining that belongs.
+      */}
+      {!isFittedAyanamsa(profile.ayanamsa) ? (
+        <p className="mb-4 border-l-2 border-[var(--clay,#9E5B3A)] bg-[var(--surface)] px-4 py-3 text-sm leading-relaxed">
+          This workspace is set to{' '}
+          <strong>{AYANAMSA_LABELS[profile.ayanamsa] ?? profile.ayanamsa}</strong>, which Jade names
+          but has not fitted against a reference yet. No chart can be cast until you choose one of
+          the zodiacs below that is available. Jade refuses rather than quietly substituting a
+          different one.
+        </p>
+      ) : null}
+
       <form action={updateSettings} className="flex flex-col gap-4">
         <input type="hidden" name="profileId" value={profile.id} />
 
@@ -159,17 +167,32 @@ export default async function SettingsPage({
               hint="The offset between the tropical and sidereal zodiacs. Two astrologers disagreeing about this is normal; software that hides which one it used is not."
             >
               <select name="ayanamsa" defaultValue={profile.ayanamsa} className={SELECT}>
-                {AYANAMSAS.map((option) => (
-                  <option key={option.id} value={option.id}>
+                {AYANAMSA_OPTIONS.map((option) => (
+                  <option
+                    key={option.id}
+                    value={option.id}
+                    disabled={!option.fitted}
+                    title={option.note}
+                  >
                     {option.name}
+                    {option.fitted ? '' : ' — not yet fitted'}
                   </option>
                 ))}
               </select>
+              {UNFITTED_AYANAMSAS.length > 0 ? (
+                <p className="mt-1.5 text-[12.5px] leading-relaxed text-[var(--ink-muted)]">
+                  {UNFITTED_AYANAMSAS.map((option) => option.name).join(', ')}{' '}
+                  {UNFITTED_AYANAMSAS.length === 1 ? 'is' : 'are'} named here but not yet fitted
+                  against a reference, so no chart can be cast in{' '}
+                  {UNFITTED_AYANAMSAS.length === 1 ? 'it' : 'them'} yet. Jade refuses rather than
+                  substituting a zodiac you did not choose.
+                </p>
+              ) : null}
             </Field>
 
             <Field
               label="Custom value at J2000"
-              hint="Degrees. Only used when Ayanāṁśa is set to Custom."
+              hint="Degrees. Only used when Ayanāṁśa is set to Custom offset."
             >
               <input
                 type="number"

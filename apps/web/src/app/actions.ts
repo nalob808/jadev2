@@ -40,10 +40,13 @@ import {
   type LocalDateTime,
 } from '@jade/atlas';
 import {
+  AYANAMSA_LABELS,
   isAnchorKind,
+  isFittedAyanamsa,
   isImplementedChartStyle,
   isImplementedHouseSystem,
   isLifeEventKind,
+  type AyanamsaMode,
 } from '@jade/astro';
 import { getDatabase } from '@/lib/db';
 import { env } from '@/lib/env';
@@ -430,7 +433,20 @@ export async function updateSettings(formData: FormData): Promise<void> {
     fail(`${chartStyle || 'That chart style'} is not implemented yet.`);
   }
 
+  /*
+   * The same guard the house system gets, and for the same reason. Six of the
+   * eight declared zodiacs have no coefficients yet and `ayanamsa()` throws on
+   * them — correctly, rather than guessing. Without this check the throw landed
+   * after the save, on every page that casts a chart, for a workspace whose
+   * settings had just been accepted.
+   */
   const ayanamsa = read('ayanamsa');
+  if (!isFittedAyanamsa(ayanamsa)) {
+    fail(
+      `${(AYANAMSA_LABELS[ayanamsa as AyanamsaMode] ?? ayanamsa) || 'That ayanāṁśa'} is not fitted ` +
+        'yet, so no chart can be cast in it. Jade refuses rather than substituting another zodiac.',
+    );
+  }
   let customAyanamsaAtJ2000: number | null = null;
   if (ayanamsa === 'custom') {
     const raw = read('customAyanamsaAtJ2000');
@@ -455,7 +471,7 @@ export async function updateSettings(formData: FormData): Promise<void> {
 
   await updateSettingsProfile(getDatabase(), session.workspaceId, profileId, {
     name: read('name') || 'Default',
-    ayanamsa: ayanamsa as 'lahiri',
+    ayanamsa,
     customAyanamsaAtJ2000,
     nodeType: read('nodeType') === 'true' ? 'true' : 'mean',
     houseSystem,

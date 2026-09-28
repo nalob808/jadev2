@@ -1,3 +1,4 @@
+import { AYANAMSA_LABELS, FITTED_AYANAMSAS, type AyanamsaMode } from './sidereal/ayanamsa.js';
 import type { HouseSystem } from './types.js';
 
 /**
@@ -58,3 +59,34 @@ export const PLANNED_CHART_STYLES: ReadonlyArray<{ id: string; note: string }> =
 export function isImplementedChartStyle(value: string): value is ImplementedChartStyle {
   return (IMPLEMENTED_CHART_STYLES as readonly string[]).includes(value);
 }
+
+/**
+ * Ayanāṁśas with coefficients behind them.
+ *
+ * This is the same gap as the house systems above, and it was open longer.
+ * `AyanamsaMode` names eight zodiacs, the `ayanamsa` column stores any of
+ * them, and `ayanamsa()` has coefficients for one — it throws on the other six
+ * rather than guessing, which is right. But nothing guarded the choice, so the
+ * settings form offered all eight, saved whichever was picked, and the crash
+ * arrived afterwards on every page that casts a chart. Sixteen of them do,
+ * including the one you land on after signing in.
+ *
+ * Ayanāṁśa is the most consequential setting in the app, which is the reason
+ * the unfitted modes stay listed and disabled rather than disappearing: a KP
+ * astrologer needs to see that Jade knows what Krishnamurti is and has not
+ * fitted it yet. Hiding it would read as Jade never having heard of it.
+ */
+export function isFittedAyanamsa(value: string): value is AyanamsaMode {
+  return (FITTED_AYANAMSAS as readonly string[]).includes(value);
+}
+
+/** Zodiacs named by the type but not yet fitted, with why and what fixes it. */
+export const PLANNED_AYANAMSAS: ReadonlyArray<{ id: AyanamsaMode; label: string; note: string }> = (
+  Object.keys(AYANAMSA_LABELS) as AyanamsaMode[]
+)
+  .filter((mode) => !isFittedAyanamsa(mode))
+  .map((mode) => ({
+    id: mode,
+    label: AYANAMSA_LABELS[mode],
+    note: 'coefficients not yet fitted — scripts/generate_fixtures.py --ayanamsa',
+  }));
