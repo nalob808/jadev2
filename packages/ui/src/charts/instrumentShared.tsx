@@ -47,6 +47,32 @@ export const VISUALLY_HIDDEN: CSSProperties = {
 };
 
 /**
+ * A wrapper for the parallel data table, and the reason it is a wrapper.
+ *
+ * `VISUALLY_HIDDEN` cannot be put on a `<table>` directly. CSS table layout
+ * clamps a table's used width up to its min-content width, so `width: 1px` is
+ * ignored, and `overflow: hidden` on a table box does not contain the result.
+ * Measured: the nakṣatra ring's hidden table rendered 1302px wide and pushed
+ * the document's scroll width to 1338px on a 390px phone, giving every page
+ * that carries one a sideways scroll. `table-layout: fixed` narrows it to 535px
+ * and still overflows, because the caption sets its own minimum.
+ *
+ * A div does honour both properties, and it clips the table inside it, so the
+ * table contributes nothing to the page's scroll width while staying in the
+ * accessibility tree where it is needed.
+ *
+ * `data-visually-hidden` is there so a test can assert the wrapper exists
+ * without a layout engine to measure with.
+ */
+export function VisuallyHidden({ children }: { children: React.ReactNode }): React.ReactElement {
+  return (
+    <div data-visually-hidden="" style={VISUALLY_HIDDEN}>
+      {children}
+    </div>
+  );
+}
+
+/**
  * The small visible control used across the instrument views.
  *
  * Every keyboard shortcut has one of these beside it: a shortcut with no

@@ -13,7 +13,7 @@ import {
   CONTROL_PRESSED,
   CONTROL_STYLE,
   MOTION_CSS,
-  VISUALLY_HIDDEN,
+  VisuallyHidden,
   type InstrumentSelection,
 } from './instrumentShared.js';
 
@@ -599,51 +599,55 @@ export function DashaTimeline({
         </p>
       </figcaption>
 
-      <table style={VISUALLY_HIDDEN}>
-        <caption>{title}: proportional periods in the current window</caption>
-        <thead>
-          <tr>
-            <th scope="col">Level</th>
-            <th scope="col">Lords</th>
-            <th scope="col">Start</th>
-            <th scope="col">End</th>
-            <th scope="col">Duration in days</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map(({ period, level }) => (
-            <tr key={`table:${period.lords.join('.')}:${period.startJd}`}>
-              <td>{level}</td>
-              <th scope="row">{period.lords.join('–')}</th>
-              <td>{iso(period.startJd)}</td>
-              <td>{iso(period.endJd)}</td>
-              <td>{(period.endJd - period.startJd).toFixed(5)}</td>
+      <VisuallyHidden>
+        <table>
+          <caption>{title}: proportional periods in the current window</caption>
+          <thead>
+            <tr>
+              <th scope="col">Level</th>
+              <th scope="col">Lords</th>
+              <th scope="col">Start</th>
+              <th scope="col">End</th>
+              <th scope="col">Duration in days</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {rows.map(({ period, level }) => (
+              <tr key={`table:${period.lords.join('.')}:${period.startJd}`}>
+                <td>{level}</td>
+                <th scope="row">{period.lords.join('–')}</th>
+                <td>{iso(period.startJd)}</td>
+                <td>{iso(period.endJd)}</td>
+                <td>{(period.endJd - period.startJd).toFixed(5)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </VisuallyHidden>
 
-      <table style={VISUALLY_HIDDEN}>
-        <caption>Life events pinned to the timeline</caption>
-        <thead>
-          <tr>
-            <th scope="col">Date</th>
-            <th scope="col">Event</th>
-            <th scope="col">Precision</th>
-            <th scope="col">Detail</th>
-          </tr>
-        </thead>
-        <tbody>
-          {clippedEvents.map((event) => (
-            <tr key={`event-table:${event.id}`}>
-              <td>{iso(event.jd)}</td>
-              <th scope="row">{event.label}</th>
-              <td>{event.precision ?? 'day'}</td>
-              <td>{event.detail ?? ''}</td>
+      <VisuallyHidden>
+        <table>
+          <caption>Life events pinned to the timeline</caption>
+          <thead>
+            <tr>
+              <th scope="col">Date</th>
+              <th scope="col">Event</th>
+              <th scope="col">Precision</th>
+              <th scope="col">Detail</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {clippedEvents.map((event) => (
+              <tr key={`event-table:${event.id}`}>
+                <td>{iso(event.jd)}</td>
+                <th scope="row">{event.label}</th>
+                <td>{event.precision ?? 'day'}</td>
+                <td>{event.detail ?? ''}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </VisuallyHidden>
     </figure>
   );
 }

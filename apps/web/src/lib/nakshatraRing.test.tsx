@@ -351,3 +351,29 @@ describe('the detail panel', () => {
     }
   });
 });
+
+/**
+ * The parallel data table must not widen the page.
+ *
+ * Found by screenshotting the public landing page, which carries this ring: the
+ * hidden table rendered 1302px wide and pushed the document's scroll width to
+ * 1338px inside a 390px viewport, so every page with an instrument view scrolled
+ * sideways. CSS table layout clamps a table's width up to its min-content width,
+ * so the `width: 1px` in `VISUALLY_HIDDEN` was silently ignored and
+ * `overflow: hidden` on a table box did not contain the result.
+ *
+ * Asserted on the markup rather than by measuring, because the fix is structural
+ * — the table has to sit inside an element that can be 1px and can clip — and a
+ * static renderer has no layout engine to measure with.
+ */
+describe('the hidden data table', () => {
+  it('sits inside a wrapper that can actually be one pixel wide', () => {
+    const markup = draw();
+    expect(markup).toContain('data-visually-hidden');
+    expect(markup).toMatch(/data-visually-hidden[^>]*>\s*<table/);
+  });
+
+  it('never carries the hidden style on the table itself', () => {
+    expect(draw()).not.toMatch(/<table[^>]*style=/);
+  });
+});

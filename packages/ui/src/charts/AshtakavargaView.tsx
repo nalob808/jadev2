@@ -16,7 +16,7 @@ import { SIGN_ABBREVIATIONS } from './shared.js';
 import {
   CONTROL_STYLE,
   MOTION_CSS,
-  VISUALLY_HIDDEN,
+  VisuallyHidden,
   type InstrumentSelection,
 } from './instrumentShared.js';
 
@@ -215,17 +215,19 @@ export function SarvaProfile({
         Radius is bindus on a fixed 0–{SAV_DOMAIN} scale; the dashed ring is the {SARVA_TOTAL} ÷ 12
         mean. Lagna sign in blue.
       </figcaption>
-      <table style={VISUALLY_HIDDEN}>
-        <caption>Sarvāṣṭakavarga bindus by sign, total {total}</caption>
-        <tbody>
-          {SIGNS.map((sign, signIndex) => (
-            <tr key={sign}>
-              <th scope="row">{sign}</th>
-              <td>{sarva[signIndex]}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      <VisuallyHidden>
+        <table>
+          <caption>Sarvāṣṭakavarga bindus by sign, total {total}</caption>
+          <tbody>
+            {SIGNS.map((sign, signIndex) => (
+              <tr key={sign}>
+                <th scope="row">{sign}</th>
+                <td>{sarva[signIndex]}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </VisuallyHidden>
     </figure>
   );
 }
@@ -345,29 +347,31 @@ export function ContributorMultiples({
         Each panel is one contributor, on one 0–7 scale; the eight panels for a sign add up to its
         sarva. Benefic contributors green, malefic rust, the Lagna blue.
       </figcaption>
-      <table style={VISUALLY_HIDDEN}>
-        <caption>Bindus given to each sign by each contributor</caption>
-        <thead>
-          <tr>
-            <th scope="col">Contributor</th>
-            {SIGNS.map((sign) => (
-              <th key={sign} scope="col">
-                {sign}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {AV_CONTRIBUTORS.map((contributor) => (
-            <tr key={contributor}>
-              <th scope="row">{contributor}</th>
-              {bySource[contributor].map((count, sign) => (
-                <td key={sign}>{count}</td>
+      <VisuallyHidden>
+        <table>
+          <caption>Bindus given to each sign by each contributor</caption>
+          <thead>
+            <tr>
+              <th scope="col">Contributor</th>
+              {SIGNS.map((sign) => (
+                <th key={sign} scope="col">
+                  {sign}
+                </th>
               ))}
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {AV_CONTRIBUTORS.map((contributor) => (
+              <tr key={contributor}>
+                <th scope="row">{contributor}</th>
+                {bySource[contributor].map((count, sign) => (
+                  <td key={sign}>{count}</td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </VisuallyHidden>
     </figure>
   );
 }
@@ -573,33 +577,35 @@ export function KakshaBand({
           bhinnāṣṭakavarga.
         </p>
       </figcaption>
-      <table style={VISUALLY_HIDDEN}>
-        <caption>Kakṣā transits</caption>
-        <thead>
-          <tr>
-            <th scope="col">Graha</th>
-            <th scope="col">From</th>
-            <th scope="col">To</th>
-            <th scope="col">Sign</th>
-            <th scope="col">Kakṣā lord</th>
-            <th scope="col">Bindu</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.flatMap((row) =>
-            row.segments.map((segment) => (
-              <tr key={`${row.subject}-${segment.fromJd}`}>
-                <th scope="row">{row.subject}</th>
-                <td>{isoDate(segment.fromJd)}</td>
-                <td>{isoDate(segment.toJd)}</td>
-                <td>{SIGNS[segment.signIndex]}</td>
-                <td>{segment.lord}</td>
-                <td>{segment.hasBindu ? 'yes' : 'no'}</td>
-              </tr>
-            )),
-          )}
-        </tbody>
-      </table>
+      <VisuallyHidden>
+        <table>
+          <caption>Kakṣā transits</caption>
+          <thead>
+            <tr>
+              <th scope="col">Graha</th>
+              <th scope="col">From</th>
+              <th scope="col">To</th>
+              <th scope="col">Sign</th>
+              <th scope="col">Kakṣā lord</th>
+              <th scope="col">Bindu</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.flatMap((row) =>
+              row.segments.map((segment) => (
+                <tr key={`${row.subject}-${segment.fromJd}`}>
+                  <th scope="row">{row.subject}</th>
+                  <td>{isoDate(segment.fromJd)}</td>
+                  <td>{isoDate(segment.toJd)}</td>
+                  <td>{SIGNS[segment.signIndex]}</td>
+                  <td>{segment.lord}</td>
+                  <td>{segment.hasBindu ? 'yes' : 'no'}</td>
+                </tr>
+              )),
+            )}
+          </tbody>
+        </table>
+      </VisuallyHidden>
     </figure>
   );
 }

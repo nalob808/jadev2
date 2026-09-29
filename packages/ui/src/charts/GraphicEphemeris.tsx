@@ -23,7 +23,7 @@ import {
   CONTROL_PRESSED,
   CONTROL_STYLE,
   MOTION_CSS,
-  VISUALLY_HIDDEN,
+  VisuallyHidden,
   dms,
   type InstrumentSelection,
 } from './instrumentShared.js';
@@ -584,31 +584,33 @@ export function GraphicEphemeris({
         </p>
       </figcaption>
 
-      <table style={VISUALLY_HIDDEN}>
-        <caption>
-          {title}: crossings on the {FOLD_LABEL[fold]} dial
-        </caption>
-        <thead>
-          <tr>
-            <th scope="col">Date</th>
-            <th scope="col">Transiting</th>
-            <th scope="col">Natal point</th>
-            <th scope="col">Nakṣatra</th>
-            <th scope="col">Transit longitude</th>
-          </tr>
-        </thead>
-        <tbody>
-          {relevant.map((contact, index) => (
-            <tr key={index}>
-              <td>{isoDate(contact.jdUt)}</td>
-              <th scope="row">{contact.transiting}</th>
-              <td>{contact.natalPoint}</td>
-              <td>{NAKSHATRA_IAST[contact.nakshatraIndex]}</td>
-              <td>{dms(contact.transitLongitude % 30)}</td>
+      <VisuallyHidden>
+        <table>
+          <caption>
+            {title}: crossings on the {FOLD_LABEL[fold]} dial
+          </caption>
+          <thead>
+            <tr>
+              <th scope="col">Date</th>
+              <th scope="col">Transiting</th>
+              <th scope="col">Natal point</th>
+              <th scope="col">Nakṣatra</th>
+              <th scope="col">Transit longitude</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {relevant.map((contact, index) => (
+              <tr key={index}>
+                <td>{isoDate(contact.jdUt)}</td>
+                <th scope="row">{contact.transiting}</th>
+                <td>{contact.natalPoint}</td>
+                <td>{NAKSHATRA_IAST[contact.nakshatraIndex]}</td>
+                <td>{dms(contact.transitLongitude % 30)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </VisuallyHidden>
     </figure>
   );
 }

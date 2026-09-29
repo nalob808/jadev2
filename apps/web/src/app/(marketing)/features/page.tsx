@@ -5,9 +5,9 @@ import { JsonLd, breadcrumbSchema } from '@/components/marketing/JsonLd';
 import { demoChart } from '@/lib/demoChart';
 
 export const metadata: Metadata = {
-  title: 'Features — divisional charts, aṣṭakavarga, daśās and transits | Jade',
+  title: 'Features — divisional charts, aṣṭakavarga, daśās, transits and readings | Jade',
   description:
-    'Sixteen vargas re-seated on their own ascendants, aṣṭakavarga with every contributor named, yoga detection with cancellations, Vimśottarī daśā, bisected transit scanning and aṣṭakūṭa verified across all 11,664 pairings.',
+    'Sixteen vargas on their own ascendants, aṣṭakavarga to the kakṣā, a nakṣatra dial with 108 pādas, a folded graphic ephemeris, a zoomable daśā timeline, a 3D sky with real stars, plain-English readings, and aṣṭakūṭa verified across all 11,664 pairings.',
   alternates: { canonical: 'https://jadeapp.co/features' },
   openGraph: {
     title: 'Features — Jade',
@@ -21,7 +21,7 @@ const GROUPS = [
   {
     kicker: 'Charts',
     title: 'Divisional charts that are actually divisional',
-    body: 'All sixteen vargas of the ṣoḍaśavarga, each re-seated on its own ascendant rather than the rāśi redrawn sixteen times — the difference most software quietly gets wrong. Vargottama placements are flagged. North and South Indian layouts are hand-written SVG, so they stay sharp at any size and print properly.',
+    body: 'All sixteen vargas of the ṣoḍaśavarga, each seated on its own ascendant instead of the rāśi redrawn sixteen times. That difference is what most software quietly gets wrong. Vargottama placements are flagged. North and South Indian layouts are hand-written SVG, so they stay sharp at any size and print properly.',
     points: [
       'D1 through D60, on their own ascendants',
       'The ṣoḍaśavarga contact sheet at a glance',
@@ -32,18 +32,51 @@ const GROUPS = [
   {
     kicker: 'Strength',
     title: 'Aṣṭakavarga that tells you where each bindu came from',
-    body: 'Bhinnāṣṭakavarga and the sarva totals, with the contributing grahas named for every bindu — so a claim about a house can be traced to the rows that produced it. Dignity, combustion and dṛṣṭi are computed alongside, and the ṣaḍbala components that verify against a reference are exposed individually.',
+    body: 'Bhinnāṣṭakavarga and the sarva totals, with the contributing grahas named for every bindu, so a claim about a house traces back to the rows that produced it. Dignity, combustion and dṛṣṭi are computed alongside, and the ṣaḍbala components that verify against a reference are exposed individually.',
     points: [
       'BAV and SAV with contributor breakdown',
       'Exaltation, mūlatrikoṇa, friendship, combustion arcs',
       'Whole-sign dṛṣṭi with the special aspects',
-      'Six ṣaḍbala components verified exactly — and no invented total',
+      'Six ṣaḍbala components verified exactly, and no invented total',
+    ],
+  },
+  {
+    kicker: 'The instrument',
+    title: 'Every view of one chart, driven by one time cursor',
+    body: 'Move the date once and the nakṣatra dial, the graphic ephemeris, the aṣṭakavarga profile and the daśā timeline all move with it. Select a graha and every view narrows to it. The cursor and the selection live in the address bar, so a reload holds the view and a link carries it to somebody else.',
+    points: [
+      'A nakṣatra dial: 27 nakṣatras, 108 exact pādas, tārā shading from the janma nakṣatra',
+      'A graphic ephemeris folded at 13°20′, where a nakṣatra crossing is a straight line',
+      'Aṣṭakavarga as a radial profile, with small multiples for each contributor',
+      'A zoomable daśā timeline with a Saturn and sarva band underneath it',
+    ],
+  },
+  {
+    kicker: 'The sky',
+    title: 'Tonight’s sky, and the geometry a flat wheel cannot hold',
+    body: 'A wheel has one number per graha and nowhere to put a second. The sphere view puts the viewer at the centre, the ecliptic as a band, and the grahas riding it at their real latitude, against 5,080 stars from the Yale catalogue. A retrograde loop closes into a loop, because latitude keeps changing while longitude reverses.',
+    points: [
+      'Today’s sky read against every person you keep, on one screen',
+      'Event search: name several conditions, get the windows where all of them hold',
+      'The ayanāṁśa drawn as the gap between the equinox and Aśvinī',
+      'A positions table with latitude beside every view, so the numbers are readable as text',
+    ],
+  },
+  {
+    kicker: 'Reading',
+    title: 'Plain English, with the arithmetic still attached',
+    body: 'A separate reading surface at read.jadeapp.co says what a chart holds in ordinary words: each house with its sign, its lord, what sits in it and what aspects it. Every paragraph is assembled from computed factors, and the factors sit behind a tap on the paragraph. There is no free-floating prose anywhere in it.',
+    points: [
+      'Twelve houses, read one card at a time',
+      'Periods, slow transits and sade sati described without a verdict',
+      'The same workings the technical sheet shows, one tap away',
+      'Its own address, so a client can read it without seeing your workbench',
     ],
   },
   {
     kicker: 'Time',
-    title: 'Daśās and transits, with the dates bisected rather than sampled',
-    body: 'Vimśottarī with three year-length conventions. The transit scanner finds ingresses, stations and crossings by bisection, so a date is a root rather than the nearest sample — and a slow graha crossing a degree three times over a retrograde loop returns all three, labelled by which pass it is.',
+    title: 'Daśās and transits, with the dates solved for, not sampled',
+    body: 'Vimśottarī with three year-length conventions. The transit scanner finds ingresses, stations and crossings by bisection, so a date is a root and not the nearest sample. A slow graha crossing one degree three times over a retrograde loop returns all three, each labelled by which pass it is.',
     points: [
       'Vimśottarī daśā, selectable depth',
       'Ingresses, stations and crossings as bisected roots',
@@ -54,7 +87,7 @@ const GROUPS = [
   {
     kicker: 'Relationships',
     title: 'Aṣṭakūṭa verified against every possible pairing',
-    body: 'The technique reads two nakṣatras and two pādas, which makes the whole input space enumerable — so all 11,664 pairings were checked against an independent implementation, and four of the eight tables were wrong before that check. Maṅgala doṣa arrives with its cancellations computed beside it.',
+    body: 'The technique reads two nakṣatras and two pādas, which makes the whole input space enumerable, so all 11,664 pairings were checked against an independent implementation. Four of the eight tables were wrong before that check. Maṅgala doṣa arrives with its cancellations computed beside it.',
     points: [
       'Eight kūṭas with every rule shown',
       'Maṅgala doṣa with classical cancellations',
@@ -65,10 +98,12 @@ const GROUPS = [
   {
     kicker: 'Practice',
     title: 'A study log that attaches to the factor, not the page',
-    body: 'Write a note against a graha, a house, a yoga or a daśā, and it can be found again from every chart that has the same factor. Ask for everything you have written about Gajakesarī and get it across your whole book — possible because an anchor is a name rather than a pointer at one chart.',
+    body: 'Write a note against a graha, a house, a yoga or a daśā, and it can be found again from every chart that has the same factor. Ask for everything you have written about Gajakesarī and get it across your whole book. That works because an anchor is a name, not a pointer at one chart.',
     points: [
       'Notes anchored to any computed factor',
       'Full-text search across your whole study log',
+      'Session prep sheets, follow-ups, and printable reports with or without your notes',
+      'Rectification: test candidate birth times against events that already happened',
       'Historical timezone resolution, ambiguity flagged not hidden',
       'JSON export and hard delete on every person',
     ],
@@ -92,7 +127,7 @@ export default function FeaturesPage() {
           kicker="Features"
           title="Everything is decomposable, or it is not printed."
           as="h1"
-          lede="Jade computes what a classical text specifies and shows the placements behind every claim. Where authorities disagree, both readings ship behind a named option and the disagreement is documented."
+          lede="Eight areas, each one built out. Jade computes what a classical text specifies and shows the placements behind every claim. Where authorities disagree, both readings ship behind a named option and the disagreement is documented."
         />
       </section>
 

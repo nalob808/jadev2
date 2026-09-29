@@ -8,7 +8,7 @@ import {
   CONTROL_PRESSED,
   CONTROL_STYLE,
   MOTION_CSS,
-  VISUALLY_HIDDEN,
+  VisuallyHidden,
   dms,
   type InstrumentMark,
   type InstrumentSelection,
@@ -683,43 +683,47 @@ export function NakshatraRing({
       </figcaption>
 
       {/* ------------------------------------------ the parallel table */}
-      <table style={VISUALLY_HIDDEN}>
-        <caption>{title}: the 27 nakṣatras with their lords, spans and occupants</caption>
-        <thead>
-          <tr>
-            <th scope="col">Nakṣatra</th>
-            <th scope="col">Lord</th>
-            <th scope="col">From</th>
-            <th scope="col">To</th>
-            {taras ? <th scope="col">Tārā</th> : null}
-            <th scope="col">Natal</th>
-            <th scope="col">Transit</th>
-          </tr>
-        </thead>
-        <tbody>
-          {NAKSHATRA_CELLS.map((cell) => {
-            const inCell = (marks: readonly InstrumentMark[]) =>
-              marks
-                .filter((mark) => nakshatraOf(mark.longitude).index === cell.index)
-                .map(
-                  (mark) =>
-                    `${mark.id} ${dms(mark.longitude % 30)} pada ${nakshatraOf(mark.longitude).pada}${mark.retrograde ? ' retrograde' : ''}`,
-                )
-                .join(', ');
-            return (
-              <tr key={cell.index}>
-                <th scope="row">{cell.name}</th>
-                <td>{cell.lord}</td>
-                <td>{signPosition(cell.startArcmin)}</td>
-                <td>{signPosition(cell.endArcmin)}</td>
-                {taras ? <td>{`${taras[cell.index]!.index} ${taras[cell.index]!.name}`}</td> : null}
-                <td>{inCell(natal)}</td>
-                <td>{inCell(transits)}</td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+      <VisuallyHidden>
+        <table>
+          <caption>{title}: the 27 nakṣatras with their lords, spans and occupants</caption>
+          <thead>
+            <tr>
+              <th scope="col">Nakṣatra</th>
+              <th scope="col">Lord</th>
+              <th scope="col">From</th>
+              <th scope="col">To</th>
+              {taras ? <th scope="col">Tārā</th> : null}
+              <th scope="col">Natal</th>
+              <th scope="col">Transit</th>
+            </tr>
+          </thead>
+          <tbody>
+            {NAKSHATRA_CELLS.map((cell) => {
+              const inCell = (marks: readonly InstrumentMark[]) =>
+                marks
+                  .filter((mark) => nakshatraOf(mark.longitude).index === cell.index)
+                  .map(
+                    (mark) =>
+                      `${mark.id} ${dms(mark.longitude % 30)} pada ${nakshatraOf(mark.longitude).pada}${mark.retrograde ? ' retrograde' : ''}`,
+                  )
+                  .join(', ');
+              return (
+                <tr key={cell.index}>
+                  <th scope="row">{cell.name}</th>
+                  <td>{cell.lord}</td>
+                  <td>{signPosition(cell.startArcmin)}</td>
+                  <td>{signPosition(cell.endArcmin)}</td>
+                  {taras ? (
+                    <td>{`${taras[cell.index]!.index} ${taras[cell.index]!.name}`}</td>
+                  ) : null}
+                  <td>{inCell(natal)}</td>
+                  <td>{inCell(transits)}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </VisuallyHidden>
     </figure>
   );
 }

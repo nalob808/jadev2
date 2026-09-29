@@ -1,12 +1,15 @@
 import {
   AstronomyEngineProvider,
+  POINT_DISPLAY_ORDER,
   buildVargaChart,
   computeChart,
   dashaChainAt,
+  skyNow,
   vimshottari,
   type ComputedChart,
   type VargaChart,
 } from '@jade/astro';
+import type { InstrumentMark } from '@jade/ui';
 
 /**
  * The chart on the public site.
@@ -58,4 +61,63 @@ export function demoChart(): NonNullable<typeof cached> {
     running: chain.map((period) => period.lord).join(' → '),
   };
   return cached;
+}
+
+/**
+ * A fixed transiting moment, for the dial on the landing page.
+ *
+ * 1 January 2027, 00:00 UT. Fixed for the same reason the chart is: the page is
+ * statically generated, so "now" would freeze at build time and go quietly
+ * stale. A stated date can be checked against any ephemeris; a stale one
+ * pretending to be today cannot.
+ */
+const TRANSIT_JD = 2461406.5;
+const TRANSIT_LABEL = '1 January 2027, 00:00 UT';
+
+/** Lahiri and mean nodes, matching the reference chart above. */
+const FRAME = { ayanamsa: 'lahiri' } as const;
+
+export interface DemoRing {
+  readonly natal: readonly InstrumentMark[];
+  readonly transits: readonly InstrumentMark[];
+  readonly natalMoonLongitude: number;
+  readonly ayanamsaValue: number;
+  readonly frameLabel: string;
+  readonly transitLabel: string;
+}
+
+let ring: DemoRing | null = null;
+
+/**
+ * The nakṣatra dial's data: the reference chart's natal positions, and where
+ * the sky is at a stated later moment.
+ *
+ * Both come from the same engine the app uses, so the dial a visitor drags on
+ * the landing page is drawing the same degrees the product would.
+ */
+export function demoRing(): DemoRing {
+  if (ring) return ring;
+
+  const { chart } = demoChart();
+  const natal: InstrumentMark[] = POINT_DISPLAY_ORDER.filter((id) => chart.points[id]).map((id) => {
+    const point = chart.points[id]!;
+    return { id, longitude: point.longitude, retrograde: point.retrograde };
+  });
+
+  const provider = new AstronomyEngineProvider({ nodeType: 'mean' });
+  const transits: InstrumentMark[] = skyNow(provider, TRANSIT_JD, FRAME).map((position) => ({
+    id: position.id,
+    longitude: position.longitude,
+    retrograde: position.retrograde,
+  }));
+
+  ring = {
+    natal,
+    transits,
+    natalMoonLongitude: chart.points.Moon!.longitude,
+    ayanamsaValue: chart.meta.ayanamsaValue,
+    frameLabel: 'Lahiri · mean nodes',
+    transitLabel: TRANSIT_LABEL,
+  };
+  return ring;
 }

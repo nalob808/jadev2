@@ -14,15 +14,15 @@ export interface FaqItem {
 export const FAQ_ITEMS: readonly FaqItem[] = [
   {
     q: 'Which ayanāṁśa does Jade use?',
-    a: 'Lahiri (Chitrapakṣa) by default, with True Citrā, Raman, Krishnamurti, Yukteshwar, Fagan–Bradley, Sūrya Siddhānta and a custom value all selectable. Whichever you choose is stored with the chart and shown in the interface, so a chart can always say which frame produced it.',
+    a: 'Lahiri (Chitrapakṣa), or a custom offset if you work from your own value. Six more are named in the settings and disabled until their coefficients have been fitted against Swiss Ephemeris. Jade would rather show you that it knows what Krishnamurti is and has not verified it yet than quietly cast your chart in Lahiri and call it KP. Whichever you use is stored with the chart and printed in the interface.',
   },
   {
     q: 'Mean nodes or true nodes?',
-    a: 'Your choice, set explicitly and persisted with the chart. Mean is the default because most Vedic software uses it. Position basis is separate and also explicit: apparent positions by default, or true geometric positions, which is what Jagannātha Hora computes — the two differ by up to 55 arcseconds.',
+    a: 'Your choice, set explicitly and persisted with the chart. Mean is the default because most Vedic software uses it. Position basis is separate and also explicit: apparent positions by default, or true geometric positions, which is what Jagannātha Hora computes. The two differ by up to 55 arcseconds.',
   },
   {
     q: 'Is this accurate enough for professional work?',
-    a: 'Positions are verified against Swiss Ephemeris fixtures in continuous integration. Derived techniques are diffed against an independent implementation across seventeen charts, and where they disagree the disagreement is documented rather than hidden. Aṣṭakūṭa is verified against all 11,664 possible nakṣatra-pāda pairings.',
+    a: 'Positions are verified against Swiss Ephemeris fixtures in continuous integration. Derived techniques are diffed against an independent implementation across seventeen charts, and where they disagree the disagreement is published. Aṣṭakūṭa is verified against all 11,664 possible nakṣatra-pāda pairings.',
   },
   {
     q: 'Which chart styles are supported?',
@@ -33,16 +33,24 @@ export const FAQ_ITEMS: readonly FaqItem[] = [
     a: 'No. Aṣṭakūṭa scores are shown as eight components with the rules that produced each one, never as a headline compatibility percentage. Maṅgala doṣa is reported together with its classical cancellations. Nothing in Jade returns a verdict, and nothing predicts death, disease or legal outcomes.',
   },
   {
+    q: 'Do I need the vocabulary to use it?',
+    a: 'No. Every chart has a plain-English reading at read.jadeapp.co: each house with its sign, its lord, what sits in it and what aspects it, written in ordinary words, with the placements behind every paragraph one tap away. The technical sheet is always there when you want it. Nothing in the reading is generated prose with no arithmetic behind it.',
+  },
+  {
+    q: 'Is the 3D sky view a gimmick?',
+    a: 'It earns its place on two counts. It shows ecliptic latitude, which a flat wheel has nowhere to put, and which classical graha-yuddha and Rohiṇī-śakaṭa-bheda rules both turn on. And it draws a retrograde loop as an actual loop rather than a backwards arc. The stars are the Yale catalogue, 5,080 of them, so Spica sits at 179.984° under Lahiri and you can check the sphere against the sky.',
+  },
+  {
     q: 'What does the free tier include?',
-    a: 'Three people, the rāśi and navāṁśa charts, and today’s transits — enough to cast your own chart properly and decide whether the rest is worth paying for. No card, and no trial that expires.',
+    a: 'Three people, the rāśi and navāṁśa charts, and today’s transits. That is enough to cast your own chart properly and decide whether the rest is worth paying for. No card, and no trial that expires.',
   },
   {
     q: 'Can I get my data out?',
-    a: 'Every person exports as JSON from their own page, and hard delete is a separate, explicit action rather than a soft flag. Birth data is never sent to a third-party model.',
+    a: 'Every person exports as JSON from their own page, and hard delete is a separate, explicit action and not a soft flag. Birth data is never sent to a third-party model.',
   },
   {
     q: 'Does it work on a phone?',
-    a: 'Yes. The charts are responsive SVG and the interface is built for a phone as well as a desk — the common case of checking a transit between sessions should not require a laptop.',
+    a: 'Yes. The charts are responsive SVG and the interface is built for a phone as well as a desk. Checking a transit between sessions should not need a laptop.',
   },
 ];
 
