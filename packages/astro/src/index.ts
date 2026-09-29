@@ -7,6 +7,7 @@ export * from './nakshatra.js';
 export * from './panchanga.js';
 export * from './dignity.js';
 export * from './drishti.js';
+export * from './aspects/degreeAspects.js';
 export * from './ashtakavarga.js';
 export * from './yogas.js';
 export * from './relations/index.js';

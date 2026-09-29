@@ -1,6 +1,16 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { POINT_DISPLAY_ORDER, jdFromUnixMs, signsAspectedBy, vimshottari } from '@jade/astro';
+import {
+  POINT_DISPLAY_ORDER,
+  findAspects,
+  jdFromUnixMs,
+  signsAspectedBy,
+  unixMsFromJd,
+  vimshottari,
+  type AspectPoint,
+  type ComputedChart,
+} from '@jade/astro';
+import type { WheelDegreeAspect } from '@jade/ui';
 import { getSettingsProfile, listNotes, listPublicFigures, listSubjects } from '@jade/db';
 import { getSession } from '@/lib/auth';
 import { getClock } from '@/lib/clock';
@@ -12,6 +22,9 @@ import { buildScopeIndex, glossaryContextFor } from '@jade/interpret';
 import { GlossaryProvider } from '@/components/Glossary';
 import { Kicker, Panel, Shell } from '@/components/Shell';
 import { WheelWorkspace, type WorkspacePerson } from '@/components/WheelWorkspace';
+import { ChartStackPanels, type StackEntry } from '@/components/ChartStackPanels';
+import { aspectSettingsOrDefaults } from '@/lib/aspectForm';
+import { parseStack, serialiseStack, stackFromLegacy, type Layer } from '@/lib/chartStack';
 
 export const dynamic = 'force-dynamic';
 
@@ -68,12 +81,24 @@ function wheelPointsFor(chart: Awaited<ReturnType<typeof getOrComputeChart>>['ch
 export default async function WheelPage({
   searchParams,
 }: {
-  searchParams: Promise<{ person?: string; overlay?: string; figure?: string }>;
+  searchParams: Promise<{
+    person?: string;
+    overlay?: string;
+    figure?: string;
+    stack?: string;
+    t?: string;
+  }>;
 }) {
   const session = await getSession();
   if (!session) redirect('/sign-in');
 
-  const { person: personParam, overlay: overlayParam, figure: figureParam } = await searchParams;
+  const {
+    person: personParam,
+    overlay: overlayParam,
+    figure: figureParam,
+    stack: stackParam,
+    t: transitParam,
+  } = await searchParams;
   const database = getDatabase();
   const clock = await getClock(session.workspaceId);
 
@@ -121,20 +146,59 @@ export default async function WheelPage({
     );
   }
 
+  /*
+   * What is on the wheel, from the inside out.
+   *
+   * `?stack=` is the parameter now. The three old ones still work — they are in
+   * bookmarks, in the library's overlay links, and in anything anyone has
+   * shared — so an old link is read as the stack it describes rather than
+   * redirected away. See `lib/chartStack.ts`.
+   */
+  const requested =
+    parseStack(stackParam).length > 0
+      ? parseStack(stackParam)
+      : stackFromLegacy({ person: personParam, overlay: overlayParam, figure: figureParam });
+
+  /* Only layers that resolve to something this workspace actually holds. */
+  const resolved = requested.filter((layer) =>
+    layer.kind === 'person'
+      ? withCharts.some((row) => row.subject.id === layer.id)
+      : layer.kind === 'figure'
+        ? overlayableFigures.some((figure) => figure.slug === layer.slug)
+        : true,
+  );
+
+  /*
+   * Ring one has to be one of your own people.
+   *
+   * The innermost chart sets the houses, the daśās, the notes and the focus
+   * panel, all of which are read from a workspace subject. A library figure can
+   * ride an outer ring; putting one underneath would mean casting a stranger's
+   * chart as the frame for your own reading, which is a different feature.
+   */
+  const baseLayer = resolved.find(
+    (layer): layer is Layer & { kind: 'person' } => layer.kind === 'person',
+  );
   const current =
-    withCharts.find((row) => row.subject.id === personParam) ??
+    (baseLayer ? withCharts.find((row) => row.subject.id === baseLayer.id) : undefined) ??
     withCharts.find((row) => row.subject.relationship === 'self') ??
     withCharts[0]!;
 
-  const overlay =
-    overlayParam && overlayParam !== current.subject.id
-      ? (withCharts.find((row) => row.subject.id === overlayParam) ?? null)
-      : null;
+  /* The rings after the base, in the order the stack asks for. */
+  const outerLayers = resolved.filter(
+    (layer) => !(layer.kind === 'person' && layer.id === current.subject.id),
+  );
 
-  /* A library figure on the outer ring instead of one of your own people. */
+  const overlayLayer = outerLayers.find(
+    (layer) => layer.kind === 'person' || layer.kind === 'figure',
+  );
+  const overlay =
+    overlayLayer?.kind === 'person'
+      ? (withCharts.find((row) => row.subject.id === overlayLayer.id) ?? null)
+      : null;
   const overlayFigure =
-    !overlay && figureParam
-      ? (overlayableFigures.find((candidate) => candidate.slug === figureParam) ?? null)
+    overlayLayer?.kind === 'figure'
+      ? (overlayableFigures.find((candidate) => candidate.slug === overlayLayer.slug) ?? null)
       : null;
   const figureCast = overlayFigure ? castFigure(overlayFigure) : null;
 
@@ -198,11 +262,130 @@ export default async function WheelPage({
     .filter((id) => chart.points[id])
     .flatMap((id) => signsAspectedBy(id, chart.points[id]!.signIndex));
 
+  /**
+   * The second aspect engine, computed over the whole stack.
+   *
+   * Server-side, because a synastry line needs both charts and the server has
+   * them both already — and because these are the same longitudes the wheel is
+   * drawn from, so the lines and the glyphs cannot disagree.
+   *
+   * Angles carry no speed. The ascendant moves about 360° a day, so calling one
+   * of its aspects "applying" would be arithmetically true and practically
+   * meaningless; the engine's no-speed path handles it by widening the orb and
+   * declining to claim a direction.
+   */
+  const aspectRing = (cast: ComputedChart): AspectPoint[] =>
+    POINT_DISPLAY_ORDER.filter((id) => cast.points[id]).map((id) => {
+      const point = cast.points[id]!;
+      const angle = id === 'Ascendant' || id === 'Midheaven';
+      return angle
+        ? { id, longitude: point.longitude }
+        : { id, longitude: point.longitude, speed: point.speed };
+    });
+
+  const aspectRings = [aspectRing(chart), ...(overlayChart ? [aspectRing(overlayChart)] : [])];
+  const aspectSettings = aspectSettingsOrDefaults(profile.aspectSettings);
+  const aspectsOn = Object.values(aspectSettings).filter((one) => one.on).length;
+  const longitudeOf = aspectRings.map(
+    (ring) => new Map(ring.map((point) => [point.id, point.longitude])),
+  );
+
+  const degreeAspects: WheelDegreeAspect[] = findAspects(aspectRings, aspectSettings).flatMap(
+    (found) => {
+      const from = longitudeOf[found.fromRing]?.get(found.from);
+      const to = longitudeOf[found.toRing]?.get(found.to);
+      if (from === undefined || to === undefined) return [];
+      return [
+        {
+          from: found.from,
+          to: found.to,
+          fromLongitude: from,
+          toLongitude: to,
+          glyph: found.glyph,
+          name: found.name,
+          quality: found.quality,
+          orb: found.orb,
+          applying: found.applying,
+          fromRing: found.fromRing,
+          toRing: found.toRing,
+        },
+      ];
+    },
+  );
+
   const roster: WorkspacePerson[] = withCharts.map((row) => ({
     id: row.subject.id,
     name: row.subject.displayName,
     born: born(row.birthEvent?.localDatetime),
   }));
+
+  /*
+   * The panels beside the wheel, inner ring first.
+   *
+   * Built here because every value on them — the birth line, the Rodden rating,
+   * the date a moment stands for — is already resolved on the server, and
+   * sending the whole subject record to the browser to re-derive it would be
+   * both slower and a leak of birth data the panel does not show.
+   */
+  const stackLayers: Layer[] = [
+    { kind: 'person', id: current.subject.id },
+    ...(overlay ? ([{ kind: 'person', id: overlay.subject.id }] as Layer[]) : []),
+    ...(overlayFigure ? ([{ kind: 'figure', slug: overlayFigure.slug }] as Layer[]) : []),
+  ];
+
+  const transitOffset = Number(transitParam);
+  const showsTransits = transitParam !== undefined && Number.isFinite(transitOffset);
+  const transitDate = showsTransits
+    ? new Date(unixMsFromJd(clock.nowJd + transitOffset)).toISOString().slice(0, 10)
+    : null;
+
+  const entries: StackEntry[] = [
+    {
+      key: `p:${current.subject.id}`,
+      kind: 'person',
+      title: current.subject.displayName,
+      role: 'Natal',
+      line: `${current.birthEvent!.localDatetime.replace('T', ' ').slice(0, 16)} · ${current.birthEvent!.placeName}`,
+      href: `/people/${current.subject.id}`,
+    },
+    ...(overlay
+      ? [
+          {
+            key: `p:${overlay.subject.id}`,
+            kind: 'person' as const,
+            title: overlay.subject.displayName,
+            role: 'Second chart',
+            line: `${overlay.birthEvent!.localDatetime.replace('T', ' ').slice(0, 16)} · ${overlay.birthEvent!.placeName}`,
+            href: `/people/${overlay.subject.id}`,
+          },
+        ]
+      : []),
+    ...(overlayFigure
+      ? [
+          {
+            key: `f:${overlayFigure.slug}`,
+            kind: 'figure' as const,
+            title: overlayFigure.displayName,
+            role: 'Library',
+            line: `${overlayFigure.birthDate} · ${overlayFigure.placeName}`,
+            rating: overlayFigure.rodden,
+            href: `/charts/${overlayFigure.slug}`,
+          },
+        ]
+      : []),
+    ...(transitDate
+      ? [
+          {
+            key: `t:${transitOffset}`,
+            kind: 'moment' as const,
+            title: transitOffset === 0 ? 'Today' : transitDate,
+            role: 'Transits',
+            line: `Sky at ${transitDate}`,
+            pinned: true,
+          },
+        ]
+      : []),
+  ];
 
   return (
     <Shell
@@ -214,40 +397,55 @@ export default async function WheelPage({
       }}
     >
       <GlossaryProvider lines={glossary.lines} scopes={scopes}>
-        <WheelWorkspace
-          people={roster}
-          currentId={current.subject.id}
-          overlayId={overlay?.subject.id ?? null}
-          points={wheelPointsFor(chart)}
-          aspects={aspects}
-          overlayPoints={overlayChart ? wheelPointsFor(overlayChart) : []}
-          overlayName={overlay?.subject.displayName ?? overlayFigure?.displayName ?? null}
-          figures={overlayableFigures.map((figure) => ({
-            slug: figure.slug,
-            name: figure.displayName,
-            born: figure.birthDate,
-            rodden: figure.rodden,
-          }))}
-          figureSlug={overlayFigure?.slug ?? null}
-          lensMismatch={lensMismatch}
-          ascendant={chart.points.Ascendant!.longitude}
-          ascendantSign={chart.houses.ascendantSign}
-          sarva={chart.ashtakavarga.sarva}
-          facts={facts}
-          lens={`${profile.ayanamsa} ayanāṁśa · ${chart.houses.system.replace('_', ' ')} houses · ${profile.nodeType} nodes`}
-          timeCaveat={ACCURACY_CAVEAT[current.birthEvent!.timeAccuracy] ?? null}
-          transitFrame={{
-            ayanamsa: profile.ayanamsa,
-            customAyanamsaAtJ2000: profile.customAyanamsaAtJ2000 ?? undefined,
-            nodeType: profile.nodeType,
-          }}
-          scrubberNatal={{
-            moonLongitude: chart.points.Moon!.longitude,
-            birthJd,
-            yearLength: YEAR_LENGTH,
-          }}
-          todayJd={clock.nowJd}
-        />
+        <div className="grid gap-5 lg:grid-cols-[minmax(0,19rem)_minmax(0,1fr)]">
+          <div className="order-2 lg:order-1">
+            <ChartStackPanels entries={entries} stack={serialiseStack(stackLayers)} />
+          </div>
+          <div className="order-1 min-w-0 lg:order-2">
+            <WheelWorkspace
+              people={roster}
+              currentId={current.subject.id}
+              overlayId={overlay?.subject.id ?? null}
+              points={wheelPointsFor(chart)}
+              aspects={aspects}
+              degreeAspects={degreeAspects}
+              overlayPoints={overlayChart ? wheelPointsFor(overlayChart) : []}
+              overlayName={overlay?.subject.displayName ?? overlayFigure?.displayName ?? null}
+              figures={overlayableFigures.map((figure) => ({
+                slug: figure.slug,
+                name: figure.displayName,
+                born: figure.birthDate,
+                rodden: figure.rodden,
+              }))}
+              figureSlug={overlayFigure?.slug ?? null}
+              lensMismatch={lensMismatch}
+              ascendant={chart.points.Ascendant!.longitude}
+              ascendantSign={chart.houses.ascendantSign}
+              sarva={chart.ashtakavarga.sarva}
+              facts={facts}
+              /*
+               * The lens says which engine drew the lines, not only which zodiac
+               * cast the chart. An aspect line whose rule is unstated is the same
+               * failure as an unstated ayanāṁśa — CLAUDE.md #3.
+               */
+              lens={`${profile.ayanamsa} ayanāṁśa · ${chart.houses.system.replace('_', ' ')} houses · ${profile.nodeType} nodes · whole-sign dṛṣṭi${
+                aspectsOn > 0 ? ` · ${aspectsOn} aspects by degree` : ''
+              }`}
+              timeCaveat={ACCURACY_CAVEAT[current.birthEvent!.timeAccuracy] ?? null}
+              transitFrame={{
+                ayanamsa: profile.ayanamsa,
+                customAyanamsaAtJ2000: profile.customAyanamsaAtJ2000 ?? undefined,
+                nodeType: profile.nodeType,
+              }}
+              scrubberNatal={{
+                moonLongitude: chart.points.Moon!.longitude,
+                birthJd,
+                yearLength: YEAR_LENGTH,
+              }}
+              todayJd={clock.nowJd}
+            />
+          </div>
+        </div>
       </GlossaryProvider>
     </Shell>
   );

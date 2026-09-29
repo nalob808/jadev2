@@ -11,7 +11,7 @@ export default async function SignIn({
 }: {
   searchParams: Promise<{ error?: string }>;
 }) {
-  if (await getSession()) redirect('/home');
+  if (await getSession()) redirect('/wheel');
   const { error } = await searchParams;
 
   return (

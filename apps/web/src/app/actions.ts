@@ -48,6 +48,7 @@ import {
   isLifeEventKind,
   type AyanamsaMode,
 } from '@jade/astro';
+import { aspectSettingsFromForm } from '@/lib/aspectForm';
 import { getDatabase } from '@/lib/db';
 import { env } from '@/lib/env';
 import { requireSession, signInDev, signOut } from '@/lib/auth';
@@ -460,6 +461,17 @@ export async function updateSettings(formData: FormData): Promise<void> {
     customAyanamsaAtJ2000 = value;
   }
 
+  /*
+   * The Aspects tab.
+   *
+   * An empty error means the form did not carry the tab at all — an older
+   * client, or a submit from another form — and the stored settings are left
+   * alone. Writing the defaults in that case would quietly reset somebody's
+   * orbs, which is the kind of silent change the constitution exists to stop.
+   */
+  const aspects = aspectSettingsFromForm(formData);
+  if (!aspects.ok && aspects.error) fail(aspects.error);
+
   // The wall clock, which is not part of the lens and is stored separately.
   // An empty value clears it back to "unset" — which the UI renders as a
   // banner saying dates are in UTC, rather than quietly picking a zone.
@@ -478,6 +490,7 @@ export async function updateSettings(formData: FormData): Promise<void> {
     positionBasis: read('positionBasis') === 'true' ? 'true' : 'apparent',
     chartStyle,
     includeOuters: formData.get('includeOuters') === 'on',
+    ...(aspects.ok ? { aspectSettings: aspects.settings } : {}),
   });
 
   // Every chart page reads the profile and every page reads the clock, so

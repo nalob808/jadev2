@@ -51,19 +51,38 @@ export type NavSection = {
 /** The five words in the masthead, in order. */
 export const SECTIONS: readonly NavSection[] = [
   {
-    id: 'today',
-    label: 'Today',
-    href: '/home',
-    blurb: 'Your week, your own chart, and where the sky is right now.',
-    match: ['/home', '/dashboard'],
-    items: [],
+    id: 'wheel',
+    label: 'Wheel',
+    href: '/wheel',
+    blurb: 'The chart itself, with whatever you have stacked on it.',
+    /*
+     * The wheel and the daily read are one section rather than two words.
+     *
+     * The rule below says a sixth word means two of the five should have been
+     * one, and that is exactly the case here: Today and the Wheel are both
+     * answers to "what do I open when I sign in". The wheel is the one you
+     * open most, so it goes first and the pañcāṅga read sits beside it.
+     */
+    match: ['/wheel', '/home', '/dashboard'],
+    items: [
+      {
+        href: '/wheel',
+        label: 'The wheel',
+        blurb: 'One chart, or several stacked — another person, a library figure, the sky now.',
+      },
+      {
+        href: '/home',
+        label: 'Today',
+        blurb: 'Pañcāṅga, your own running daśā, and the week counted from your Moon.',
+      },
+    ],
   },
   {
     id: 'people',
     label: 'People',
     href: '/people',
     blurb: 'Everyone you keep charts for, and the ways of comparing them.',
-    match: ['/people', '/relationships', '/houses', '/wheel', '/read'],
+    match: ['/people', '/relationships', '/houses', '/read'],
     items: [
       {
         href: '/people',
@@ -80,11 +99,6 @@ export const SECTIONS: readonly NavSection[] = [
         label: 'Compare houses',
         blurb:
           'The same house across several people at once: its sign, its lord, and what sits in it.',
-      },
-      {
-        href: '/wheel',
-        label: 'Compare wheels',
-        blurb: 'One wheel, with a second chart or a library figure overlaid on it.',
       },
       {
         href: '/read',

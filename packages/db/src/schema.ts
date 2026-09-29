@@ -226,6 +226,23 @@ export const settingsProfiles = pgTable(
     positionBasis: positionBasis('position_basis').notNull().default('apparent'),
     chartStyle: chartStyle('chart_style').notNull().default('north'),
     includeOuters: boolean('include_outers').notNull().default(false),
+    /**
+     * Which degree aspects this workspace reads, and with what orbs.
+     *
+     * NULL means the core's defaults — the five majors at four degrees. Kept as
+     * one document rather than nineteen rows because it is always read and
+     * written whole; see migration 0013 for the argument.
+     *
+     * Typed structurally rather than by importing `AspectSettings` from
+     * `@jade/astro`. This package has no dependency on the calculation core and
+     * should not grow one for a column shape: the schema describes storage, the
+     * application validates on the way in, and the same reasoning already
+     * applies to `watches.rule`.
+     */
+    aspectSettings:
+      jsonb('aspect_settings').$type<
+        Record<string, { on: boolean; applying: number; separating: number }>
+      >(),
     isDefault: boolean('is_default').notNull().default(false),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },

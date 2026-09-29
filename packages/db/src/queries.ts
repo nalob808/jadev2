@@ -1312,6 +1312,7 @@ export async function updateSettingsProfile(
       | 'positionBasis'
       | 'chartStyle'
       | 'includeOuters'
+      | 'aspectSettings'
     >
   >,
 ): Promise<typeof settingsProfiles.$inferSelect | null> {

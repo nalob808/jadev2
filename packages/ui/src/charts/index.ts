@@ -17,6 +17,7 @@ export * from './wheelGeometry.js';
 // dṛṣṭi, same toggles. OverlayWheel stays for the relationship page, where the
 // two charts are read as equals rather than one against the other's houses.
 export { Wheel, DRISHTI_TINT } from './Wheel.js';
+export type { WheelDegreeAspect } from './Wheel.js';
 export type { WheelProps, WheelPoint, WheelAspect } from './Wheel.js';
 export * from './instrumentShared.js';
 export * from './nakshatraRingLayout.js';

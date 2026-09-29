@@ -119,7 +119,9 @@ describe('the navigation map and the app directory', () => {
 describe('which section is current', () => {
   it('claims the routes a section owns even when they are not under its path', () => {
     expect(sectionFor('/houses')?.id).toBe('people');
-    expect(sectionFor('/wheel')?.id).toBe('people');
+    /* The wheel is its own section now, and takes the first word. */
+    expect(sectionFor('/wheel')?.id).toBe('wheel');
+    expect(sectionFor('/home')?.id).toBe('wheel');
     expect(sectionFor('/read/abc')?.id).toBe('people');
     expect(sectionFor('/people/abc/instrument')?.id).toBe('people');
     expect(sectionFor('/timing/search')?.id).toBe('sky');

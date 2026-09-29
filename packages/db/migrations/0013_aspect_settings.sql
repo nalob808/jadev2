@@ -1,0 +1,27 @@
+-- Which degree aspects a workspace reads, and with what orbs.
+--
+-- Jade's first aspect engine is whole-sign dṛṣṭi, which has no settings: a
+-- graha aspects the third, seventh and tenth signs from itself, and that is the
+-- rule. The second engine, added in V4, is degree-based — conjunction,
+-- opposition, trine, square, sextile and the minors — and every one of those is
+-- something astrologers disagree about. Which to read, and how wide an orb, is
+-- exactly the kind of thing the project constitution says must be explicit,
+-- persisted with the chart, and visible in the interface.
+--
+-- ## Why jsonb rather than a table
+--
+-- The obvious alternative is `aspect_settings (profile_id, aspect_id, on,
+-- applying_orb, separating_orb)`. It would be nineteen rows per profile that
+-- are always read together, always written together, and never queried
+-- individually — a join for no gain. Nothing needs to ask "which workspaces
+-- read septiles"; every read is "give me this profile's aspect settings", which
+-- is one document.
+--
+-- ## Why nullable
+--
+-- NULL means "the defaults in packages/astro", which is the five majors at four
+-- degrees. That is not a silent default in the sense CLAUDE.md #3 forbids: the
+-- active set is printed on the wheel either way, and the defaults live in one
+-- place in the core rather than being copied into every row at migration time.
+-- It also means this migration needs no backfill and cannot be half-applied.
+ALTER TABLE settings_profiles ADD COLUMN aspect_settings jsonb;

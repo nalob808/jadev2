@@ -3,7 +3,14 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { Wheel, Glyph, hasGlyph, type WheelPoint, type WheelAspect } from '@jade/ui';
+import {
+  Glyph,
+  hasGlyph,
+  Wheel,
+  type WheelAspect,
+  type WheelDegreeAspect,
+  type WheelPoint,
+} from '@jade/ui';
 import { AutoTerms, Scope, T } from './Glossary';
 import { TransitScrubber, type ScrubberNatal } from './TransitScrubber';
 import type { RingFrame } from '@/lib/transitRing';
@@ -67,6 +74,7 @@ export function WheelWorkspace({
   overlayId,
   points,
   aspects,
+  degreeAspects = [],
   overlayPoints,
   overlayName,
   ascendant,
@@ -90,6 +98,14 @@ export function WheelWorkspace({
   overlayId: string | null;
   points: readonly WheelPoint[];
   aspects: readonly WheelAspect[];
+  /**
+   * Degree aspects with orbs, computed on the server from the whole stack.
+   *
+   * Server-side because they are arithmetic over longitudes the server already
+   * has, and because a synastry stack needs both charts to compute them — the
+   * browser holds only the drawing.
+   */
+  degreeAspects?: readonly WheelDegreeAspect[];
   overlayPoints: readonly WheelPoint[];
   overlayName: string | null;
   ascendant: number;
@@ -393,6 +409,7 @@ export function WheelWorkspace({
         <Wheel
           points={points}
           aspects={aspects}
+          degreeAspects={degreeAspects}
           transits={outerRing}
           ascendant={ascendant}
           ascendantSign={ascendantSign}

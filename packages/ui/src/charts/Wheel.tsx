@@ -51,12 +51,39 @@ export interface WheelAspect {
   readonly strength: number;
 }
 
+/**
+ * A degree aspect, drawn as a chord between two exact longitudes.
+ *
+ * Distinct from `WheelAspect`, which is whole-sign dṛṣṭi and therefore runs
+ * from a graha to the middle of a sign. These two models are not variants of
+ * one drawing: one is about signs and one is about degrees, and collapsing them
+ * into a shared type would mean one of them lying about what it measures.
+ */
+export interface WheelDegreeAspect {
+  readonly from: string;
+  readonly to: string;
+  readonly fromLongitude: number;
+  readonly toLongitude: number;
+  /** The aspect's own symbol, drawn on the line where the eye meets it. */
+  readonly glyph: string;
+  readonly name: string;
+  readonly quality: 'hard' | 'soft';
+  /** Degrees from exact. Tighter lines are drawn stronger. */
+  readonly orb: number;
+  readonly applying: boolean;
+  /** Which ring each end sits on, so a synastry line can be told apart. */
+  readonly fromRing?: number;
+  readonly toRing?: number;
+}
+
 export interface WheelProps {
   readonly points: readonly WheelPoint[];
   /** Sidereal longitude of the ascendant — the wheel is oriented from it. */
   readonly ascendant: number;
   readonly ascendantSign: number;
   readonly aspects?: readonly WheelAspect[];
+  /** Degree aspects with orbs — the second engine. Empty unless it is switched on. */
+  readonly degreeAspects?: readonly WheelDegreeAspect[];
   /** A second ring, for transits over a natal chart. */
   readonly transits?: readonly WheelPoint[];
   /**
@@ -199,6 +226,7 @@ type Toggle =
   | 'signs'
   | 'degrees'
   | 'aspects'
+  | 'degreeAspects'
   | 'nakshatras'
   | 'transits'
   | 'elements'
@@ -210,6 +238,7 @@ const TOGGLE_LABELS: Record<Toggle, string> = {
   signs: 'Sign glyphs',
   degrees: 'Degrees',
   aspects: 'Dṛṣṭi',
+  degreeAspects: 'Aspects by degree',
   nakshatras: 'Nakṣatra divisions',
   transits: 'Transit ring',
   elements: 'Element tint',
@@ -222,6 +251,7 @@ export function Wheel({
   ascendant,
   ascendantSign,
   aspects = [],
+  degreeAspects = [],
   transits = [],
   sarva = [],
   bhavaCusps = [],
@@ -246,6 +276,7 @@ export function Wheel({
     signs: true,
     degrees: false,
     aspects: false,
+    degreeAspects: false,
     nakshatras: false,
     transits: transits.length > 0,
     elements: true,
@@ -303,6 +334,7 @@ export function Wheel({
    * chart.
    */
   const shownAspects = on.aspects ? aspects : [];
+  const shownDegreeAspects = on.degreeAspects ? degreeAspects : [];
 
   return (
     <div className="flex flex-col gap-3">
@@ -311,6 +343,7 @@ export function Wheel({
         {(Object.keys(TOGGLE_LABELS) as Toggle[])
           // A toggle for a layer with no data is a dead control.
           .filter((key) => key !== 'transits' || transits.length > 0)
+          .filter((key) => key !== 'degreeAspects' || degreeAspects.length > 0)
           .filter((key) => key !== 'sarva' || sarva.length === 12)
           .filter((key) => key !== 'chalit' || bhavaCusps.length === 12)
           .map((key) => (
@@ -554,6 +587,75 @@ export function Wheel({
             ASC
           </text>
         </g>
+
+        {/*
+          Degree aspects, drawn as chords between two exact longitudes.
+
+          Colour carries quality, hard against soft, and the aspect's own glyph
+          sits at the midpoint of the line. The glyph is the point: with a dozen
+          chords crossing the middle of a wheel, a legend is useless and a
+          colour tells you only half of what the line is. LUNA does this and it
+          is the right call.
+
+          Shape carries a second distinction independently — an applying aspect
+          is solid, a separating one dashed — because colour-alone encoding
+          fails print, colour blindness and a projector, which is the same rule
+          the dṛṣṭi lines already follow.
+        */}
+        {shownDegreeAspects.map((aspect, i) => {
+          const [x1, y1] = svgPolar(
+            cx,
+            cy,
+            rInner - 0.5,
+            angleFor(aspect.fromLongitude, ascendant),
+          );
+          const [x2, y2] = svgPolar(cx, cy, rInner - 0.5, angleFor(aspect.toLongitude, ascendant));
+          const dim = selected !== null && selected !== aspect.from && selected !== aspect.to;
+          /* Tight lines read stronger, which is how an astrologer reads them. */
+          const strength = Math.max(0.22, 0.7 - aspect.orb * 0.09);
+          const tint =
+            aspect.quality === 'hard' ? 'var(--malefic, #9E5B3A)' : 'var(--benefic, #2C7A64)';
+          const midX = (x1 + x2) / 2;
+          const midY = (y1 + y2) / 2;
+          const description = `${aspect.from} ${aspect.name.toLowerCase()} ${aspect.to}, orb ${aspect.orb.toFixed(2)}°, ${aspect.applying ? 'applying' : 'separating'}`;
+          return (
+            <g
+              key={`deg-${aspect.from}-${aspect.to}-${aspect.name}-${i}`}
+              opacity={dim ? strength * 0.22 : strength}
+              style={{ transition: 'opacity 180ms ease' }}
+              data-degree-aspect={aspect.name}
+              data-degree-from={aspect.from}
+              data-degree-to={aspect.to}
+              data-degree-quality={aspect.quality}
+              data-degree-applying={aspect.applying ? 'true' : 'false'}
+            >
+              <title>{description}</title>
+              <line
+                x1={x1}
+                y1={y1}
+                x2={x2}
+                y2={y2}
+                stroke={tint}
+                strokeWidth={0.32}
+                strokeDasharray={aspect.applying ? undefined : '1.6 1.2'}
+              />
+              {/* A disc under the glyph, so a line crossing behind it does not
+                  turn the symbol into noise. */}
+              <circle cx={midX} cy={midY} r={2.6} fill="var(--paper, #fff)" opacity={0.85} />
+              <text
+                x={midX}
+                y={midY}
+                textAnchor="middle"
+                dominantBaseline="central"
+                fontSize={3.4}
+                fill={tint}
+                fontFamily="var(--font-mono, monospace)"
+              >
+                {aspect.glyph}
+              </text>
+            </g>
+          );
+        })}
 
         {/* Dṛṣṭi — drawn to the midpoint of the aspected sign. */}
         {shownAspects.map((aspect, i) => {
