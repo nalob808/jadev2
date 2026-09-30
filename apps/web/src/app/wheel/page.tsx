@@ -23,6 +23,8 @@ import { GlossaryProvider } from '@/components/Glossary';
 import { Kicker, Panel, Shell } from '@/components/Shell';
 import { WheelWorkspace, type WorkspacePerson } from '@/components/WheelWorkspace';
 import { ChartStackPanels, type StackEntry } from '@/components/ChartStackPanels';
+import { ChartMenu } from '@/components/ChartMenu';
+import { SpacetimeNavigator } from '@/components/SpacetimeNavigator';
 import { aspectSettingsOrDefaults } from '@/lib/aspectForm';
 import { parseStack, serialiseStack, stackFromLegacy, type Layer } from '@/lib/chartStack';
 
@@ -443,6 +445,23 @@ export default async function WheelPage({
                 yearLength: YEAR_LENGTH,
               }}
               todayJd={clock.nowJd}
+            />
+          </div>
+          <div className="order-3 flex flex-col gap-3">
+            <ChartMenu
+              people={roster}
+              figures={overlayableFigures.map((figure) => ({
+                slug: figure.slug,
+                name: figure.displayName,
+                born: figure.birthDate,
+                rodden: figure.rodden,
+              }))}
+              stack={serialiseStack(stackLayers)}
+              transitsOn={showsTransits}
+            />
+            <SpacetimeNavigator
+              todayIso={new Date(unixMsFromJd(clock.nowJd)).toISOString().slice(0, 10)}
+              offsetDays={showsTransits ? transitOffset : 0}
             />
           </div>
         </div>
