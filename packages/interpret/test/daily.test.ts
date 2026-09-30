@@ -9,7 +9,12 @@ import {
   vimshottari,
   type ComputedChart,
 } from '@jade/astro';
-import { BAND_CAVEAT, FORBIDDEN_TOPICS, dailyReadingFor, transitHouse } from '../src/index.js';
+import {
+  BAND_CAVEAT,
+  dailyReadingFor,
+  mentionsForbiddenTopic,
+  transitHouse,
+} from '../src/index.js';
 
 /**
  * The daily reading is the part of Jade under the most pressure to become a
@@ -78,9 +83,7 @@ describe('dailyReadingFor', () => {
       .map((s) => s.text)
       .join(' ')
       .toLowerCase();
-    for (const word of FORBIDDEN_TOPICS) {
-      expect(prose, `the reading said "${word}"`).not.toContain(word);
-    }
+    expect(mentionsForbiddenTopic(prose)).toBe(false);
   });
 
   it('never predicts, promises or advises about outcomes', () => {

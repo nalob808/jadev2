@@ -8,7 +8,7 @@ import {
   vimshottari,
   type ComputedChart,
 } from '@jade/astro';
-import { FORBIDDEN_TOPICS, prepSheetFor } from '../src/index.js';
+import { mentionsForbiddenTopic, prepSheetFor } from '../src/index.js';
 
 /**
  * The prep sheet.
@@ -77,9 +77,7 @@ describe('prepSheetFor', () => {
       .map((s) => s.text)
       .join(' ')
       .toLowerCase();
-    for (const word of FORBIDDEN_TOPICS) {
-      expect(prose, `the prep sheet said "${word}"`).not.toContain(word);
-    }
+    expect(mentionsForbiddenTopic(prose)).toBe(false);
   });
 
   it('is preparation, not a script', () => {

@@ -1,4 +1,4 @@
-import { Nav } from './Shell';
+import { Nav, shellContainer, type ShellWidth } from './Shell';
 
 /**
  * Placeholders shown while a route loads.
@@ -29,9 +29,16 @@ export function Skeleton({
 }
 
 /** The page chrome plus a caller-supplied body. Announced politely to screen readers. */
-export function LoadingShell({ children }: { children: React.ReactNode }): React.ReactElement {
+export function LoadingShell({
+  children,
+  width,
+}: {
+  children: React.ReactNode;
+  /** Must match the width the real page uses, or the layout jumps on arrival. */
+  width?: ShellWidth;
+}): React.ReactElement {
   return (
-    <div className="mx-auto max-w-5xl px-5 pb-24 pt-6 sm:px-8">
+    <div className={shellContainer(width)}>
       <Nav />
       <div role="status" aria-live="polite">
         <span className="sr-only">Loading…</span>
@@ -124,6 +131,59 @@ export function PanelsSkeleton({ panels = 2 }: { panels?: number }): React.React
             <Skeleton className="h-4" width="60%" />
           </div>
         ))}
+      </div>
+    </LoadingShell>
+  );
+}
+
+/**
+ * The wheel, arriving.
+ *
+ * Worth its own skeleton rather than the generic panels one because `/wheel` is
+ * where the app opens and because its shape is unmistakable: a controls column
+ * and a circle. A ring outline where the chart will be reads as the wheel
+ * loading; three grey rectangles read as a different page that has not finished.
+ *
+ * The circle is an outline rather than a filled disc on purpose — a solid
+ * shimmering disc at this size is the most distracting thing that could be put
+ * on a screen somebody is about to read a chart on.
+ */
+export function WheelSkeleton(): React.ReactElement {
+  return (
+    <LoadingShell width="wide">
+      <div className="mb-6 flex items-end justify-between gap-4">
+        <div className="flex flex-col gap-2">
+          <Skeleton className="h-3" width="5rem" />
+          <Skeleton className="h-9" width="16rem" />
+        </div>
+      </div>
+
+      <div className="grid gap-5 lg:grid-cols-[20rem_minmax(0,1fr)]">
+        <div className="order-2 flex flex-col gap-4 lg:order-1">
+          {[0, 1, 2].map((panel) => (
+            <div key={panel} className="border border-[var(--rule)] bg-[var(--surface)] p-4">
+              <Skeleton className="mb-2 h-3" width="6rem" />
+              <Skeleton className="mb-2 h-6" width="80%" />
+              <Skeleton className="h-3" width="60%" />
+            </div>
+          ))}
+        </div>
+
+        <div className="order-1 min-w-0 lg:order-2">
+          <div className="mb-2 flex flex-wrap gap-1.5">
+            {[0, 1, 2, 3, 4, 5].map((chip) => (
+              <Skeleton key={chip} className="h-7" width="5.5rem" />
+            ))}
+          </div>
+          <div
+            className="mx-auto aspect-square w-full max-w-[52rem] rounded-full border-2 border-[var(--rule)]"
+            aria-hidden="true"
+          >
+            <div className="flex h-full w-full items-center justify-center">
+              <div className="aspect-square w-[62%] rounded-full border border-[var(--rule)]" />
+            </div>
+          </div>
+        </div>
       </div>
     </LoadingShell>
   );

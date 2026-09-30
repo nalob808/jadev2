@@ -7,7 +7,7 @@ import {
   type ComputedChart,
 } from '@jade/astro';
 import {
-  FORBIDDEN_TOPICS,
+  mentionsForbiddenTopic,
   GRAHAS_LIB,
   HOUSES,
   SIGNS_LIB,
@@ -118,9 +118,7 @@ describe('a composed reading', () => {
   it('never predicts death, disease, or legal outcomes', () => {
     for (const statement of every) {
       const text = statement.text.toLowerCase();
-      for (const word of FORBIDDEN_TOPICS) {
-        expect(text, `a reading said "${word}"`).not.toContain(word);
-      }
+      expect(mentionsForbiddenTopic(text)).toBe(false);
     }
   });
 

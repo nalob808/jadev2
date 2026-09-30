@@ -10,7 +10,7 @@ import {
   type ComputedChart,
   type Graha,
 } from '@jade/astro';
-import { FORBIDDEN_TOPICS, SYNASTRY_PREAMBLE, synastryReadingFor } from '../src/index.js';
+import { SYNASTRY_PREAMBLE, mentionsForbiddenTopic, synastryReadingFor } from '../src/index.js';
 
 /**
  * The compatibility page is the single most likely place for this project to
@@ -116,9 +116,7 @@ describe('synastryReadingFor', () => {
 
   it('never says any of the constitutionally forbidden things', () => {
     const lower = prose.toLowerCase();
-    for (const word of FORBIDDEN_TOPICS) {
-      expect(lower, `the reading said "${word}"`).not.toContain(word);
-    }
+    expect(mentionsForbiddenTopic(lower)).toBe(false);
   });
 
   it('frames the aṣṭakūṭa total as a limitation rather than a result', () => {

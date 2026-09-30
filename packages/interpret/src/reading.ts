@@ -52,24 +52,72 @@ export interface ReadingSection {
 /**
  * Vocabulary that must never appear in generated text.
  *
- * Constitution item 6. This is a hard product rule and it is enforced here
- * rather than in the UI, so that no future caller can route around it — a
- * statement carrying any of these is dropped before it can be returned, and a
- * test asserts the filter actually runs.
+ * Constitution item 6. A hard product rule, enforced here rather than in the
+ * UI so that no future caller can route around it: a statement carrying any of
+ * these is dropped before it can be returned, and a test asserts the filter
+ * actually runs.
+ *
+ * ## Whole words, and the conjugations written out
+ *
+ * This was a substring match until a reading was silently deleted for saying
+ * "an audience that stopped watching" — au-**die**-nce. "Comparison" carries
+ * "prison"; "obedience" and "ingredient" carry "die"; "bodies" and "studies"
+ * carry "dies". A filter that eats those is not stricter, it is broken in a way
+ * nobody sees, because the failure mode is a paragraph that quietly never
+ * appears.
+ *
+ * So `mentionsForbiddenTopic` matches on word boundaries, and the price of
+ * that precision is that every form has to be listed rather than caught by a
+ * stem — `fatal` no longer implies `fatality`. That is the right trade: the
+ * list is read by a person adding to it, and an explicit list is checkable
+ * where a stem match is not.
  */
 export const FORBIDDEN_TOPICS = [
   'death',
+  'deaths',
   'die',
+  'dies',
+  'died',
   'dying',
   'fatal',
+  'fatally',
+  'fatality',
+  'fatalities',
   'disease',
+  'diseases',
   'illness',
+  'illnesses',
   'cancer diagnosis',
+  'diagnosis',
+  'diagnosed',
   'lawsuit',
+  'lawsuits',
+  'sued',
   'litigation',
   'prison',
+  'imprisoned',
+  'incarcerated',
+  'incarceration',
   'divorce is',
 ] as const;
+
+/**
+ * One matcher, built once.
+ *
+ * Word boundaries on both ends, so a forbidden word inside an innocent one does
+ * not match and a forbidden word with punctuation around it still does. The
+ * multi-word entries work unchanged — a boundary sits either side of the
+ * phrase, not inside it.
+ */
+const FORBIDDEN_PATTERN = new RegExp(
+  `\\b(?:${FORBIDDEN_TOPICS.map((word) => word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})\\b`,
+  'i',
+);
+
+/** Whether a piece of generated text carries any of the forbidden vocabulary. */
+export function mentionsForbiddenTopic(text: string): boolean {
+  return FORBIDDEN_PATTERN.test(text);
+}
 
 const ORDINALS = [
   'first',
@@ -121,8 +169,7 @@ function list(items: readonly string[], limit = 3): string {
  */
 export function permitted(statement: GroundedStatement): boolean {
   if (statement.factors.length === 0) return false;
-  const text = statement.text.toLowerCase();
-  return !FORBIDDEN_TOPICS.some((word) => text.includes(word));
+  return !mentionsForbiddenTopic(statement.text);
 }
 
 /**

@@ -10,11 +10,12 @@ import {
   vimshottari,
 } from '@jade/astro';
 import {
+  deepNatal,
+  deepTransits,
   plainChartReading,
   plainPeriods,
   plainPlanets,
   plainSadeSati,
-  plainTransits,
 } from '@jade/interpret';
 import { getSettingsProfile, getSubject } from '@jade/db';
 import { getSession } from '@/lib/auth';
@@ -29,6 +30,7 @@ import {
   ViewNav,
   type SnapshotFact,
 } from '@/components/ReadingChrome';
+import { DeepPassage } from '@/components/DeepPassage';
 import { Workings } from '@/components/Workings';
 
 export const dynamic = 'force-dynamic';
@@ -127,14 +129,23 @@ export default async function ReadingPage({
 
   const reading = plainChartReading(chart);
   const periods = plainPeriods(chart, chain, clock.nowJd);
-  const transits = plainTransits(chart, sky);
+  /*
+   * The deep readings, both halves.
+   *
+   * `deepNatal` is the permanent chart and `deepTransits` is the season, and
+   * they are separate composers rather than one with a tense flag because the
+   * traditions disagree far more sharply about a nativity than about a passing
+   * sky — see `natalReading.ts`.
+   */
+  const natalDepth = deepNatal(chart);
+  const transits = deepTransits(chart, sky);
   const sadeSati = plainSadeSati(
     chart,
     sky.find((position) => position.id === 'Saturn'),
   );
   const planets = plainPlanets(chart);
 
-  const active = ['overall', 'houses', 'planets', 'timing'].includes(view ?? '')
+  const active = ['overall', 'depth', 'houses', 'planets', 'timing'].includes(view ?? '')
     ? view!
     : 'overall';
   const hrefFor = (key: string): string => `/read/${id}?view=${key}`;
@@ -200,6 +211,7 @@ export default async function ReadingPage({
         <ViewNav
           views={[
             { key: 'overall', label: 'Overall' },
+            { key: 'depth', label: 'In depth', count: natalDepth.length },
             { key: 'timing', label: 'Right now', count: transits.length + periods.length },
             { key: 'houses', label: 'Houses', count: reading.houses.length },
             { key: 'planets', label: 'Planets', count: planets.length },
@@ -269,23 +281,35 @@ export default async function ReadingPage({
             <ReadingCard eyebrow="Saturn and your Moon" title="Sade sati" paragraphs={[sadeSati]} />
           ) : null}
 
-          <div className="grid gap-4 md:grid-cols-2">
-            {transits.map((paragraph, index) => (
-              <article
-                key={index}
-                className="border border-[var(--rule)] bg-[var(--surface)] px-4 py-3.5"
-              >
-                <p className="text-[15px] leading-[1.55]">{paragraph.text}</p>
-                <Workings workings={paragraph.workings} source={paragraph.source} />
-              </article>
-            ))}
-          </div>
+          {/*
+            The deep transit readings, in place of the one-line versions that
+            used to sit here. Not additional to them — the short form said the
+            same thing less well, and keeping both would be the redundancy this
+            whole layer exists to avoid.
+          */}
+          {transits.map((transit) => (
+            <DeepPassage key={transit.graha} reading={transit} />
+          ))}
 
           <p className="font-mono text-[10px] leading-relaxed text-[var(--ink-faint)]">
             Only the slow planets are read here — Jupiter, Saturn, Rāhu and Ketu. Mars crosses a
             degree in days and the Moon in hours, so at this scale they would bury the two that
             matter. The technical surfaces have them.
           </p>
+        </section>
+      ) : null}
+
+      {/* ------------------------------------------------------------- depth */}
+      {active === 'depth' ? (
+        <section className="mt-5 flex flex-col gap-4">
+          <p className="border-l-2 border-[var(--accent)] py-1 pl-3 text-[14px] leading-relaxed text-[var(--ink-muted)]">
+            Every graha in your chart, read by five traditions that had to work without each other.
+            They agree about what the twelve places are for and disagree about what a planet in one
+            of them is like to live with — which is where the reading is.
+          </p>
+          {natalDepth.map((passage) => (
+            <DeepPassage key={passage.graha} reading={passage} />
+          ))}
         </section>
       ) : null}
 

@@ -132,6 +132,19 @@ export function SubjectBar({
  */
 export type ShellWidth = 'reading' | 'wide';
 
+/**
+ * The page container's classes, in one place.
+ *
+ * `LoadingShell` stands in for this while a route is arriving, and the two had
+ * already drifted: the skeleton used `pt-6` against the page's `pt-7`, so every
+ * route with a loading state moved four pixels the instant it finished loading.
+ * One function, called by both, and `skeleton.test.ts` fails if a second copy
+ * of these classes appears.
+ */
+export function shellContainer(width: ShellWidth = 'reading'): string {
+  return `mx-auto px-5 pb-24 pt-7 sm:px-8 ${width === 'wide' ? 'max-w-[100rem]' : 'max-w-5xl'}`;
+}
+
 export function Shell({
   children,
   email,
@@ -158,11 +171,7 @@ export function Shell({
     | undefined;
 }) {
   return (
-    <div
-      className={`mx-auto px-5 pb-24 pt-7 sm:px-8 ${
-        width === 'wide' ? 'max-w-[100rem]' : 'max-w-5xl'
-      }`}
-    >
+    <div className={shellContainer(width)}>
       <Nav email={email} />
       {subject ? <SubjectBar {...subject} /> : null}
       {children}
