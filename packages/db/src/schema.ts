@@ -767,3 +767,44 @@ export const publicFigures = pgTable(
 
 export type PublicFigure = typeof publicFigures.$inferSelect;
 export type NewPublicFigure = typeof publicFigures.$inferInsert;
+
+/**
+ * A reading a client can open, with no account and no session.
+ *
+ * The token is stored hashed and only ever exists in full in the URL — see
+ * migration 0014 for why, and for what that costs. `showsBirthData` is per
+ * link because a client reading their own chart usually wants their birth
+ * moment on it and a forwarded link should not carry it, and those pull in
+ * opposite directions.
+ */
+export const shareLinks = pgTable(
+  'share_links',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    workspaceId: uuid('workspace_id')
+      .notNull()
+      .references(() => workspaces.id, { onDelete: 'cascade' }),
+    subjectId: uuid('subject_id')
+      .notNull()
+      .references(() => subjects.id, { onDelete: 'cascade' }),
+    /** SHA-256 of the token, hex. Never the token. */
+    tokenHash: text('token_hash').notNull(),
+    /** 'reading' today. The column exists so a second kind needs no table. */
+    kind: text('kind').notNull().default('reading'),
+    showsBirthData: boolean('shows_birth_data').notNull().default(false),
+    label: text('label'),
+    expiresAt: timestamp('expires_at', { withTimezone: true }),
+    revokedAt: timestamp('revoked_at', { withTimezone: true }),
+    viewCount: integer('view_count').notNull().default(0),
+    lastViewedAt: timestamp('last_viewed_at', { withTimezone: true }),
+    createdBy: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({
+    tokenIdx: uniqueIndex('share_links_token_hash_idx').on(table.tokenHash),
+    subjectIdx: index('share_links_subject_idx').on(table.subjectId, table.createdAt),
+    workspaceIdx: index('share_links_workspace_idx').on(table.workspaceId, table.createdAt),
+  }),
+);
+
+export type ShareLink = typeof shareLinks.$inferSelect;

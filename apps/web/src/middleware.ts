@@ -31,16 +31,44 @@ function readingRewrite(request: NextRequest): URL | null {
   if (!host.startsWith(READING_HOST)) return null;
   // Already inside the group — rewriting again would double the prefix.
   if (request.nextUrl.pathname.startsWith('/read')) return null;
+  /*
+   * A share link is its own surface and belongs to nobody's host.
+   *
+   * `/s/<token>` is opened by a client who has never heard of either domain,
+   * usually from whichever one the practitioner happened to copy. Rewriting it
+   * into the reading group would make the same link work on one host and 404 on
+   * the other, which is the one thing a link somebody sent a client must not do.
+   */
+  if (request.nextUrl.pathname.startsWith('/s/')) return null;
   const url = request.nextUrl.clone();
   url.pathname = `/read${request.nextUrl.pathname === '/' ? '' : request.nextUrl.pathname}`;
   return url;
+}
+
+/**
+ * A withdrawn link must stop working in the browser too.
+ *
+ * `dynamic = 'force-dynamic'` stops the server caching a shared reading, and
+ * that is not enough: a client who opened the link once and comes back to the
+ * same URL can be served it from their own cache long after the practitioner
+ * withdrew it. Found exactly that way — a revocation test passed against a
+ * fresh browser and failed against the one that had already visited.
+ *
+ * `no-store` costs nothing here. The page is one visitor reading one chart, not
+ * traffic worth caching.
+ */
+function noStore(response: NextResponse, request: NextRequest): NextResponse {
+  if (request.nextUrl.pathname.startsWith('/s/')) {
+    response.headers.set('Cache-Control', 'no-store, must-revalidate');
+  }
+  return response;
 }
 
 export async function middleware(request: NextRequest): Promise<NextResponse> {
   const rewrite = readingRewrite(request);
 
   if (process.env.AUTH_MODE !== 'supabase') {
-    return rewrite ? NextResponse.rewrite(rewrite) : NextResponse.next();
+    return noStore(rewrite ? NextResponse.rewrite(rewrite) : NextResponse.next(), request);
   }
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -77,7 +105,7 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
   // with Supabase. getSession trusts whatever the cookie says.
   await supabase.auth.getUser();
 
-  return response;
+  return noStore(response, request);
 }
 
 export const config = {

@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { sql } from 'drizzle-orm';
 import { createDatabase, type Database } from '../src/client.js';
@@ -7,6 +8,7 @@ import { EXPECTED_MIGRATIONS, LATEST_MIGRATION, schemaStatus } from '../src/sche
 import {
   bootstrapUser,
   createRelationship,
+  createShareLink,
   createWatch,
   deleteWatch,
   listUpcomingHits,
@@ -18,7 +20,11 @@ import {
   getSubject,
   hardDeleteSubject,
   listRelationships,
+  listShareLinks,
   listSubjects,
+  openShareLink,
+  recordShareLinkView,
+  revokeShareLink,
   orderPair,
   searchPlaces,
   softDeleteSubject,
@@ -468,5 +474,102 @@ describeWithDb('watches', () => {
         fromDate: new Date('2020-01-01T00:00:00Z'),
       }),
     ).toHaveLength(0);
+  });
+});
+
+describeWithDb('a share link is a capability, not a bypass', () => {
+  const hash = (token: string): string => createHash('sha256').update(token).digest('hex');
+
+  async function aliceLink(overrides: Partial<Parameters<typeof createShareLink>[2]> = {}) {
+    const token = `token-${Math.random().toString(36).slice(2)}`;
+    const subject = await createSubjectWithBirthEvent(database, alice.workspaceId, {
+      subject: { displayName: 'A client', createdBy: alice.userId },
+      birthEvent: birthEventFixture,
+    });
+    const link = await createShareLink(database, alice.workspaceId, {
+      subjectId: subject.subject.id,
+      tokenHash: hash(token),
+      showsBirthData: false,
+      ...overrides,
+    });
+    return { token, link, subjectId: subject.subject.id };
+  }
+
+  it('opens for the workspace and subject it names, and nothing else', async () => {
+    const { token, subjectId } = await aliceLink();
+
+    const opened = await openShareLink(database, hash(token));
+    expect(opened).not.toBeNull();
+    expect(opened!.workspaceId).toBe(alice.workspaceId);
+    expect(opened!.subjectId).toBe(subjectId);
+    expect(opened!.showsBirthData).toBe(false);
+  });
+
+  /*
+   * The whole security argument. A visitor holding a token has no workspace
+   * bound, so row-level security shows them nothing; the token buys one fact
+   * and every query after it is scoped like any other. If this ever passes
+   * with a row in it, the share route has become a way to read the table.
+   */
+  it('shows a visitor with no workspace bound absolutely nothing', async () => {
+    await aliceLink();
+    const rows = await database.execute(sql`select count(*)::int as n from share_links`);
+    const count = ((rows as unknown as { rows?: { n: number }[] }).rows ?? [])[0]?.n ?? 0;
+    expect(count).toBe(0);
+  });
+
+  it('stops resolving the moment it is withdrawn', async () => {
+    const { token, link } = await aliceLink();
+    expect(await openShareLink(database, hash(token))).not.toBeNull();
+
+    await revokeShareLink(database, alice.workspaceId, link.id);
+    expect(await openShareLink(database, hash(token))).toBeNull();
+  });
+
+  it('stops resolving once it has expired', async () => {
+    const { token } = await aliceLink({ expiresAt: new Date(Date.now() - 1000) });
+    expect(await openShareLink(database, hash(token))).toBeNull();
+  });
+
+  it('never resolves a token it did not issue', async () => {
+    await aliceLink();
+    for (const forged of ['', 'nope', hash('nope'), 'a'.repeat(64)]) {
+      expect(await openShareLink(database, forged), forged).toBeNull();
+    }
+  });
+
+  /* Another practice cannot withdraw, or even see, a link that is not theirs. */
+  it('cannot be listed or withdrawn from another workspace', async () => {
+    const { token, link, subjectId } = await aliceLink();
+
+    expect(await listShareLinks(database, bob.workspaceId)).toEqual([]);
+    await revokeShareLink(database, bob.workspaceId, link.id);
+    /* Bob's revoke touched nothing, so Alice's link still opens. */
+    expect(await openShareLink(database, hash(token))).not.toBeNull();
+
+    const mine = await listShareLinks(database, alice.workspaceId, subjectId);
+    expect(mine.map((one) => one.id)).toContain(link.id);
+  });
+
+  it('counts a view without needing a workspace', async () => {
+    const { token, link } = await aliceLink();
+
+    await recordShareLinkView(database, hash(token));
+    await recordShareLinkView(database, hash(token));
+
+    const [after] = await listShareLinks(database, alice.workspaceId);
+    expect(after!.id).toBe(link.id);
+    expect(after!.viewCount).toBe(2);
+    expect(after!.lastViewedAt).not.toBeNull();
+  });
+
+  /* A withdrawn link is not a countable one either. */
+  it('does not count views of a link that no longer works', async () => {
+    const { token, link } = await aliceLink();
+    await revokeShareLink(database, alice.workspaceId, link.id);
+    await recordShareLinkView(database, hash(token));
+
+    const [after] = await listShareLinks(database, alice.workspaceId);
+    expect(after!.viewCount).toBe(0);
   });
 });

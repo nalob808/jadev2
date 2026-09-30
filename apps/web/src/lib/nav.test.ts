@@ -227,10 +227,12 @@ describe('marking the current link', () => {
     expect(isCurrent('/timing?span=10y', '/timing')).toBe(true);
   });
 
-  it('has eight lenses, with the sphere between the instrument and timing', () => {
-    // The sphere is the eighth lens. It sits after the instrument because both
-    // are ways of looking at the same moment, and before timing because timing
-    // is about spans rather than an instant.
+  it('has nine lenses, in the order somebody works through them', () => {
+    // The sphere sits after the instrument because both are ways of looking at
+    // the same moment, and before timing because timing is about spans rather
+    // than an instant. Share is last because it is what you do once the rest of
+    // the work is done — and because it is the only one that leaves the
+    // practice, which is worth it being a deliberate reach.
     expect(subjectLenses('abc').map((lens) => lens.label)).toEqual([
       'Sheet',
       'Houses',
@@ -240,6 +242,7 @@ describe('marking the current link', () => {
       'Timing',
       'Report',
       'Rectify',
+      'Share',
     ]);
     expect(sectionFor('/people/abc/sphere')?.id).toBe('people');
   });

@@ -270,6 +270,11 @@ export function subjectLenses(id: string): readonly NavItem[] {
       label: 'Rectify',
       blurb: 'Test candidate birth times against events that already happened.',
     },
+    {
+      href: `/people/${id}/share`,
+      label: 'Share',
+      blurb: 'A live link this person can open — revocable, counted, no account needed.',
+    },
   ];
 }
 
@@ -290,6 +295,10 @@ export const UNLINKED: ReadonlyArray<{ route: string; why: string }> = [
   { route: '/sessions/:id/prep', why: 'Opened from the session it prepares.' },
   { route: '/relationships/:id', why: 'A row on /relationships.' },
   { route: '/relationships/:id/report', why: 'Opened from the pair it reports on.' },
+  {
+    route: '/s/:token',
+    why: 'A share link opened by a client who has no account. Deliberately reachable from nothing inside the app — it is the one page that must offer no way in.',
+  },
   { route: '/legacy', why: 'The v0 prototype, kept for comparison. Labs only.' },
   { route: '/spike/sphere', why: 'Behind JADE_SPIKES=1 and not accessible yet. Labs only.' },
 ];

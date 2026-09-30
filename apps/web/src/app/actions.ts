@@ -7,7 +7,9 @@ import {
   createSubjectWithBirthEvent,
   deleteRelationship,
   exportSubject,
+  createShareLink,
   hardDeleteSubject,
+  revokeShareLink,
   softDeleteSubject,
   getSubject,
   updateSettingsProfile,
@@ -52,6 +54,7 @@ import { aspectSettingsFromForm } from '@/lib/aspectForm';
 import { getDatabase } from '@/lib/db';
 import { env } from '@/lib/env';
 import { requireSession, signInDev, signOut } from '@/lib/auth';
+import { hashShareToken, newShareToken } from '@/lib/shareToken';
 import { getPlan, requireCapability, requireRoomFor } from '@/lib/entitlements';
 import { isKnownPlan } from '@/lib/plans';
 
@@ -902,4 +905,69 @@ export async function toggleFollowUp(formData: FormData): Promise<void> {
   const back = safeReturn(String(formData.get('returnTo') ?? '/sessions'));
   revalidatePath(back);
   redirect(back);
+}
+
+/* ------------------------------------------------------------ share links */
+
+/**
+ * Issue a link a client can open.
+ *
+ * The token is returned to the practitioner exactly once, in the redirect, and
+ * is never stored — only its hash is. So this is the one moment it exists in a
+ * form anybody can copy, which is why the page it lands on is built around
+ * copying it.
+ *
+ * An expiry is required rather than optional. A link with no end is a link
+ * somebody will still be able to open in four years, long after they have
+ * stopped being a client, and defaulting that to "forever" is a decision made
+ * on the practitioner's behalf about somebody else's birth data. "Never" is
+ * still available; it just has to be chosen.
+ */
+export async function createShare(formData: FormData): Promise<void> {
+  const session = await requireSession();
+  const subjectId = String(formData.get('subjectId'));
+  const days = String(formData.get('expiresInDays') ?? '30');
+  const showsBirthData = formData.get('showsBirthData') === 'on';
+  const label = String(formData.get('label') ?? '').trim();
+
+  const fail = (message: string): never =>
+    redirect(`/people/${subjectId}/share?error=${encodeURIComponent(message)}`);
+
+  /* The subject has to be this workspace's, and has to have a chart to share. */
+  const record = await getSubject(getDatabase(), session.workspaceId, subjectId);
+  if (!record?.birthEvent) fail('That person has no birth data to share.');
+
+  const allowed = new Set(['7', '30', '90', '365', 'never']);
+  if (!allowed.has(days)) fail('Choose how long the link should last.');
+
+  const expiresAt =
+    days === 'never' ? undefined : new Date(Date.now() + Number(days) * 24 * 60 * 60 * 1000);
+
+  const token = newShareToken();
+  await createShareLink(getDatabase(), session.workspaceId, {
+    subjectId,
+    tokenHash: hashShareToken(token),
+    showsBirthData,
+    ...(label ? { label } : {}),
+    ...(expiresAt ? { expiresAt } : {}),
+    ...(session.userId ? { createdBy: session.userId } : {}),
+  });
+
+  revalidatePath(`/people/${subjectId}/share`);
+  /*
+   * The token travels in the URL of the practitioner's own next page, once.
+   * It is not in the database and cannot be shown again, so the alternative
+   * would be showing it in a flash message that a refresh destroys.
+   */
+  redirect(`/people/${subjectId}/share?issued=${encodeURIComponent(token)}`);
+}
+
+export async function revokeShare(formData: FormData): Promise<void> {
+  const session = await requireSession();
+  const subjectId = String(formData.get('subjectId'));
+  const id = String(formData.get('id'));
+
+  await revokeShareLink(getDatabase(), session.workspaceId, id);
+  revalidatePath(`/people/${subjectId}/share`);
+  redirect(`/people/${subjectId}/share?revoked=1`);
 }

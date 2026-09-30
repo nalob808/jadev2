@@ -18,6 +18,7 @@ import {
   upgradeIntents,
   stripeEvents,
   sessions,
+  shareLinks,
   followUps,
   publicFigures,
   type NewBirthEvent,
@@ -28,6 +29,7 @@ import {
   type Note,
   type NewNote,
   type WatchHit as WatchHitRow,
+  type ShareLink,
 } from './schema.js';
 
 // A relationship joins the subjects table twice. Aliasing once here keeps the
@@ -1698,5 +1700,158 @@ export async function listUpcomingHits(
       .orderBy(watchHits.occursAt)
       .limit(input.limit ?? 100);
     return rows.map((row) => ({ ...row.hit, watch: row.watch, subject: row.subject }));
+  });
+}
+
+/* ------------------------------------------------------------ share links */
+
+export interface NewShareLink {
+  readonly subjectId: string;
+  /** SHA-256 hex of the token. The caller generates the token; see `shareToken`. */
+  readonly tokenHash: string;
+  readonly showsBirthData: boolean;
+  readonly label?: string | undefined;
+  readonly expiresAt?: Date | undefined;
+  readonly createdBy?: string | undefined;
+}
+
+export async function createShareLink(
+  database: Database,
+  workspaceId: string,
+  link: NewShareLink,
+): Promise<ShareLink> {
+  return withWorkspace(database, workspaceId, async (tx) => {
+    const [row] = await tx
+      .insert(shareLinks)
+      .values({
+        workspaceId,
+        subjectId: link.subjectId,
+        tokenHash: link.tokenHash,
+        showsBirthData: link.showsBirthData,
+        ...(link.label ? { label: link.label } : {}),
+        ...(link.expiresAt ? { expiresAt: link.expiresAt } : {}),
+        ...(link.createdBy ? { createdBy: link.createdBy } : {}),
+      })
+      .returning();
+    return row!;
+  });
+}
+
+export async function listShareLinks(
+  database: Database,
+  workspaceId: string,
+  subjectId?: string,
+): Promise<ShareLink[]> {
+  return withWorkspace(database, workspaceId, async (tx) =>
+    tx
+      .select()
+      .from(shareLinks)
+      .where(
+        subjectId
+          ? and(eq(shareLinks.workspaceId, workspaceId), eq(shareLinks.subjectId, subjectId))
+          : eq(shareLinks.workspaceId, workspaceId),
+      )
+      .orderBy(desc(shareLinks.createdAt)),
+  );
+}
+
+/**
+ * Stop a link working, without deleting the record.
+ *
+ * Revoked rather than removed on purpose: "I shared this in March and took it
+ * down in June" is a fact a practitioner may need, and a deleted row cannot
+ * answer it. The link stops resolving the moment `revoked_at` is set, because
+ * the lookup function checks it.
+ */
+export async function revokeShareLink(
+  database: Database,
+  workspaceId: string,
+  id: string,
+): Promise<void> {
+  await withWorkspace(database, workspaceId, async (tx) => {
+    await tx
+      .update(shareLinks)
+      .set({ revokedAt: new Date() })
+      .where(and(eq(shareLinks.workspaceId, workspaceId), eq(shareLinks.id, id)));
+  });
+}
+
+export interface OpenedShareLink {
+  readonly shareId: string;
+  readonly workspaceId: string;
+  readonly subjectId: string;
+  readonly showsBirthData: boolean;
+}
+
+/**
+ * Resolve a token, for a visitor who has no workspace at all.
+ *
+ * The only call in this file that does not go through `withWorkspace`, because
+ * it is the call that establishes which workspace to use. It runs the narrow
+ * `SECURITY DEFINER` function from migration 0014 rather than reading the table
+ * — a visitor has no workspace set, so under row-level security they can see no
+ * row here, and that is the correct default to preserve. Everything the shared
+ * page then loads goes through the ordinary scoped queries.
+ *
+ * Returns null for a token that is unknown, revoked, or past its expiry, and
+ * the caller cannot tell those three apart. That is deliberate: a page that
+ * says "this link was revoked" confirms the link once existed.
+ */
+export async function openShareLink(
+  database: Database,
+  tokenHash: string,
+): Promise<OpenedShareLink | null> {
+  return database.transaction(async (tx) => {
+    await tx.execute(sql`select set_config('app.share_token_hash', ${tokenHash}, true)`);
+    const rows = await tx
+      .select({
+        shareId: shareLinks.id,
+        workspaceId: shareLinks.workspaceId,
+        subjectId: shareLinks.subjectId,
+        showsBirthData: shareLinks.showsBirthData,
+        revokedAt: shareLinks.revokedAt,
+        expiresAt: shareLinks.expiresAt,
+      })
+      .from(shareLinks)
+      .where(eq(shareLinks.tokenHash, tokenHash))
+      .limit(1);
+
+    const row = rows[0];
+    if (!row) return null;
+    /*
+     * Liveness is checked here rather than in the policy.
+     *
+     * The policy answers "may this request see this row", which is about the
+     * token. Whether the link still works is about the link, and putting it in
+     * the policy would mean a revoked link became invisible to the practitioner
+     * who revoked it — they need to see that it is off.
+     */
+    if (row.revokedAt) return null;
+    if (row.expiresAt && row.expiresAt.getTime() <= Date.now()) return null;
+
+    return {
+      shareId: row.shareId,
+      workspaceId: row.workspaceId,
+      subjectId: row.subjectId,
+      showsBirthData: row.showsBirthData,
+    };
+  });
+}
+
+/** Count a view. Best effort: a failed count must never cost the visitor the page. */
+export async function recordShareLinkView(database: Database, tokenHash: string): Promise<void> {
+  await database.transaction(async (tx) => {
+    await tx.execute(sql`select set_config('app.share_token_hash', ${tokenHash}, true)`);
+    await tx
+      .update(shareLinks)
+      .set({ viewCount: sql`${shareLinks.viewCount} + 1`, lastViewedAt: new Date() })
+      .where(
+        and(
+          eq(shareLinks.tokenHash, tokenHash),
+          isNull(shareLinks.revokedAt),
+          /* A dead link is not a countable one. */
+          sql`(${shareLinks.expiresAt} is null or ${shareLinks.expiresAt} > now())`,
+        ),
+      );
   });
 }
