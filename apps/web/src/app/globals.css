@@ -15,18 +15,28 @@
    ======================================================================== */
 
 :root {
+  /*
+   * Native controls follow the theme too.
+   *
+   * A date field, a select's dropdown list and the scrollbars are drawn by the
+   * browser, not by this file, and without this they stay light on a dark page
+   * — a white calendar popping out of an indigo panel. It belongs beside the
+   * colours because it changes with them.
+   */
+  color-scheme: light;
+
   --paper: #efefe9;
   --surface: #f9f9f4;
   --surface-alt: #e7e8e2;
   --ink: #16222e;
   --ink-muted: #4a5c6b;
-  --ink-faint: #7c8a95;
+  --ink-faint: #626e78;
   --rule: #c8cec9;
-  --rule-strong: #a9b2ae;
+  --rule-strong: #7f8884;
   --accent: #33668f;
-  --accent-soft: #5a8cb4;
+  --accent-soft: #406d90;
   --accent-wash: #e1e9ef;
-  --jade: #2c7a64;
+  --jade: #28705c;
   --clay: #9e5b3a;
 
   /* ---------------------------------------------------- the chart palette
@@ -36,9 +46,9 @@
      chart that borrows them makes Fire mean the same thing as a button.
      Muted rather than primary, because twelve saturated wedges around a
      circle stop being information and become a colour wheel. */
-  --elem-fire: #b0553c;
+  --elem-fire: #a44b34;
   --elem-earth: #7a6636;
-  --elem-air: #46738f;
+  --elem-air: #406780;
   --elem-water: #3d6c6e;
   --nature-benefic: #2c7a64;
   --nature-malefic: #9e5b3a;
@@ -112,99 +122,114 @@
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) {
-    --paper: #121a21;
-    --surface: #18222b;
-    --surface-alt: #1f2b35;
-    --ink: #e6eae7;
-    --ink-muted: #a8b6be;
-    --ink-faint: #7b8b95;
-    --rule: #2c3a45;
-    --rule-strong: #3e4f5b;
-    --accent: #7fadd4;
-    --accent-soft: #5e8fb6;
-    --accent-wash: #1c2a36;
-    --jade: #5cbba0;
-    --clay: #cd8964;
-    --elem-fire: #d9866a;
-    --elem-earth: #b9a06a;
-    --elem-air: #7fadd4;
-    --elem-water: #6faaa8;
-    --nature-benefic: #5cbba0;
-    --nature-malefic: #cd8964;
-    --nature-neutral: #97a2ad;
-    --benefic: #5cbba0;
-    --malefic: #cd8964;
+    color-scheme: dark;
 
-    /* Dṛṣṭi sources, lifted for a dark ground. Same hues, same families. */
-    --drishti-sun: #d3a163;
-    --drishti-moon: #6fc0a6;
-    --drishti-mars: #d9866a;
-    --drishti-mercury: #97a2ad;
-    --drishti-jupiter: #5cbba0;
-    --drishti-venus: #6fbdb4;
-    --drishti-saturn: #8f97bd;
-    --drishti-rahu: #b491c2;
-    --drishti-ketu: #bfa088;
+    /* The ground, and the two surfaces that sit on it. */
+    --paper: #0b0d1a;
+    --surface: #12152a;
+    --surface-alt: #1a1e38;
+    --ink: #e8e9f5;
+    --ink-muted: #a6abcc;
+    --ink-faint: #787da6;
+    --rule: #262b4a;
+    /* 3.16:1 against --surface. A border the eye cannot find is not a border. */
+    --rule-strong: #5a62a0;
+    --accent: #8f9cff;
+    --accent-soft: #6b78d6;
+    --accent-wash: #171b33;
+    --jade: #4fd6b0;
+    --clay: #e08a68;
+    --elem-fire: #e8876a;
+    --elem-earth: #d4b06a;
+    --elem-air: #8fa8ff;
+    --elem-water: #5fc8c4;
+    --nature-benefic: #4fd6b0;
+    --nature-malefic: #e08a68;
+    --nature-neutral: #9aa0c4;
+    --benefic: #4fd6b0;
+    --malefic: #e08a68;
 
-    --band-favourable: #5cbba0;
-    --band-mixed: #d8ab55;
-    --band-difficult: #cd8964;
-    --band-favourable-wash: #17302a;
-    --band-mixed-wash: #302818;
-    --band-difficult-wash: #2f2119;
+    /* Dṛṣṭi sources, lifted for an indigo ground. Same hues, same families. */
+    --drishti-sun: #e8b45c;
+    --drishti-moon: #6fd6bb;
+    --drishti-mars: #e8876a;
+    --drishti-mercury: #9aa0c4;
+    --drishti-jupiter: #4fd6b0;
+    --drishti-venus: #64c9c4;
+    --drishti-saturn: #9aa2e8;
+    --drishti-rahu: #c49ae0;
+    --drishti-ketu: #d4a988;
 
-    --skeleton: #232f3a;
-    --skeleton-sheen: #2c3a46;
+    --band-favourable: #4fd6b0;
+    --band-mixed: #e0b45c;
+    --band-difficult: #e0836a;
+    --band-favourable-wash: #102a26;
+    --band-mixed-wash: #2a2416;
+    --band-difficult-wash: #2c1d1c;
 
-    --panel-highlight: rgba(255, 255, 255, 0.04);
-    --panel-shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 4px 14px -8px rgba(0, 0, 0, 0.5);
-    --panel-shadow-lifted: 0 2px 6px rgba(0, 0, 0, 0.35), 0 14px 32px -12px rgba(0, 0, 0, 0.6);
-    --grid-line: rgba(230, 234, 231, 0.026);
+    --skeleton: #1b2038;
+    --skeleton-sheen: #262c4a;
+
+    --panel-highlight: rgba(255, 255, 255, 0.05);
+    --panel-shadow: 0 1px 2px rgba(0, 0, 0, 0.45), 0 4px 14px -8px rgba(0, 0, 0, 0.65);
+    --panel-shadow-lifted: 0 2px 6px rgba(0, 0, 0, 0.5), 0 14px 32px -12px rgba(0, 0, 0, 0.7);
+    --grid-line: rgba(232, 233, 245, 0.03);
   }
 }
 
 :root[data-theme='dark'] {
-  --paper: #121a21;
-  --surface: #18222b;
-  --surface-alt: #1f2b35;
-  --ink: #e6eae7;
-  --ink-muted: #a8b6be;
-  --ink-faint: #7b8b95;
-  --rule: #2c3a45;
-  --rule-strong: #3e4f5b;
-  --accent: #7fadd4;
-  --accent-soft: #5e8fb6;
-  --accent-wash: #1c2a36;
-  --jade: #5cbba0;
-  --clay: #cd8964;
-  --elem-fire: #d9866a;
-  --elem-earth: #b9a06a;
-  --elem-air: #7fadd4;
-  --elem-water: #6faaa8;
-  --nature-benefic: #5cbba0;
-  --nature-malefic: #cd8964;
-  --nature-neutral: #97a2ad;
-  --benefic: #5cbba0;
-  --malefic: #cd8964;
+  color-scheme: dark;
 
-  /* Dṛṣṭi sources, lifted for a dark ground. Same hues, same families. */
-  --drishti-sun: #d3a163;
-  --drishti-moon: #6fc0a6;
-  --drishti-mars: #d9866a;
-  --drishti-mercury: #97a2ad;
-  --drishti-jupiter: #5cbba0;
-  --drishti-venus: #6fbdb4;
-  --drishti-saturn: #8f97bd;
-  --drishti-rahu: #b491c2;
-  --drishti-ketu: #bfa088;
+  /* The ground, and the two surfaces that sit on it. */
+  --paper: #0b0d1a;
+  --surface: #12152a;
+  --surface-alt: #1a1e38;
+  --ink: #e8e9f5;
+  --ink-muted: #a6abcc;
+  --ink-faint: #787da6;
+  --rule: #262b4a;
+  /* 3.16:1 against --surface. A border the eye cannot find is not a border. */
+  --rule-strong: #5a62a0;
+  --accent: #8f9cff;
+  --accent-soft: #6b78d6;
+  --accent-wash: #171b33;
+  --jade: #4fd6b0;
+  --clay: #e08a68;
+  --elem-fire: #e8876a;
+  --elem-earth: #d4b06a;
+  --elem-air: #8fa8ff;
+  --elem-water: #5fc8c4;
+  --nature-benefic: #4fd6b0;
+  --nature-malefic: #e08a68;
+  --nature-neutral: #9aa0c4;
+  --benefic: #4fd6b0;
+  --malefic: #e08a68;
 
-  --skeleton: #232f3a;
-  --skeleton-sheen: #2c3a46;
+  /* Dṛṣṭi sources, lifted for an indigo ground. Same hues, same families. */
+  --drishti-sun: #e8b45c;
+  --drishti-moon: #6fd6bb;
+  --drishti-mars: #e8876a;
+  --drishti-mercury: #9aa0c4;
+  --drishti-jupiter: #4fd6b0;
+  --drishti-venus: #64c9c4;
+  --drishti-saturn: #9aa2e8;
+  --drishti-rahu: #c49ae0;
+  --drishti-ketu: #d4a988;
 
-  --panel-highlight: rgba(255, 255, 255, 0.04);
-  --panel-shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 4px 14px -8px rgba(0, 0, 0, 0.5);
-  --panel-shadow-lifted: 0 2px 6px rgba(0, 0, 0, 0.35), 0 14px 32px -12px rgba(0, 0, 0, 0.6);
-  --grid-line: rgba(230, 234, 231, 0.026);
+  --band-favourable: #4fd6b0;
+  --band-mixed: #e0b45c;
+  --band-difficult: #e0836a;
+  --band-favourable-wash: #102a26;
+  --band-mixed-wash: #2a2416;
+  --band-difficult-wash: #2c1d1c;
+
+  --skeleton: #1b2038;
+  --skeleton-sheen: #262c4a;
+
+  --panel-highlight: rgba(255, 255, 255, 0.05);
+  --panel-shadow: 0 1px 2px rgba(0, 0, 0, 0.45), 0 4px 14px -8px rgba(0, 0, 0, 0.65);
+  --panel-shadow-lifted: 0 2px 6px rgba(0, 0, 0, 0.5), 0 14px 32px -12px rgba(0, 0, 0, 0.7);
+  --grid-line: rgba(232, 233, 245, 0.03);
 }
 
 /* ===========================================================================
@@ -581,6 +606,8 @@ h3 {
   :root,
   :root[data-theme='dark'],
   :root:not([data-theme='light']) {
+    color-scheme: light;
+
     --paper: #ffffff;
     --surface: #ffffff;
     --surface-alt: #ffffff;

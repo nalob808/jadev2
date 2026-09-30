@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { devSignOut } from '@/app/actions';
 import { LensTabs, PrimaryLinks, SectionRow } from './AppNav';
 import { AutoTerms } from './Glossary';
+import { ThemeToggle } from './ThemeToggle';
 
 /**
  * The masthead and navigation.
@@ -39,6 +40,11 @@ export function Nav({ email }: { email?: string | undefined }): React.ReactEleme
           one click and costs the working words nothing.
         */}
         <div className="flex items-baseline gap-2 border-l border-[var(--rule)] pl-3">
+          {/*
+            The theme belongs here, not four screens away in settings. It is
+            the one setting somebody changes because of the room they are in.
+          */}
+          <ThemeToggle variant="masthead" />
           <Link
             href="/settings"
             className="font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--ink-faint)] transition-colors hover:text-[var(--ink)]"

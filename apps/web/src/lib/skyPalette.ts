@@ -5,24 +5,24 @@
  * these drift.
  */
 export const SKY = {
-  ground: '#121a21',
-  ink: '#e6eae7',
-  inkMuted: '#a8b6be',
-  inkFaint: '#7b8b95',
-  rule: '#2c3a45',
-  ruleStrong: '#3e4f5b',
-  accent: '#7fadd4',
-  accentSoft: '#5e8fb6',
-  elements: ['#d9866a', '#b9a06a', '#7fadd4', '#6faaa8'], // fire, earth, air, water
+  ground: '#0b0d1a',
+  ink: '#e8e9f5',
+  inkMuted: '#a6abcc',
+  inkFaint: '#787da6',
+  rule: '#262b4a',
+  ruleStrong: '#5a62a0',
+  accent: '#8f9cff',
+  accentSoft: '#6b78d6',
+  elements: ['#e8876a', '#d4b06a', '#8fa8ff', '#5fc8c4'], // fire, earth, air, water
   drishti: {
-    Sun: '#d3a163',
-    Moon: '#6fc0a6',
-    Mars: '#d9866a',
-    Mercury: '#97a2ad',
-    Jupiter: '#5cbba0',
-    Venus: '#6fbdb4',
-    Saturn: '#8f97bd',
-    Rahu: '#b491c2',
-    Ketu: '#bfa088',
+    Sun: '#e8b45c',
+    Moon: '#6fd6bb',
+    Mars: '#e8876a',
+    Mercury: '#9aa0c4',
+    Jupiter: '#4fd6b0',
+    Venus: '#64c9c4',
+    Saturn: '#9aa2e8',
+    Rahu: '#c49ae0',
+    Ketu: '#d4a988',
   } as Record<string, string>,
 } as const;

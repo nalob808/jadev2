@@ -26,7 +26,16 @@ const CHOICES: Array<{ id: Choice; label: string }> = [
  * Every access is wrapped: a browser with site data blocked throws on the
  * `localStorage` getter itself, and the page must still work.
  */
-export function ThemeToggle(): React.ReactElement {
+export function ThemeToggle({
+  /**
+   * `masthead` is one button that cycles, because the three-button group is
+   * wider than the whole account block beside it. Same state, same storage —
+   * the settings screen and the masthead are two views of one choice.
+   */
+  variant = 'group',
+}: {
+  readonly variant?: 'group' | 'masthead';
+} = {}): React.ReactElement {
   const [choice, setChoice] = useState<Choice>('system');
   const [ready, setReady] = useState(false);
 
@@ -55,6 +64,26 @@ export function ThemeToggle(): React.ReactElement {
       // The theme still applies for this page; it just will not be remembered.
     }
   };
+
+  if (variant === 'masthead') {
+    const next = CHOICES[(CHOICES.findIndex((one) => one.id === choice) + 1) % CHOICES.length]!;
+    return (
+      <button
+        type="button"
+        onClick={() => apply(next.id)}
+        /*
+         * The label is the current theme and the action is the next one, so the
+         * accessible name has to say the action — a button reading "Dark" that
+         * switches to System is a button that lies to a screen reader.
+         */
+        aria-label={`Theme: ${choice}. Switch to ${next.id}.`}
+        title={`Theme: ${choice} — switch to ${next.id}`}
+        className="font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--ink-faint)] transition-colors hover:text-[var(--ink)]"
+      >
+        {ready ? CHOICES.find((one) => one.id === choice)!.label : 'Theme'}
+      </button>
+    );
+  }
 
   return (
     <div
