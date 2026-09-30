@@ -1,7 +1,8 @@
-import { readdirSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import sitemap from '../app/sitemap';
 import {
   ACCOUNT,
   SECTIONS,
@@ -100,6 +101,74 @@ describe('the navigation map and the app directory', () => {
     );
     const orphans = appPages.filter((route) => !mapped().has(route) && !exempt.has(route));
     expect(orphans, 'add these to lib/nav.ts, or to UNLINKED with a reason').toEqual([]);
+  });
+
+  /*
+   * The public site's pages are exempt from the menu, and that exemption used
+   * to mean exempt from everything.
+   *
+   * `/learn/*` is reached from search results rather than from the workspace
+   * menu, so it cannot be held to the map. But "reached from search results"
+   * is not the same as "reached from nowhere": a reference page no page links
+   * to is the same built-and-unreachable failure this file exists to catch,
+   * and a crawler treats an orphan the way a reader does. So every `/learn`
+   * route has to be linked from somewhere else on the public site.
+   */
+  it('links every public reference page from somewhere on the public site', () => {
+    const marketing = join(APP, '(marketing)');
+    const sources: string[] = [];
+    const walk = (dir: string): void => {
+      for (const entry of readdirSync(dir, { withFileTypes: true })) {
+        const path = join(dir, entry.name);
+        if (entry.isDirectory()) walk(path);
+        else if (entry.isFile() && entry.name.endsWith('.tsx')) sources.push(path);
+      }
+    };
+    walk(marketing);
+    /* The chrome links too, and it is not under the route group. */
+    sources.push(join(APP, '..', 'components', 'marketing', 'Site.tsx'));
+
+    const learn = all.filter((route) => route.startsWith('/learn/') && !route.includes(':'));
+
+    /*
+     * A page does not link to itself.
+     *
+     * The first version of this searched every marketing file including the
+     * one implementing the route, and every page names its own path — in the
+     * canonical URL, in the breadcrumb — so the test passed for a page nothing
+     * linked to. Its own directory is excluded, which also rules out a child
+     * page's "back to the index" link counting as an inbound link to the
+     * index.
+     */
+    const unlinked = learn.filter((route) => {
+      const own = join(marketing, ...route.split('/').filter(Boolean));
+      return !sources.some(
+        (file) => !file.startsWith(own) && readFileSync(file, 'utf8').includes(route),
+      );
+    });
+
+    expect(unlinked, 'these public pages are reachable from nothing').toEqual([]);
+  });
+
+  /*
+   * Linked is not the same as findable.
+   *
+   * These pages exist to answer a search — "what did medieval astrologers say
+   * about Saturn" — and a crawler that has to walk in from the index finds the
+   * deep ones slowly or not at all. The sitemap is how they get found, so a
+   * reference page missing from it is half-shipped in the same way an unlinked
+   * one is.
+   */
+  it('lists every public reference page in the sitemap', () => {
+    const listed = new Set(
+      sitemap().map((entry) => new URL(entry.url).pathname.replace(/\/$/, '') || '/'),
+    );
+    const learn = all.filter((route) => route.startsWith('/learn') && !route.includes(':'));
+
+    expect(
+      learn.filter((route) => !listed.has(route)),
+      'add these to app/sitemap.ts',
+    ).toEqual([]);
   });
 
   it('points every menu word at a page that exists', () => {

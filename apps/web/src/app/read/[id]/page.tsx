@@ -149,6 +149,13 @@ export default async function ReadingPage({
     ? view!
     : 'overall';
   const hrefFor = (key: string): string => `/read/${id}?view=${key}`;
+  /*
+   * The reference pages live on the public site, which on `read.jadeapp.co` is
+   * behind the same rewrite as everything else — so the link has to be built
+   * against the apex host the way the workbench link is.
+   */
+  const hrefForTradition = (tradition: string): string =>
+    workbenchHref(`/learn/traditions/${tradition}`, host);
 
   const day = (jd: number): string =>
     clock.format(unixMsFromJd(jd), { month: 'short', year: 'numeric' });
@@ -288,7 +295,11 @@ export default async function ReadingPage({
             whole layer exists to avoid.
           */}
           {transits.map((transit) => (
-            <DeepPassage key={transit.graha} reading={transit} />
+            <DeepPassage
+              key={transit.graha}
+              reading={transit}
+              hrefForTradition={hrefForTradition}
+            />
           ))}
 
           <p className="font-mono text-[10px] leading-relaxed text-[var(--ink-faint)]">
@@ -308,7 +319,11 @@ export default async function ReadingPage({
             of them is like to live with — which is where the reading is.
           </p>
           {natalDepth.map((passage) => (
-            <DeepPassage key={passage.graha} reading={passage} />
+            <DeepPassage
+              key={passage.graha}
+              reading={passage}
+              hrefForTradition={hrefForTradition}
+            />
           ))}
         </section>
       ) : null}

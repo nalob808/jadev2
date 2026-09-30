@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import type { DeepNatalReading, DeepTransitReading } from '@jade/interpret';
 import { Workings } from './Workings';
 
@@ -25,8 +26,19 @@ import { Workings } from './Workings';
  */
 export function DeepPassage({
   reading,
+  hrefForTradition,
 }: {
   readonly reading: DeepNatalReading | DeepTransitReading;
+  /**
+   * Where to send somebody who wants to know who these people were.
+   *
+   * Passed in rather than built here because the reading answers on two hosts
+   * and `/learn/...` means different things on each — on `read.jadeapp.co` the
+   * middleware rewrites anything outside `/read` into the reading group, so a
+   * bare link would 404. The page knows its own host; this component does not
+   * and should not.
+   */
+  readonly hrefForTradition?: ((id: string) => string) | undefined;
 }): React.ReactElement {
   const question = 'question' in reading ? reading.question : null;
 
@@ -75,9 +87,18 @@ export function DeepPassage({
                 key={voice.tradition.id}
                 className="border border-[var(--rule)] bg-[var(--surface)] px-3.5 py-3"
               >
-                <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--clay)]">
-                  {voice.tradition.name}
-                </p>
+                {hrefForTradition ? (
+                  <Link
+                    href={hrefForTradition(voice.tradition.id)}
+                    className="font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--clay)] underline decoration-dotted underline-offset-4 hover:text-[var(--accent)]"
+                  >
+                    {voice.tradition.name}
+                  </Link>
+                ) : (
+                  <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--clay)]">
+                    {voice.tradition.name}
+                  </p>
+                )}
                 <p className="mt-1.5 text-[14px] leading-[1.55]">{voice.now}</p>
                 <p className="mt-2 text-[12.5px] leading-relaxed text-[var(--ink-muted)]">
                   {voice.doctrine}

@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { GRAHAS_LIB, HOUSES, SIGNS_LIB } from '@jade/interpret';
+import { GRAHAS_LIB, HOUSES, SIGNS_LIB, TRADITIONS } from '@jade/interpret';
 import { CallToAction, SectionHead } from '@/components/marketing/Site';
 import { JsonLd, SITE_URL, breadcrumbSchema } from '@/components/marketing/JsonLd';
 
@@ -138,6 +138,45 @@ export default function LearnIndex() {
             </li>
           ))}
         </ul>
+      </section>
+
+      <section className="mx-auto mt-16 max-w-6xl px-5 sm:px-8">
+        <h2 className="font-display text-2xl font-semibold">Five traditions</h2>
+        <p className="mt-1 max-w-[62ch] text-[15px] text-[var(--ink-muted)]">
+          The pages above are Jade’s own plain reading of each piece. These are the arguments behind
+          it — eighteen centuries of astrologers who mostly could not read each other, agreeing
+          about what the twelve places are for and disagreeing about everything else.
+        </p>
+        <ul className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {TRADITIONS.map((tradition, index) => (
+            <li
+              key={tradition.id}
+              className="jade-rise"
+              style={{ '--i': index } as React.CSSProperties}
+            >
+              <Link
+                href={`/learn/traditions/${tradition.id}`}
+                className="jade-panel jade-panel--interactive block h-full p-4"
+              >
+                <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--accent)]">
+                  {tradition.when}
+                </p>
+                <h3 className="mt-1 font-display text-xl font-semibold leading-tight">
+                  {tradition.name}
+                </h3>
+                <p className="mt-2 text-[13px] leading-snug text-[var(--ink-muted)]">
+                  {tradition.where}
+                </p>
+              </Link>
+            </li>
+          ))}
+        </ul>
+        <Link
+          href="/learn/traditions"
+          className="mt-4 inline-block font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--accent)] underline underline-offset-4"
+        >
+          how they differ, place by place →
+        </Link>
       </section>
 
       <div className="px-5 sm:px-8">

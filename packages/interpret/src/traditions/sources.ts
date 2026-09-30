@@ -270,6 +270,19 @@ export const SOURCES: readonly Source[] = [
 
 const BY_ID = new Map(SOURCES.map((source) => [source.id, source]));
 
+/**
+ * The sources a tradition rests on, in the order they are listed.
+ *
+ * The medical corpus is excluded by default rather than by the caller
+ * remembering to filter it: a reading may never cite it (CLAUDE.md #6), and the
+ * one surface that legitimately shows it — the history page — has to ask.
+ */
+export function sourcesFor(tradition: TraditionId, includeHistoryOnly = false): Source[] {
+  return SOURCES.filter(
+    (source) => source.tradition === tradition && (includeHistoryOnly || !source.historyOnly),
+  );
+}
+
 export function sourceById(id: string): Source | undefined {
   return BY_ID.get(id);
 }
