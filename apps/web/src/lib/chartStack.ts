@@ -82,6 +82,29 @@ export function serialiseStack(layers: readonly Layer[]): string {
   return layers.map(layerKey).join(',');
 }
 
+/**
+ * A day offset from a link, or null.
+ *
+ * Strict on purpose, and exported because the wheel still answers the older
+ * `?t=` parameter and that parameter used to be parsed with a bare `Number()`.
+ * `Number` is far too willing: it takes `0x10` as sixteen, `1e6` as a million,
+ * ` 5 ` as five, `''` as zero, and `Infinity` as itself. A million days put the
+ * transit ring in the year 4764 — drawn, labelled, and as confident as any
+ * other ring — and ninety-nine million threw a RangeError out of `toISOString`
+ * and replaced the whole page with an error boundary. Both from a link somebody
+ * could truncate by accident.
+ *
+ * So: digits, an optional minus, and inside the scrubber's own decade. One
+ * parser, used by the stack and by the legacy parameter, because two parsers
+ * for one value is how they came to disagree.
+ */
+export function parseOffsetDays(raw: string | undefined | null): number | null {
+  if (raw === undefined || raw === null) return null;
+  if (!/^-?\d{1,5}$/.test(raw)) return null;
+  const days = Number(raw);
+  return Math.abs(days) <= MAX_OFFSET ? days : null;
+}
+
 /** An ISO date that is also a real one: 2026-02-30 parses and is not a day. */
 function realDate(iso: string): boolean {
   if (!ISO_DATE.test(iso)) return false;
@@ -98,9 +121,8 @@ function parseLayer(token: string): Layer | null {
     case 'f:':
       return SLUG.test(value) ? { kind: 'figure', slug: value } : null;
     case 't:': {
-      if (!/^-?\d{1,5}$/.test(value)) return null;
-      const days = Number(value);
-      return Math.abs(days) <= MAX_OFFSET ? { kind: 'moment', at: { kind: 'offset', days } } : null;
+      const days = parseOffsetDays(value);
+      return days === null ? null : { kind: 'moment', at: { kind: 'offset', days } };
     }
     case 'd:':
       return realDate(value) ? { kind: 'moment', at: { kind: 'date', iso: value } } : null;

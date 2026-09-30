@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import {
   MAX_RINGS,
@@ -8,6 +10,7 @@ import {
   layerKey,
   momentJd,
   moveLayer,
+  parseOffsetDays,
   parseStack,
   removeLayer,
   serialiseStack,
@@ -195,4 +198,89 @@ describe('keys and defaults', () => {
   it('falls back to one person', () => {
     expect(defaultStack(PERSON)).toEqual([{ kind: 'person', id: PERSON }]);
   });
+});
+
+describe('a day offset from a link', () => {
+  /*
+   * `Number()` is the wrong tool and this is the list of reasons.
+   *
+   * Every one of these was accepted before the parser was shared: `?t=1e6`
+   * drew a transit ring for the year 4764 and labelled it like any other,
+   * `?t=99999999` threw a RangeError out of `toISOString` and replaced the
+   * whole wheel with an error boundary, and `?t=0x10` quietly meant sixteen
+   * days. None of them is a link a person wrote; all of them are links a
+   * person could receive.
+   */
+  it('refuses everything that is not a plain whole number of days', () => {
+    for (const raw of [
+      '1e6',
+      '0x10',
+      '1.5',
+      '-1.5',
+      ' 5',
+      '5 ',
+      '',
+      'NaN',
+      'Infinity',
+      '-Infinity',
+      '+5',
+      '99999999',
+      '1_000',
+      'five',
+    ]) {
+      expect(parseOffsetDays(raw), JSON.stringify(raw)).toBeNull();
+    }
+    expect(parseOffsetDays(undefined)).toBeNull();
+    expect(parseOffsetDays(null)).toBeNull();
+  });
+
+  it('accepts a whole number of days inside the scrubber’s range', () => {
+    expect(parseOffsetDays('0')).toBe(0);
+    expect(parseOffsetDays('-0')).toBe(-0);
+    expect(parseOffsetDays('7')).toBe(7);
+    expect(parseOffsetDays('-365')).toBe(-365);
+    expect(parseOffsetDays('3653')).toBe(3653);
+    expect(parseOffsetDays('-3653')).toBe(-3653);
+  });
+
+  it('stops at the edge of the range rather than near it', () => {
+    expect(parseOffsetDays('3654')).toBeNull();
+    expect(parseOffsetDays('-3654')).toBeNull();
+  });
+
+  /* The stack and the legacy parameter have to agree, which is the whole point
+     of there being one function. */
+  it('is the same rule the stack applies', () => {
+    for (const raw of ['1e6', '99999999', '1.5', '3654']) {
+      expect(parseStack(`t:${raw}`), raw).toEqual([]);
+    }
+    expect(parseStack('t:3653')).toEqual([{ kind: 'moment', at: { kind: 'offset', days: 3653 } }]);
+  });
+});
+
+describe('one parser, everywhere the offset is read', () => {
+  /*
+   * Three places read `?t=`: the wheel page on the server, the wheel workspace
+   * in the browser, and the stack. They each had their own parse, and they
+   * disagreed — `Number` on the page, `Number.parseInt` in the browser, a
+   * regex in the stack. `?t=1e6` meant a million days on the server and one
+   * day in the browser, which is two different skies drawn from one link.
+   *
+   * A source check rather than a behavioural one, because the failure is a
+   * second parser appearing rather than an existing one misbehaving, and by
+   * the time it misbehaves the disagreement is already shipped.
+   */
+  const SOURCES = ['../app/wheel/page.tsx', '../components/WheelWorkspace.tsx'];
+
+  for (const relative of SOURCES) {
+    it(`${relative.split('/').pop()} reads the offset through parseOffsetDays`, () => {
+      const source = readFileSync(fileURLToPath(new URL(relative, import.meta.url)), 'utf8');
+
+      expect(source).toContain('parseOffsetDays');
+      /* The three spellings that used to be here. */
+      expect(source).not.toMatch(/Number\.parseInt\(\s*offset/);
+      expect(source).not.toMatch(/Number\(\s*transitParam\s*\)/);
+      expect(source).not.toMatch(/Number\(\s*offsetRaw\s*\)/);
+    });
+  }
 });

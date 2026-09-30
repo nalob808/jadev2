@@ -28,7 +28,13 @@ import { ChartMenu, type MenuPerson } from '@/components/ChartMenu';
 import { bhavaOverlayFor } from '@/lib/houseSystems';
 import { SpacetimeNavigator } from '@/components/SpacetimeNavigator';
 import { aspectSettingsOrDefaults } from '@/lib/aspectForm';
-import { parseStack, serialiseStack, stackFromLegacy, type Layer } from '@/lib/chartStack';
+import {
+  type Layer,
+  parseOffsetDays,
+  parseStack,
+  serialiseStack,
+  stackFromLegacy,
+} from '@/lib/chartStack';
 
 export const dynamic = 'force-dynamic';
 
@@ -352,8 +358,17 @@ export default async function WheelPage({
     ...(overlayFigure ? ([{ kind: 'figure', slug: overlayFigure.slug }] as Layer[]) : []),
   ];
 
-  const transitOffset = Number(transitParam);
-  const showsTransits = transitParam !== undefined && Number.isFinite(transitOffset);
+  /*
+   * The older `?t=` parameter, through the same parser the stack uses.
+   *
+   * It was a bare numeric coercion guarded by `Number.isFinite`, which let
+   * `?t=1000000` draw a transit ring for the year 4764 and `?t=99999999` throw
+   * a RangeError out of `toISOString` and replace the page with an error
+   * boundary. Two parsers for one value, and they disagreed.
+   */
+  const parsedOffset = parseOffsetDays(transitParam);
+  const showsTransits = parsedOffset !== null;
+  const transitOffset = parsedOffset ?? 0;
   const transitDate = showsTransits
     ? new Date(unixMsFromJd(clock.nowJd + transitOffset)).toISOString().slice(0, 10)
     : null;

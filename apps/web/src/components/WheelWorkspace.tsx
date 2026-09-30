@@ -12,6 +12,7 @@ import {
 } from '@jade/ui';
 import { AutoTerms, Scope, T } from './Glossary';
 import { TransitScrubber, type ScrubberNatal } from './TransitScrubber';
+import { parseOffsetDays } from '@/lib/chartStack';
 import type { RingFrame } from '@/lib/transitRing';
 import type { FocusFacts } from '@/lib/focusIndex';
 
@@ -150,10 +151,20 @@ export function WheelWorkspace({
    * `t=0` therefore means "transits, today" and no `t` at all means "no
    * transits" — a distinction a plain number could not carry.
    */
+  /*
+   * The same parser the page and the stack use.
+   *
+   * This was a third reading of one value — an integer coercion — and it
+   * disagreed with the other two on almost everything interesting. `?t=1e6`
+   * was a million days to the page and one day here; `?t=0x10` was sixteen
+   * there and zero here; `?t=99999999` was accepted here and overflowed a
+   * `Date` two components down, taking the wheel out with it. The browser and
+   * the server have to be looking at the same sky.
+   */
   const offsetRaw = params.get('t');
-  const transitsRequested = offsetRaw !== null;
-  const offsetParsed = Number.parseInt(offsetRaw ?? '0', 10);
-  const offsetDays = Number.isFinite(offsetParsed) ? offsetParsed : 0;
+  const offsetParsed = parseOffsetDays(offsetRaw);
+  const transitsRequested = offsetParsed !== null;
+  const offsetDays = offsetParsed ?? 0;
 
   const setOffset = useCallback(
     (days: number | null): void => {
