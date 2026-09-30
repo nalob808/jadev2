@@ -116,13 +116,25 @@ export function SubjectBar({
   );
 }
 
+/**
+ * How wide the page is allowed to get.
+ *
+ * `reading` is the default and the right answer nearly everywhere: prose and
+ * forms stop being readable long before they stop fitting. `wide` is for the
+ * wheel, where the chart is the content — a circle in a 64rem column with two
+ * rails beside it is a circle the size of a coin.
+ */
+export type ShellWidth = 'reading' | 'wide';
+
 export function Shell({
   children,
   email,
   subject,
+  width = 'reading',
 }: {
   children: React.ReactNode;
   email?: string | undefined;
+  width?: ShellWidth;
   /**
    * The person this page is about, when it is about one.
    *
@@ -140,7 +152,11 @@ export function Shell({
     | undefined;
 }) {
   return (
-    <div className="mx-auto max-w-5xl px-5 pb-24 pt-7 sm:px-8">
+    <div
+      className={`mx-auto px-5 pb-24 pt-7 sm:px-8 ${
+        width === 'wide' ? 'max-w-[100rem]' : 'max-w-5xl'
+      }`}
+    >
       <Nav email={email} />
       {subject ? <SubjectBar {...subject} /> : null}
       {children}

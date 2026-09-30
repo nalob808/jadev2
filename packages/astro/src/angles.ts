@@ -32,6 +32,10 @@ export function tanDeg(x: number): number {
   return Math.tan(x * DEG);
 }
 
+export function asinDeg(x: number): number {
+  return (Math.asin(Math.min(1, Math.max(-1, x))) * 180) / Math.PI;
+}
+
 export function atan2Deg(y: number, x: number): number {
   return Math.atan2(y, x) / DEG;
 }

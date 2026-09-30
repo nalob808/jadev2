@@ -1,5 +1,5 @@
 import type { EphemerisProvider } from './ephemeris/provider.js';
-import { computeAngles, houseOf, wholeSignCusps } from './houses.js';
+import { HouseSystemUndefinedError, computeAngles, houseCusps, houseOfCusps } from './houses.js';
 import { nakshatraOf } from './nakshatra.js';
 import { ayanamsa } from './sidereal/ayanamsa.js';
 import { jdTtFromJdUt } from './time.js';
@@ -22,6 +22,7 @@ import {
   SIGNS,
   type BirthMoment,
   type ChartSettings,
+  type HouseSystem,
   type PointId,
   type PointPosition,
 } from './types.js';
@@ -46,9 +47,22 @@ export interface ComputedChart {
   readonly sunrise: number | null;
   readonly sunset: number | null;
   readonly houses: {
+    /** The system the cusps were actually drawn in. */
     readonly system: string;
+    /**
+     * The system the settings asked for.
+     *
+     * Equal to `system` except where the requested one has no answer for this
+     * chart — Placidus above the polar circles — in which case `note` says so.
+     * Two fields rather than one because a chart has to be able to state that
+     * it is not what was asked for; quietly returning the substitute is the
+     * failure CLAUDE.md #3 names.
+     */
+    readonly requested: string;
     readonly cusps: number[];
     readonly ascendantSign: number;
+    /** Why `system` differs from `requested`, in a sentence fit to show. */
+    readonly note: string | null;
   };
   readonly vargas: Record<string, Record<VargaId, number>>;
   readonly vargottama: string[];
@@ -85,6 +99,27 @@ export function computeChart(
   const angles = computeAngles(provider, jdUt, location);
   const siderealAscendant = norm360(angles.ascendantTropical - ayanamsaValue);
 
+  /*
+   * The houses, before any graha is placed, because every graha needs them.
+   *
+   * A quadrant system can have no answer at this latitude. When that happens
+   * the chart is drawn in whole sign and says which system it is in and why,
+   * rather than either failing outright — leaving somebody born in Tromsø with
+   * no chart at all — or substituting in silence.
+   */
+  const houseFrame = { angles, latitude: location.latitude, ayanamsa: ayanamsaValue };
+  let houseSystem: HouseSystem = settings.houseSystem;
+  let houseNote: string | null = null;
+  let cusps: number[];
+  try {
+    cusps = houseCusps(houseSystem, houseFrame);
+  } catch (error) {
+    if (!(error instanceof HouseSystemUndefinedError)) throw error;
+    houseNote = `${error.message}. Drawn in whole sign instead.`;
+    houseSystem = 'whole_sign';
+    cusps = houseCusps(houseSystem, houseFrame);
+  }
+
   const bodies: PointId[] = [...GRAHAS, ...(settings.includeOuters ? OUTERS : [])];
   const points: Record<string, PointPosition> = {};
 
@@ -113,7 +148,7 @@ export function computeChart(
       sign: SIGNS[signIndex]!,
       degreesInSign: longitude - signIndex * 30,
       nakshatra: nakshatraOf(longitude),
-      house: houseOf(longitude, siderealAscendant, settings.houseSystem),
+      house: houseOfCusps(longitude, cusps),
     };
   };
 
@@ -183,9 +218,11 @@ export function computeChart(
     sunrise,
     sunset,
     houses: {
-      system: settings.houseSystem,
-      cusps: wholeSignCusps(siderealAscendant),
+      system: houseSystem,
+      requested: settings.houseSystem,
+      cusps,
       ascendantSign: Math.floor(siderealAscendant / 30),
+      note: houseNote,
     },
     vargas,
     vargottama,

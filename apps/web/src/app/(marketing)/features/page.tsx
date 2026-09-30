@@ -25,7 +25,7 @@ const GROUPS = [
     points: [
       'D1 through D60, on their own ascendants',
       'The ṣoḍaśavarga contact sheet at a glance',
-      'Whole sign and equal houses, stated explicitly',
+      'Whole sign, equal, Śrīpati and Placidus houses, stated explicitly',
       'Nine grahas including Rāhu and Ketu, mean or true',
     ],
   },

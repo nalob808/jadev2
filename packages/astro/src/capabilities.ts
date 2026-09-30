@@ -5,34 +5,34 @@ import type { HouseSystem } from './types.js';
  * What the calculation core can actually do today.
  *
  * This exists because the type system and the database both describe a wider
- * world than the implementation occupies. `HouseSystem` names four systems and
- * the `house_system` enum in Postgres accepts all four, but `houseOf` handles
- * two and throws on the rest — deliberately, because a quadrant system that
- * has not been verified against a reference has no business producing house
- * placements someone might act on.
- *
- * That leaves a gap: the database will happily store `sripati`, and the crash
- * arrives later, on a page render, for a person whose settings were saved
- * successfully. The guard belongs at the boundary where the value is chosen,
- * not at the bottom of the stack where it is used.
+ * world than the implementation occupies. A house system named by the type and
+ * accepted by the `house_system` enum in Postgres is not the same thing as a
+ * house system with cusps somebody can act on, and the gap used to be a crash:
+ * the database stored `sripati` happily and the failure arrived later, on a
+ * page render, for a person whose settings had saved successfully.
  *
  * So: any UI that offers a choice reads its options from here, and any writer
- * validates against here. When Śrīpati ships, this list is the one place that
- * changes, and the throw in `houseOf` becomes unreachable rather than wrong.
+ * validates against here. When a system ships, this list is the one place that
+ * changes.
+ *
+ * All four house systems are now implemented and checked against Swiss
+ * Ephemeris in `test/houses.test.ts` — Placidus and Porphyry directly, Śrīpati
+ * through the Porphyry madhyas it is built from. `PLANNED_HOUSE_SYSTEMS` is
+ * kept, empty, because the next system to be named by the type will need it
+ * again and an empty list is a better instruction than a deleted one.
  */
 
 export const IMPLEMENTED_HOUSE_SYSTEMS = [
   'whole_sign',
   'equal',
+  'sripati',
+  'placidus',
 ] as const satisfies readonly HouseSystem[];
 
 export type ImplementedHouseSystem = (typeof IMPLEMENTED_HOUSE_SYSTEMS)[number];
 
 /** House systems named by the type but not yet built, with why. */
-export const PLANNED_HOUSE_SYSTEMS: ReadonlyArray<{ id: HouseSystem; note: string }> = [
-  { id: 'sripati', note: 'needs verification against a reference implementation' },
-  { id: 'placidus', note: 'needs verification against a reference implementation' },
-];
+export const PLANNED_HOUSE_SYSTEMS: ReadonlyArray<{ id: HouseSystem; note: string }> = [];
 
 export function isImplementedHouseSystem(value: string): value is ImplementedHouseSystem {
   return (IMPLEMENTED_HOUSE_SYSTEMS as readonly string[]).includes(value);

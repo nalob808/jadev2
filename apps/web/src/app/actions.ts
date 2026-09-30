@@ -485,7 +485,7 @@ export async function updateSettings(formData: FormData): Promise<void> {
     name: read('name') || 'Default',
     ayanamsa,
     customAyanamsaAtJ2000,
-    nodeType: read('nodeType') === 'true' ? 'true' : 'mean',
+    nodeType: read('nodes') === 'true' ? 'true' : 'mean',
     houseSystem,
     positionBasis: read('positionBasis') === 'true' ? 'true' : 'apparent',
     chartStyle,

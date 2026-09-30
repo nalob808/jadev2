@@ -331,3 +331,34 @@ describe('rectify', () => {
     expect(RECTIFICATION_CAVEAT.toLowerCase()).toContain('never as a corrected birth time');
   });
 });
+
+describe('the house system the sweep is read in', () => {
+  const window = {
+    location: { latitude: 42.2808, longitude: -83.743 },
+    fromJd: 2452221.0,
+    toJd: 2452221.1,
+    stepMinutes: 30,
+    events: [],
+  };
+
+  it('uses what was asked for when the rules can be read in it', () => {
+    for (const system of ['whole_sign', 'equal'] as const) {
+      const result = rectify(new AstronomyEngineProvider(), { ...window, houseSystem: system });
+      expect(result.houseSystemUsed).toBe(system);
+      expect(result.houseSystemRequested).toBe(system);
+    }
+  });
+
+  /*
+   * A quadrant system is not refused — somebody whose settings say Placidus
+   * should still be able to rectify — but the result has to say that the rules
+   * were read in rāśi, because that is what the rules mean.
+   */
+  it('falls back to whole sign for a quadrant system, and records both', () => {
+    for (const system of ['sripati', 'placidus'] as const) {
+      const result = rectify(new AstronomyEngineProvider(), { ...window, houseSystem: system });
+      expect(result.houseSystemUsed).toBe('whole_sign');
+      expect(result.houseSystemRequested).toBe(system);
+    }
+  });
+});

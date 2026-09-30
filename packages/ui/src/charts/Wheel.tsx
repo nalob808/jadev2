@@ -3,7 +3,14 @@
 import { useMemo, useState } from 'react';
 import { GLYPHS } from '../tokens.js';
 import { GlyphGroup, GRAHA_NATURE, hasGlyph, SIGN_NAMES as GLYPH_SIGN_NAMES } from '../glyphs.js';
-import { angleFor, annulusSector, degreesLabel, spread, svgPolar } from './wheelGeometry.js';
+import {
+  angleFor,
+  annulusSector,
+  degreesLabel,
+  mod360,
+  spread,
+  svgPolar,
+} from './wheelGeometry.js';
 
 /**
  * The circular chart, and the one screen in Jade a practitioner operates
@@ -101,6 +108,15 @@ export interface WheelProps {
    * is read as doing. Drawn as a second, dashed set of spokes so the
    * difference is visible rather than asserted.
    */
+  /**
+   * The twelve cusps the house NUMBERS are drawn from, sidereal.
+   *
+   * Absent means whole sign — a house is a sign, and the numbers sit in the
+   * middle of each one. Present means the chart is in a system where they do
+   * not, and a number placed a fixed 15° into a sign would be sitting in the
+   * wrong sector while the panel beside the wheel said otherwise.
+   */
+  readonly houseCusps?: readonly number[];
   readonly bhavaCusps?: readonly number[];
   /** Names the frame `bhavaCusps` was computed in, so the overlay can say so. */
   readonly bhavaLabel?: string;
@@ -254,6 +270,7 @@ export function Wheel({
   degreeAspects = [],
   transits = [],
   sarva = [],
+  houseCusps = [],
   bhavaCusps = [],
   bhavaLabel = 'equal from the lagna degree',
   size = 520,
@@ -276,7 +293,13 @@ export function Wheel({
     signs: true,
     degrees: false,
     aspects: false,
-    degreeAspects: false,
+    /*
+     * On when there are any, like the transit ring above — the lens line under
+     * the wheel already names how many aspects the settings produced, and a
+     * count of five beside a chart drawing none is the wheel disagreeing with
+     * its own caption.
+     */
+    degreeAspects: degreeAspects.length > 0,
     nakshatras: false,
     transits: transits.length > 0,
     elements: true,
@@ -441,9 +464,11 @@ export function Wheel({
         {on.chalit && bhavaCusps.length === 12
           ? bhavaCusps.map((cusp, houseIndex) => {
               const angle = angleFor(cusp, ascendant);
+              const span = mod360(bhavaCusps[(houseIndex + 1) % 12]! - cusp);
               const [x1, y1] = svgPolar(cx, cy, rInner, angle);
               const [x2, y2] = svgPolar(cx, cy, rOuter, angle);
-              const [lx, ly] = svgPolar(cx, cy, rInner - 2.4, angle + 15);
+              /* Half its own house along, because bhāva houses are unequal. */
+              const [lx, ly] = svgPolar(cx, cy, rInner - 2.4, angle + span / 2);
               return (
                 <g key={`chalit-${houseIndex}`}>
                   <line
@@ -543,11 +568,47 @@ export function Wheel({
           />
         ))}
 
-        {/* House cusps and numbers. Whole sign, so a cusp is a sign boundary. */}
+        {/*
+          The house boundaries themselves, when they are not sign boundaries.
+
+          Under whole sign the zodiac ring already draws them and a second set
+          of lines on top says nothing. Under any other system the numbers below
+          would otherwise be floating in sectors nobody can see the edges of.
+        */}
+        {houseCusps.length === 12 && houseCusps.some((cusp) => mod360(cusp) % 30 > 1e-6)
+          ? houseCusps.map((cusp, houseIndex) => {
+              const angle = angleFor(cusp, ascendant);
+              const [x1, y1] = svgPolar(cx, cy, rInner, angle);
+              const [x2, y2] = svgPolar(cx, cy, rSign, angle);
+              return (
+                <line
+                  key={`house-cusp-${houseIndex}`}
+                  x1={x1}
+                  y1={y1}
+                  x2={x2}
+                  y2={y2}
+                  stroke="var(--ink-faint, #7C8A95)"
+                  strokeWidth={0.3}
+                  opacity={0.8}
+                />
+              );
+            })
+          : null}
+
+        {/*
+          House numbers, each in the middle of its own house.
+
+          Whole sign puts them 15° into a sign because a house IS a sign there.
+          Every other system has houses of different widths — at high latitude
+          very different — so the number is placed by the cusps the chart was
+          actually drawn with.
+        */}
         {Array.from({ length: 12 }, (_, i) => {
-          const cuspLongitude = firstCuspLongitude + i * 30;
+          const usable = houseCusps.length === 12;
+          const cuspLongitude = usable ? houseCusps[i]! : firstCuspLongitude + i * 30;
+          const span = usable ? mod360(houseCusps[(i + 1) % 12]! - cuspLongitude) : 30;
           const start = angleFor(cuspLongitude, ascendant);
-          const [lx, ly] = svgPolar(cx, cy, rInner, start + 15);
+          const [lx, ly] = svgPolar(cx, cy, rInner, start + span / 2);
           return on.houses ? (
             <text
               key={`house-${i}`}
@@ -882,9 +943,9 @@ export function Wheel({
           ) : null}
           {on.chalit ? (
             <p className="font-mono text-[10.5px] leading-relaxed text-[var(--ink-muted)]">
-              <span className="text-[var(--clay)]">Bhāva chalit</span> — cusps {bhavaLabel}. Where a
-              dashed spoke falls between a graha and its sign boundary, that graha sits in a
-              different bhāva than the whole-sign house it is drawn in.
+              <span className="text-[var(--clay)]">Bhāva chalit</span> — cusps {bhavaLabel}. A graha
+              with a dashed spoke between it and its sign boundary is in a different house from its
+              sign, which is the whole reason to draw both.
             </p>
           ) : null}
         </div>

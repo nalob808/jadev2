@@ -16,6 +16,11 @@
  * exact bug that shipped once in this codebase's overlay wheel, found only by
  * looking at a picture.
  */
+/** A longitude difference brought into [0, 360). */
+export function mod360(value: number): number {
+  return ((value % 360) + 360) % 360;
+}
+
 export function angleFor(longitude: number, ascendant: number): number {
   return (((longitude - ascendant) % 360) + 360) % 360;
 }

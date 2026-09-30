@@ -116,7 +116,12 @@ export default async function ChartReportPage({
         birthEvent.utcOffsetMinutes,
       )} · ${birthEvent.placeName}`}
       meta={{
-        lens: `${profile.ayanamsa} ayanāṁśa · ${profile.nodeType} nodes · ${profile.houseSystem.replace(
+        /*
+         * `chart.houses.system`, not the profile's. A printed report is the
+         * copy that outlives the screen, so the one place it must not be able
+         * to name a system the chart was not drawn in is here.
+         */
+        lens: `${profile.ayanamsa} ayanāṁśa · ${profile.nodeType} nodes · ${chart.houses.system.replace(
           '_',
           ' ',
         )} houses · ${profile.positionBasis} positions`,

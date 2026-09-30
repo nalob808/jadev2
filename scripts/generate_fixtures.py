@@ -113,6 +113,33 @@ def sidereal_chart(y, m, d, hour, lat, lon, node_type="mean"):
     cusps_sid, ascmc_sid = swe.houses_ex(jd, lat, lon, b"W", swe.FLG_SIDEREAL)
     cusps_trop, ascmc_trop = swe.houses_ex(jd, lat, lon, b"W")
 
+    # Quadrant cusps, recorded in BOTH frames on purpose.
+    #
+    # The tropical set is pure spherical geometry — sidereal time, obliquity,
+    # latitude — and nothing else, so a test against it isolates the house
+    # algorithm from the ayanamsa. The sidereal set is what Jade actually draws,
+    # so it is checked too; a disagreement between the two says which half
+    # moved.
+    #
+    # 'P' is Placidus. 'O' is Porphyry, which is where Sripati starts: the
+    # Porphyry cusps ARE the Sripati bhava madhyas, and the bhava boundaries are
+    # the midpoints between consecutive madhyas. Swiss Ephemeris has no Sripati
+    # of its own, so this is the furthest a reference implementation can carry
+    # it; the midpoint step is exact arithmetic and is tested as such.
+    def _quadrant(code):
+        try:
+            sid = swe.houses_ex(jd, lat, lon, code, swe.FLG_SIDEREAL)[0]
+            trop = swe.houses_ex(jd, lat, lon, code)[0]
+        except Exception:
+            # Placidus is undefined where a cusp's ecliptic point never rises.
+            # Swiss Ephemeris refuses rather than substituting another system,
+            # and so does Jade.
+            return None, None
+        return list(trop), list(sid)
+
+    placidus_trop, placidus_sid = _quadrant(b"P")
+    porphyry_trop, porphyry_sid = _quadrant(b"O")
+
     ecl_nut = swe.calc_ut(jd, swe.ECL_NUT, swe.FLG_SWIEPH)[0]
 
     # Pañcāṅga, computed here from Swiss Ephemeris' own longitudes so the
@@ -167,6 +194,11 @@ def sidereal_chart(y, m, d, hour, lat, lon, node_type="mean"):
         "ascendantTropical": ascmc_trop[0],
         "midheavenTropical": ascmc_trop[1],
         "wholeSignCuspsSidereal": list(cusps_sid),
+        "ramc": ascmc_trop[2],
+        "placidusCuspsTropical": placidus_trop,
+        "placidusCuspsSidereal": placidus_sid,
+        "porphyryCuspsTropical": porphyry_trop,
+        "porphyryCuspsSidereal": porphyry_sid,
         "panchanga": panchanga,
         "sunrise": sunrise,
         "sunset": sunset,

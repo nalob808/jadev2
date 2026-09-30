@@ -32,7 +32,7 @@ as the Moon's position.
 | Rāhu/Ketu (mean and true)          | 1.0″                                             |
 | Ascendant / MC                     | 2.0″                                             |
 | Ayanāṁśa                           | 0.1″                                             |
-| House cusps (non-whole-sign)       | 2.0″                                             |
+| House cusps (non-whole-sign)       | 2.0″ — met; worst measured under 0.001″          |
 | Varga sign assignment              | exact match, no tolerance                        |
 | Nakṣatra + pada                    | exact match                                      |
 | Daśā period boundaries             | 60 s (given a stated year-length convention)     |
@@ -105,6 +105,14 @@ The eighteenth fixture, `arctic-tromso`, cannot be compared: PyJHora computes
 the ascendant through Placidus, which is undefined above the Arctic Circle, and
 `swe.houses_ex` errors. Jade uses whole-sign and returns a correct ascendant
 there, which is why that fixture exists.
+
+That fixture now earns its keep twice. `swisseph-golden.json` records
+`placidusCuspsSidereal: null` for it — Swiss Ephemeris itself refused — and
+`test/houses.test.ts` asserts that Jade refuses in the same place, with a
+`HouseSystemUndefinedError` naming the cusp and the latitude, rather than
+substituting Porphyry the way most software does. Every other chart in the set
+carries Placidus and Porphyry cusps in both the tropical and the sidereal frame,
+so a failure says which half moved.
 
 **PyJHora is AGPL-3.0, and must never enter Jade.** Linking it — even
 server-side, even privately — is exactly the trap Swiss Ephemeris sets: the

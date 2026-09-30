@@ -78,6 +78,15 @@ Moon 12, Mars 17, Mercury 14 (12 retro), Jupiter 11, Venus 10 (8 retro), Saturn 
 - **Bhāva chalit** as a parallel view: Śrīpati (equal-from-midpoint), Porphyry, KP/Placidus.
   Show both, because a planet at 29° of the 1st rāśi is often in the 2nd bhāva and this is
   exactly where practitioners argue.
+- **Shipped.** All four are implemented in `packages/astro/src/houses.ts` and checked against
+  Swiss Ephemeris in `packages/astro/test/houses.test.ts`. Placidus and Porphyry are compared
+  to the reference directly; Śrīpati has no reference implementation, so it is pinned through
+  the Porphyry cusps it is built from — the Porphyry longitudes are the bhāva **madhyas**, and
+  a bhāva **sandhi** is the midpoint of two consecutive madhyas.
+- **Placidus has no answer above the polar circles**, where a cusp's ecliptic point never sets.
+  Jade throws `HouseSystemUndefinedError` there, `computeChart` catches it, draws the chart in
+  whole sign, and puts the reason in `chart.houses.note` — which the wheel and every report
+  print. It does not substitute in silence (non-negotiable #3).
 - House significations (kāraka + bhāvat bhāvam) are data, not code.
 
 ## 4. Divisional charts (vargas)

@@ -1,7 +1,6 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import {
   Glyph,
@@ -20,9 +19,9 @@ import type { FocusFacts } from '@/lib/focusIndex';
  * The wheel as a workspace rather than a figure on somebody's page.
  *
  * Everything on this screen reads one piece of state — which graha is focused —
- * so selecting Saturn in the wheel lights its row in the rail, swaps the panel,
- * and dims the rest of the chart together. Three separate widgets sharing a
- * page would each have needed their own; one focus makes it an instrument.
+ * so selecting Saturn in the wheel swaps the panel beside it and dims the rest
+ * of the chart in the same gesture. Three separate widgets sharing a page would
+ * each have needed their own; one focus makes it an instrument.
  *
  * Selection is held here rather than inside the wheel because the panel beside
  * it needs to read the same value. The wheel keeps its own internal state when
@@ -30,48 +29,7 @@ import type { FocusFacts } from '@/lib/focusIndex';
  * library still rely on.
  */
 
-/**
- * Which surface is mounting the wheel.
- *
- * `workspace` is `/wheel`: the chart with the people rail beside it and the
- * overlay picker, because switching subject is the point of that page.
- * `inline` is the person page, where the subject is already decided and a rail
- * of other people would be an invitation to leave.
- *
- * Everything else — the layer toggles, click-to-isolate, the focus panel, the
- * dṛṣṭi, the aṣṭakavarga shading — is identical, which is the whole point.
- * Before this, the person page got a picture and `/wheel` got an instrument,
- * and a reader had to know which page they were on to know what a click would
- * do.
- */
-export type WheelVariant = 'workspace' | 'inline';
-
-export interface WorkspacePerson {
-  readonly id: string;
-  readonly name: string;
-  readonly born: string;
-}
-
-/**
- * A public figure, offered for the outer ring.
- *
- * Deliberately a different shape from `WorkspacePerson`: a library figure is
- * not one of your people, does not count against the plan, and is addressed by
- * slug rather than by a workspace-scoped id. Keeping the types apart is what
- * stops the two lists getting merged by a later convenience.
- */
-export interface LibraryFigure {
-  readonly slug: string;
-  readonly name: string;
-  readonly born: string;
-  /** Rodden grade — never dropped, so a guessed birth time is never presented as attested. */
-  readonly rodden: string;
-}
-
 export function WheelWorkspace({
-  people,
-  currentId,
-  overlayId,
   points,
   aspects,
   degreeAspects = [],
@@ -83,19 +41,15 @@ export function WheelWorkspace({
   facts,
   lens,
   timeCaveat,
-  variant = 'workspace',
+  houseCusps,
   bhavaCusps,
   bhavaLabel,
   transitFrame,
   scrubberNatal,
   todayJd,
-  figures = [],
-  figureSlug = null,
   lensMismatch = null,
+  houseNote = null,
 }: {
-  people: readonly WorkspacePerson[];
-  currentId: string;
-  overlayId: string | null;
   points: readonly WheelPoint[];
   aspects: readonly WheelAspect[];
   /**
@@ -115,7 +69,8 @@ export function WheelWorkspace({
   lens: string;
   /** Present when the birth time is uncertain, so the wheel says so. */
   timeCaveat: string | null;
-  variant?: WheelVariant;
+  /** The cusps the house numbers are drawn from. Omit for whole sign. */
+  houseCusps?: readonly number[];
   bhavaCusps?: readonly number[];
   bhavaLabel?: string;
   /**
@@ -131,11 +86,10 @@ export function WheelWorkspace({
   transitFrame?: RingFrame;
   scrubberNatal?: ScrubberNatal;
   todayJd?: number;
-  /** Public figures that can be loaded onto the outer ring. Timed ones only. */
-  figures?: readonly LibraryFigure[];
-  figureSlug?: string | null;
   /** Set when the figure's fixed lens differs from this workspace's. */
   lensMismatch?: string | null;
+  /** Set when the chart is not in the house system the settings asked for. */
+  houseNote?: string | null;
 }): React.ReactElement {
   const router = useRouter();
   const pathname = usePathname();
@@ -263,135 +217,18 @@ export function WheelWorkspace({
 
   const outerRing = overlayHasRing ? overlayPoints : transitPoints;
 
-  const showRail = variant === 'workspace';
-
-  /**
-   * Navigate the workspace.
-   *
-   * `overlay` and `figure` are mutually exclusive by construction rather than
-   * by convention — the wheel has one outer ring, and letting both into the URL
-   * would make the page pick one silently.
-   */
-  const go = (personId: string, overlay: string | null, figure: string | null = null): void => {
-    const query = new URLSearchParams({ person: personId });
-    if (overlay) query.set('overlay', overlay);
-    else if (figure) query.set('figure', figure);
-    router.push(`/wheel?${query.toString()}`);
-  };
-
   return (
-    <div
-      className={
-        showRail
-          ? 'grid gap-5 lg:grid-cols-[15rem_minmax(0,1fr)_19rem]'
-          : 'grid gap-5 lg:grid-cols-[minmax(0,1fr)_19rem]'
-      }
-    >
-      {/* ------------------------------------------------------- the people */}
-      {showRail ? (
-        <aside className="order-2 lg:order-1">
-          <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--ink-faint)]">
-            Your people
-          </p>
-          <ul className="mt-2 flex flex-col gap-1">
-            {people.map((person) => {
-              const current = person.id === currentId;
-              return (
-                <li key={person.id}>
-                  <button
-                    type="button"
-                    onClick={() => go(person.id, overlayId)}
-                    aria-current={current ? 'true' : undefined}
-                    className={`w-full border px-3 py-2 text-left transition-colors ${
-                      current
-                        ? 'border-[var(--accent)] bg-[var(--surface)]'
-                        : 'border-[var(--rule)] hover:border-[var(--accent)]'
-                    }`}
-                  >
-                    <span className="block font-display text-lg leading-tight">{person.name}</span>
-                    <span className="block font-mono text-[10px] text-[var(--ink-faint)]">
-                      {person.born}
-                    </span>
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
-
-          {/* ------------------------------------------------------ overlay */}
-          <p className="mt-5 font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--ink-faint)]">
-            Overlay a second chart
-          </p>
-          <p className="mt-1 text-[12px] leading-relaxed text-[var(--ink-muted)]">
-            Their grahas ride the outer ring against this chart&rsquo;s houses.
-          </p>
-          <select
-            value={overlayId ?? ''}
-            onChange={(event) => go(currentId, event.target.value || null, null)}
-            aria-label="Overlay another person's chart"
-            className="mt-2 w-full border border-[var(--rule)] bg-[var(--surface)] px-2 py-1.5 text-sm"
-          >
-            <option value="">Nobody — this chart alone</option>
-            {people
-              .filter((person) => person.id !== currentId)
-              .map((person) => (
-                <option key={person.id} value={person.id}>
-                  {person.name}
-                </option>
-              ))}
-          </select>
-          {overlayId ? (
-            <Link
-              href={`/relationships`}
-              className="mt-2 inline-block font-mono text-[10px] uppercase tracking-wider text-[var(--accent)] underline underline-offset-2"
-            >
-              Read them together →
-            </Link>
-          ) : null}
-
-          {/* ------------------------------------------------- the library */}
-          {figures.length > 0 ? (
-            <>
-              <p className="mt-5 flex items-baseline justify-between font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--ink-faint)]">
-                <span>From the library</span>
-                <span>{figures.length}</span>
-              </p>
-              <p className="mt-1 text-[12px] leading-relaxed text-[var(--ink-muted)]">
-                A public chart on the outer ring, against this chart&rsquo;s houses. Not added to
-                your people and not counted against your plan.
-              </p>
-              <select
-                value={figureSlug ?? ''}
-                onChange={(event) => go(currentId, null, event.target.value || null)}
-                aria-label="Overlay a chart from the public library"
-                className="mt-2 w-full border border-[var(--rule)] bg-[var(--surface)] px-2 py-1.5 text-sm"
-              >
-                <option value="">Nobody from the library</option>
-                {figures.map((figure) => (
-                  <option key={figure.slug} value={figure.slug}>
-                    {figure.name} · {figure.born.slice(0, 4)} · Rodden {figure.rodden}
-                  </option>
-                ))}
-              </select>
-              {figureSlug ? (
-                <Link
-                  href={`/charts/${figureSlug}`}
-                  className="mt-2 inline-block font-mono text-[10px] uppercase tracking-wider text-[var(--accent)] underline underline-offset-2"
-                >
-                  Their own page →
-                </Link>
-              ) : null}
-              <p className="mt-1.5 font-mono text-[9.5px] leading-relaxed text-[var(--ink-faint)]">
-                Only figures with an attested birth time are listed — an untimed chart has no
-                ascendant, so it has no houses to draw.
-              </p>
-            </>
-          ) : null}
-        </aside>
-      ) : null}
-
+    /*
+     * Wheel then panel, and nothing else in the row.
+     *
+     * The picker rail that used to sit on the left is gone: the chart stack
+     * owns which charts are on the wheel now, and two columns of choosers meant
+     * the wheel itself — the thing the page is for — was the narrowest column
+     * on the screen.
+     */
+    <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_19rem]">
       {/* -------------------------------------------------------- the wheel */}
-      <div className="order-1 min-w-0 lg:order-2">
+      <div className="min-w-0">
         {overlayName ? (
           <p className="mb-2 flex flex-wrap items-center gap-x-3 font-mono text-[10px] uppercase tracking-[0.14em]">
             <span className="text-[var(--ink)]">inner · this chart</span>
@@ -414,6 +251,7 @@ export function WheelWorkspace({
           ascendant={ascendant}
           ascendantSign={ascendantSign}
           sarva={sarva}
+          houseCusps={houseCusps}
           bhavaCusps={bhavaCusps}
           bhavaLabel={bhavaLabel}
           focus={focus}
@@ -427,6 +265,18 @@ export function WheelWorkspace({
         {timeCaveat ? (
           <p className="mt-1 border-l-2 border-[var(--clay)] py-1 pl-2 text-[12px] leading-relaxed text-[var(--ink-muted)]">
             {timeCaveat}
+          </p>
+        ) : null}
+        {/*
+          The requested house system had no answer at this latitude.
+
+          Stated here, in the same place and the same shape as the other things
+          the chart is not — a substituted system the reader cannot see is the
+          failure CLAUDE.md #3 names, and the wheel is where they are looking.
+        */}
+        {houseNote ? (
+          <p className="mt-1 border-l-2 border-[var(--clay)] bg-[var(--band-difficult-wash)] py-1 pl-2 text-[12px] leading-relaxed text-[var(--ink-muted)]">
+            {houseNote}
           </p>
         ) : null}
         {/* Two rings in two different frames is a correctness problem, so it is
@@ -472,7 +322,7 @@ export function WheelWorkspace({
       </div>
 
       {/* -------------------------------------------------------- the panel */}
-      <aside className="order-3 min-w-0">
+      <aside className="min-w-0">
         {focused ? (
           <FocusPanel facts={focused} onClear={() => setFocus(null)} />
         ) : (

@@ -46,14 +46,18 @@ export type Layer =
   | { readonly kind: 'moment'; readonly at: Moment };
 
 /**
- * Three rings, and the reason is legibility rather than arithmetic.
+ * Two rings: the chart the houses are drawn from, and one ring outside it.
  *
- * A fourth ring puts nine more glyphs on a circle that already carries
- * twenty-seven, and every professional package stops here for the same reason.
- * When somebody asks for a fourth, the answer is a second wheel, not a
- * thinner one.
+ * This is what the wheel actually draws — an inner chart and one outer ring —
+ * so it is what the stack is allowed to hold. It was three for a while, and a
+ * third layer produced a card on the panel for a ring nobody could see, which
+ * is the one thing a chart is not allowed to do.
+ *
+ * Two is also where legibility runs out: a second ring puts nine more glyphs on
+ * a circle that already carries twenty-seven. When somebody wants a third
+ * chart, the answer is a second wheel, not a thinner one.
  */
-export const MAX_RINGS = 3;
+export const MAX_RINGS = 2;
 
 /** Whole days, about a decade each way — the transit scrubber's own range. */
 const MAX_OFFSET = 3653;

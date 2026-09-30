@@ -59,6 +59,16 @@ export interface RectificationOptions {
   readonly events: readonly RectificationEvent[];
   readonly ayanamsaMode?: AyanamsaMode;
   readonly customAyanamsaAtJ2000?: number;
+  /**
+   * The house system the rules are read in.
+   *
+   * Only whole sign and equal mean anything here: every rule in the scorer is
+   * written in signs from the lagna — "Saturn in the 7th" is a rāśi statement —
+   * and `signOfHouse` maps a house back to a sign on that assumption. A
+   * quadrant system is scored in whole sign and `houseSystemUsed` on the result
+   * says so, rather than the sweep quietly meaning something different from
+   * what the reader's settings say.
+   */
   readonly houseSystem?: HouseSystem;
   /** Hard ceiling on candidates, so a wide window cannot hang a request. */
   readonly maxCandidates?: number;
@@ -106,6 +116,10 @@ export interface RectificationResult {
    * about the chart.
    */
   readonly separation: number;
+  /** The system the rules were actually read in — see `houseSystem` above. */
+  readonly houseSystemUsed: HouseSystem;
+  /** The system the caller asked for, when it differs. */
+  readonly houseSystemRequested: HouseSystem;
 }
 
 const MINUTES_PER_DAY = 1440;
@@ -122,7 +136,11 @@ export function rectify(
 ): RectificationResult {
   const stepMinutes = Math.max(1, Math.min(options.stepMinutes ?? 4, 60));
   const step = stepMinutes / MINUTES_PER_DAY;
-  const houseSystem = options.houseSystem ?? 'whole_sign';
+  const requestedHouseSystem = options.houseSystem ?? 'whole_sign';
+  const houseSystem: HouseSystem =
+    requestedHouseSystem === 'whole_sign' || requestedHouseSystem === 'equal'
+      ? requestedHouseSystem
+      : 'whole_sign';
   const maxCandidates = Math.max(1, Math.min(options.maxCandidates ?? 400, 2000));
 
   const definitions = options.events.map((event) => ({
@@ -254,6 +272,8 @@ export function rectify(
     candidatesConsidered: considered,
     ascendantSigns,
     separation,
+    houseSystemUsed: houseSystem,
+    houseSystemRequested: requestedHouseSystem,
   };
 }
 

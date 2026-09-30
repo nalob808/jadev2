@@ -146,7 +146,7 @@ export default async function RelationshipReportPage({
       kicker={`relationship report · ${pair.kind}`}
       title={`${nameA} & ${nameB}`}
       meta={{
-        lens: `${profile.ayanamsa} ayanāṁśa · ${profile.nodeType} nodes · ${profile.houseSystem.replace(
+        lens: `${profile.ayanamsa} ayanāṁśa · ${profile.nodeType} nodes · ${chartA.chart.houses.system.replace(
           '_',
           ' ',
         )} houses`,

@@ -165,8 +165,8 @@ export function ChartMenu({
 
       {full ? (
         <p className="mt-2 font-mono text-[9.5px] leading-relaxed text-[var(--ink-faint)]">
-          Three rings is the limit. A fourth puts nine more glyphs on a circle that already carries
-          twenty-seven. Remove one to add another.
+          Two rings is what the wheel draws — a chart, and one ring outside it. Remove one to add
+          another, or open a second wheel.
         </p>
       ) : null}
     </section>

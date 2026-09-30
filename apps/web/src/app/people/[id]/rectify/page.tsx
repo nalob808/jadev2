@@ -143,8 +143,21 @@ export default async function RectifyPage({
         <p className="mt-2 font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--ink-faint)]">
           On record: {birthEvent.localDatetime.replace('T', ' ').slice(0, 16)} ·{' '}
           {birthEvent.placeName} · {profile.ayanamsa} ayanāṁśa ·{' '}
-          {profile.houseSystem.replace('_', ' ')} houses
+          {(result?.houseSystemUsed ?? profile.houseSystem).replace('_', ' ')} houses
         </p>
+        {/*
+          Every rule in the sweep is a rāśi statement — "Saturn in the 7th" is
+          about a sign — so a quadrant system cannot be what they are read in.
+          The sweep says which system it used and this says why, because the
+          settings screen will still be showing the other one.
+        */}
+        {result && result.houseSystemUsed !== result.houseSystemRequested ? (
+          <p className="mt-2 max-w-[68ch] border-l-2 border-[var(--clay)] py-1 pl-2 text-[13px] leading-relaxed text-[var(--ink-muted)]">
+            Your settings use {result.houseSystemRequested.replace('_', ' ')} houses, but these
+            rules are written in signs from the lagna, so the sweep reads them in whole sign. The
+            ranking below is a whole-sign ranking.
+          </p>
+        ) : null}
       </div>
 
       {query.error ? (

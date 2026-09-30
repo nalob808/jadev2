@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import {
+  ASPECTS,
   POINT_DISPLAY_ORDER,
   findAspects,
   jdFromUnixMs,
@@ -21,9 +22,10 @@ import { buildFocusIndex } from '@/lib/focusIndex';
 import { buildScopeIndex, glossaryContextFor } from '@jade/interpret';
 import { GlossaryProvider } from '@/components/Glossary';
 import { Kicker, Panel, Shell } from '@/components/Shell';
-import { WheelWorkspace, type WorkspacePerson } from '@/components/WheelWorkspace';
+import { WheelWorkspace } from '@/components/WheelWorkspace';
 import { ChartStackPanels, type StackEntry } from '@/components/ChartStackPanels';
-import { ChartMenu } from '@/components/ChartMenu';
+import { ChartMenu, type MenuPerson } from '@/components/ChartMenu';
+import { bhavaOverlayFor } from '@/lib/houseSystems';
 import { SpacetimeNavigator } from '@/components/SpacetimeNavigator';
 import { aspectSettingsOrDefaults } from '@/lib/aspectForm';
 import { parseStack, serialiseStack, stackFromLegacy, type Layer } from '@/lib/chartStack';
@@ -287,7 +289,16 @@ export default async function WheelPage({
 
   const aspectRings = [aspectRing(chart), ...(overlayChart ? [aspectRing(overlayChart)] : [])];
   const aspectSettings = aspectSettingsOrDefaults(profile.aspectSettings);
-  const aspectsOn = Object.values(aspectSettings).filter((one) => one.on).length;
+  /*
+   * Which aspects are switched on, by name.
+   *
+   * A count would be shorter and would say nothing: two practitioners both
+   * running "five aspects" can be running different five. The lens line has to
+   * name the rule the lines were drawn by, the same way it names the ayanāṁśa.
+   */
+  const aspectsOn = ASPECTS.filter((definition) => aspectSettings[definition.id]?.on).map(
+    (definition) => definition.name.toLowerCase(),
+  );
   const longitudeOf = aspectRings.map(
     (ring) => new Map(ring.map((point) => [point.id, point.longitude])),
   );
@@ -315,7 +326,13 @@ export default async function WheelPage({
     },
   );
 
-  const roster: WorkspacePerson[] = withCharts.map((row) => ({
+  const bhava = bhavaOverlayFor(
+    chart.houses.system,
+    chart.points.Ascendant!.longitude,
+    chart.points.Midheaven!.longitude,
+  );
+
+  const roster: MenuPerson[] = withCharts.map((row) => ({
     id: row.subject.id,
     name: row.subject.displayName,
     born: born(row.birthEvent?.localDatetime),
@@ -375,7 +392,14 @@ export default async function WheelPage({
           },
         ]
       : []),
-    ...(transitDate
+    /*
+     * The sky only gets a card when the sky is actually on the wheel.
+     *
+     * An overlaid chart owns the outer ring, and the wheel has one. Listing
+     * transits anyway would put a ring on the panel that is nowhere in the
+     * drawing — the note under the wheel says why it is off instead.
+     */
+    ...(transitDate && !overlayChart
       ? [
           {
             key: `t:${transitOffset}`,
@@ -392,6 +416,7 @@ export default async function WheelPage({
   return (
     <Shell
       email={session.email}
+      width="wide"
       subject={{
         id: current.subject.id,
         name: current.subject.displayName,
@@ -399,27 +424,56 @@ export default async function WheelPage({
       }}
     >
       <GlossaryProvider lines={glossary.lines} scopes={scopes}>
-        <div className="grid gap-5 lg:grid-cols-[minmax(0,19rem)_minmax(0,1fr)]">
-          <div className="order-2 lg:order-1">
+        {/*
+          One column of controls, then the wheel.
+
+          Everything that decides what is drawn — the rings in order, the menu
+          that adds one, the date the sky is read at — is in the left column, so
+          the wheel and the panel that explains it own the rest of the width.
+          The wheel comes first in source order so that on a phone, where the
+          columns stack, the chart is the thing under the heading rather than a
+          screen of choosers.
+        */}
+        <div className="grid gap-5 lg:grid-cols-[20rem_minmax(0,1fr)]">
+          <div className="order-2 flex flex-col gap-4 lg:order-1">
             <ChartStackPanels entries={entries} stack={serialiseStack(stackLayers)} />
-          </div>
-          <div className="order-1 min-w-0 lg:order-2">
-            <WheelWorkspace
+            <ChartMenu
               people={roster}
-              currentId={current.subject.id}
-              overlayId={overlay?.subject.id ?? null}
-              points={wheelPointsFor(chart)}
-              aspects={aspects}
-              degreeAspects={degreeAspects}
-              overlayPoints={overlayChart ? wheelPointsFor(overlayChart) : []}
-              overlayName={overlay?.subject.displayName ?? overlayFigure?.displayName ?? null}
               figures={overlayableFigures.map((figure) => ({
                 slug: figure.slug,
                 name: figure.displayName,
                 born: figure.birthDate,
                 rodden: figure.rodden,
               }))}
-              figureSlug={overlayFigure?.slug ?? null}
+              stack={serialiseStack(stackLayers)}
+              /*
+               * Whether the sky is *drawn*, not whether `?t=` is in the URL. An
+               * overlaid chart owns the only outer ring, so a link carrying
+               * both would otherwise have the menu counting a ring the wheel
+               * never draws — and reporting three of two.
+               */
+              transitsOn={showsTransits && !overlayChart}
+            />
+            <SpacetimeNavigator
+              todayIso={new Date(unixMsFromJd(clock.nowJd)).toISOString().slice(0, 10)}
+              offsetDays={showsTransits ? transitOffset : 0}
+            />
+          </div>
+          <div className="order-1 min-w-0 lg:order-2">
+            <WheelWorkspace
+              points={wheelPointsFor(chart)}
+              aspects={aspects}
+              degreeAspects={degreeAspects}
+              overlayPoints={overlayChart ? wheelPointsFor(overlayChart) : []}
+              overlayName={overlay?.subject.displayName ?? overlayFigure?.displayName ?? null}
+              /*
+               * The dashed bhāva ring. In whole sign it is Śrīpati beside the
+               * rāśi chart; in any other system it is the chart's own cusps,
+               * which no longer sit on the sign boundaries.
+               */
+              houseCusps={chart.houses.cusps}
+              bhavaCusps={bhava?.cusps}
+              bhavaLabel={bhava?.label}
               lensMismatch={lensMismatch}
               ascendant={chart.points.Ascendant!.longitude}
               ascendantSign={chart.houses.ascendantSign}
@@ -430,8 +484,14 @@ export default async function WheelPage({
                * cast the chart. An aspect line whose rule is unstated is the same
                * failure as an unstated ayanāṁśa — CLAUDE.md #3.
                */
+              /*
+               * `chart.houses.system`, not the profile's: a chart drawn above
+               * the polar circle may not be in the system that was asked for,
+               * and the line under the wheel is where that has to be said.
+               */
+              houseNote={chart.houses.note}
               lens={`${profile.ayanamsa} ayanāṁśa · ${chart.houses.system.replace('_', ' ')} houses · ${profile.nodeType} nodes · whole-sign dṛṣṭi${
-                aspectsOn > 0 ? ` · ${aspectsOn} aspects by degree` : ''
+                aspectsOn.length > 0 ? ` · by degree: ${aspectsOn.join(', ')}` : ''
               }`}
               timeCaveat={ACCURACY_CAVEAT[current.birthEvent!.timeAccuracy] ?? null}
               transitFrame={{
@@ -445,23 +505,6 @@ export default async function WheelPage({
                 yearLength: YEAR_LENGTH,
               }}
               todayJd={clock.nowJd}
-            />
-          </div>
-          <div className="order-3 flex flex-col gap-3">
-            <ChartMenu
-              people={roster}
-              figures={overlayableFigures.map((figure) => ({
-                slug: figure.slug,
-                name: figure.displayName,
-                born: figure.birthDate,
-                rodden: figure.rodden,
-              }))}
-              stack={serialiseStack(stackLayers)}
-              transitsOn={showsTransits}
-            />
-            <SpacetimeNavigator
-              todayIso={new Date(unixMsFromJd(clock.nowJd)).toISOString().slice(0, 10)}
-              offsetDays={showsTransits ? transitOffset : 0}
             />
           </div>
         </div>

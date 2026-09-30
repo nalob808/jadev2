@@ -27,11 +27,13 @@ const PERSON = '5f3a1c2e-0000-4000-8000-0123456789ab';
 const OTHER = '7b1d9f04-0000-4000-8000-ba9876543210';
 
 describe('reading a stack from a link', () => {
-  it('reads the three kinds of ring, in order', () => {
-    const stack = parseStack(`p:${PERSON},f:albert-einstein,t:0`);
-    expect(stack).toEqual([
+  it('reads all three kinds of ring, in order', () => {
+    expect(parseStack(`p:${PERSON},f:albert-einstein`)).toEqual([
       { kind: 'person', id: PERSON },
       { kind: 'figure', slug: 'albert-einstein' },
+    ]);
+    expect(parseStack(`p:${PERSON},t:0`)).toEqual([
+      { kind: 'person', id: PERSON },
       { kind: 'moment', at: { kind: 'offset', days: 0 } },
     ]);
   });
@@ -75,7 +77,7 @@ describe('reading a stack from a link', () => {
     expect(parseStack(`p:${PERSON},f:NOPE,t:7`)).toHaveLength(2);
   });
 
-  it('refuses a fourth ring and a repeat', () => {
+  it('refuses a ring past the limit and a repeat', () => {
     const raw = `p:${PERSON},p:${OTHER},t:0,d:2027-01-01`;
     expect(parseStack(raw)).toHaveLength(MAX_RINGS);
     expect(parseStack(`p:${PERSON},p:${PERSON}`)).toHaveLength(1);
@@ -100,13 +102,17 @@ describe('links that already exist', () => {
   });
 
   /*
-   * The old page drew a figure only when no overlay person was set. Read as a
-   * stack the two simply become rings 2 and 3, which is the behaviour the old
-   * rule was standing in for.
+   * The old page drew a figure only when an overlay person was absent, and a
+   * link carrying both was a link somebody had edited by hand. The stack keeps
+   * the two rings it can draw and drops the third rather than refusing the
+   * link — a shared URL that opens on a slightly smaller chart is better than
+   * one that opens on nothing.
    */
-  it('no longer has to choose between an overlay and a figure', () => {
-    const stack = stackFromLegacy({ person: PERSON, overlay: OTHER, figure: 'albert-einstein' });
-    expect(stack).toHaveLength(3);
+  it('keeps what it can draw when an old link carries both', () => {
+    expect(stackFromLegacy({ person: PERSON, overlay: OTHER, figure: 'albert-einstein' })).toEqual([
+      { kind: 'person', id: PERSON },
+      { kind: 'person', id: OTHER },
+    ]);
   });
 
   it('survives an empty query', () => {
@@ -121,14 +127,15 @@ describe('changing the stack', () => {
   ];
 
   it('adds on the outside', () => {
-    expect(addLayer(base, { kind: 'moment', at: { kind: 'offset', days: 0 } })).toHaveLength(3);
+    expect(
+      addLayer([{ kind: 'person', id: PERSON }], { kind: 'figure', slug: 'albert-einstein' }),
+    ).toEqual(base);
   });
 
   it('refuses rather than replacing when full', () => {
-    const full = addLayer(base, { kind: 'moment', at: { kind: 'offset', days: 0 } });
-    expect(isFull(full)).toBe(true);
-    const after = addLayer(full, { kind: 'person', id: OTHER });
-    expect(after).toEqual(full);
+    expect(isFull(base)).toBe(true);
+    expect(addLayer(base, { kind: 'moment', at: { kind: 'offset', days: 0 } })).toEqual(base);
+    expect(addLayer(base, { kind: 'person', id: OTHER })).toEqual(base);
   });
 
   it('refuses a ring already on the wheel', () => {

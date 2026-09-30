@@ -14,6 +14,7 @@ import {
 import { AYANAMSA_OPTIONS, UNFITTED_AYANAMSAS } from '@/lib/ayanamsaOptions';
 import { aspectSettingsOrDefaults } from '@/lib/aspectForm';
 import { SettingsTabs } from '@/components/SettingsTabs';
+import { HOUSE_SYSTEM_HINTS, HOUSE_SYSTEM_LABELS } from '@/lib/houseSystems';
 import { getSession } from '@/lib/auth';
 import { getEntitlement } from '@/lib/entitlements';
 import { PlanPanel } from '@/components/PlanPanel';
@@ -53,13 +54,6 @@ function formatAngle(degrees: number): string {
   const seconds = Math.round((minutesTotal - minutes) * 60);
   return `${whole}° ${String(minutes).padStart(2, '0')}′ ${String(seconds).padStart(2, '0')}″`;
 }
-
-const HOUSE_LABELS: Record<string, string> = {
-  whole_sign: 'Whole sign',
-  equal: 'Equal',
-  sripati: 'Śrīpati',
-  placidus: 'Placidus',
-};
 
 const STYLE_LABELS: Record<string, string> = {
   north: 'North Indian',
@@ -235,7 +229,16 @@ export default async function SettingsPage({
                   label="Node type"
                   hint="Mean nodes move steadily; true nodes wobble and can briefly go direct. Most Vedic software uses mean."
                 >
-                  <select name="nodeType" defaultValue={profile.nodeType} className={SELECT}>
+                  {/*
+                    Named `nodes`, not `nodeType`. An HTMLFormElement exposes its
+                    named controls as properties *over* its own built-ins, so a
+                    field called `nodeType` makes `form.nodeType` return the
+                    <select> instead of the number 1 — and React's hydration
+                    reads exactly that to decide the form is an element. The
+                    whole page fell back to client rendering because of it.
+                    `settings-field-names.test.ts` keeps it from coming back.
+                  */}
+                  <select name="nodes" defaultValue={profile.nodeType} className={SELECT}>
                     <option value="mean">Mean (Rāhu/Ketu)</option>
                     <option value="true">True</option>
                   </select>
@@ -361,12 +364,12 @@ export default async function SettingsPage({
               <div className="grid gap-5 sm:grid-cols-2">
                 <Field
                   label="House system"
-                  hint="Whole sign is the Vedic default — house one is the entire sign the ascendant falls in."
+                  hint="Which twelve divisions a graha is placed in. Whole sign is the Vedic default; the others are here because practitioners argue about the grahas near a boundary, and the argument is worth being able to see."
                 >
                   <select name="houseSystem" defaultValue={profile.houseSystem} className={SELECT}>
                     {IMPLEMENTED_HOUSE_SYSTEMS.map((id) => (
                       <option key={id} value={id}>
-                        {HOUSE_LABELS[id] ?? id}
+                        {HOUSE_SYSTEM_LABELS[id] ?? id}
                       </option>
                     ))}
                     {/*
@@ -377,10 +380,30 @@ export default async function SettingsPage({
                     */}
                     {PLANNED_HOUSE_SYSTEMS.map(({ id, note }) => (
                       <option key={id} value={id} disabled>
-                        {HOUSE_LABELS[id] ?? id} — {note}
+                        {HOUSE_SYSTEM_LABELS[id] ?? id} — {note}
                       </option>
                     ))}
                   </select>
+
+                  {/*
+                    All four spelled out rather than one hint that changes with
+                    the selection. Somebody choosing between them wants to read
+                    the differences side by side, and a hint that only describes
+                    what is already selected is the least useful moment to show
+                    it.
+                  */}
+                  <dl className="mt-3 flex flex-col gap-1.5">
+                    {IMPLEMENTED_HOUSE_SYSTEMS.map((id) => (
+                      <div key={id}>
+                        <dt className="font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--ink-faint)]">
+                          {HOUSE_SYSTEM_LABELS[id] ?? id}
+                        </dt>
+                        <dd className="text-[12px] leading-relaxed text-[var(--ink-muted)]">
+                          {HOUSE_SYSTEM_HINTS[id]}
+                        </dd>
+                      </div>
+                    ))}
+                  </dl>
                 </Field>
 
                 <Field label="Chart style" hint="Which diagram a chart is drawn as by default.">

@@ -27,6 +27,7 @@ import {
 import { getSession } from '@/lib/auth';
 import { getDatabase } from '@/lib/db';
 import { getOrComputeChart } from '@/lib/chart';
+import { bhavaOverlayFor } from '@/lib/houseSystems';
 import { removePerson } from '@/app/actions';
 import { Kicker, Panel, Shell } from '@/components/Shell';
 import {
@@ -165,7 +166,16 @@ export default async function PersonPage({
    * an unverified cusp is worse here than no overlay.
    */
   const ascendantLongitude = chart.points.Ascendant!.longitude;
-  const bhavaCusps = Array.from({ length: 12 }, (_, i) => (ascendantLongitude + i * 30) % 360);
+  /*
+   * The bhāva ring this chart's own settings produce, rather than a hardcoded
+   * equal division. Under whole sign that is Śrīpati as a second opinion; under
+   * anything else it is the cusps the grahas were actually placed by.
+   */
+  const bhava = bhavaOverlayFor(
+    chart.houses.system,
+    ascendantLongitude,
+    chart.points.Midheaven!.longitude,
+  );
 
   const wheelAspects = (['Sun', 'Moon', 'Mars', 'Mercury', 'Jupiter', 'Venus', 'Saturn'] as const)
     .filter((id) => chart.points[id])
@@ -518,18 +528,13 @@ export default async function PersonPage({
             </p>
           </div>
           {/*
-            The same instrument `/wheel` mounts, not a picture of one.
-            `inline` drops the people rail — the subject is already decided on
-            this page — and keeps everything else: the layer toggles,
-            click-to-isolate, the dṛṣṭi filter and the focus panel. The
-            selection goes in the URL like it does there, so a reload or a
-            shared link lands on the same graha.
+            The same instrument `/wheel` mounts, not a picture of one: the layer
+            toggles, click-to-isolate, the dṛṣṭi filter and the focus panel are
+            the same component, not a second implementation. The selection goes
+            in the URL like it does there, so a reload or a shared link lands on
+            the same graha.
           */}
           <WheelWorkspace
-            variant="inline"
-            people={[]}
-            currentId={subject.id}
-            overlayId={null}
             points={wheelPoints}
             aspects={wheelAspects}
             overlayPoints={[]}
@@ -537,8 +542,9 @@ export default async function PersonPage({
             ascendant={chart.points.Ascendant!.longitude}
             ascendantSign={chart.houses.ascendantSign}
             sarva={chart.ashtakavarga.sarva}
-            bhavaCusps={bhavaCusps}
-            bhavaLabel="equal from the lagna degree"
+            houseCusps={chart.houses.cusps}
+            bhavaCusps={bhava?.cusps}
+            bhavaLabel={bhava?.label}
             transitFrame={{
               ayanamsa: profile.ayanamsa,
               customAyanamsaAtJ2000: profile.customAyanamsaAtJ2000 ?? undefined,
