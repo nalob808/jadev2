@@ -30,7 +30,15 @@ export interface Place {
   readonly place: number;
   /** The heading. Plain, second person, no Sanskrit and no ordinal jargon. */
   readonly topic: string;
-  /** What actually falls under it — concrete nouns, not abstractions. */
+  /**
+   * What actually falls under it — concrete nouns, not abstractions.
+   *
+   * No "you" in here, deliberately. `topic` is written in the second person and
+   * carries the address; `governs` is the list and has to survive being quoted
+   * about somebody else. The synastry reading talks about two named people from
+   * a third person's seat, and "the people who work for you" there has no
+   * referent at all.
+   */
   readonly governs: string;
   /** The question somebody arrives with about this part of life. */
   readonly asks: string;
@@ -44,14 +52,14 @@ export const PLACES: readonly Place[] = [
   {
     place: 1,
     topic: 'you, and the body you carry around',
-    governs: 'temperament, constitution, the first impression, how you start things',
+    governs: 'temperament, constitution, the first impression, how things get started',
     asks: 'Why do people read me the way they do before I have said anything?',
     calledIt: { hellenistic: 'the Helm', jyotisha: 'tanu bhāva — the body' },
   },
   {
     place: 2,
     topic: 'what you hold in your own hands',
-    governs: 'money you earn yourself, possessions, what you eat, the voice you speak with',
+    governs: 'money earned directly, possessions, food, the speaking voice',
     asks: 'Am I secure, and does it come from me or from somewhere else?',
     calledIt: { hellenistic: 'the Gate of Hades', jyotisha: 'dhana bhāva — wealth' },
     differ:
@@ -68,15 +76,14 @@ export const PLACES: readonly Place[] = [
     place: 4,
     topic: 'the ground under you',
     governs:
-      'home, land, the parent who made the house what it was, what you inherit, where you end up',
+      'home, land, the parent who made the house what it was, inheritance, where a life settles',
     asks: 'Where do I actually belong?',
     calledIt: { hellenistic: 'the Subterranean', jyotisha: 'sukha bhāva — ease' },
   },
   {
     place: 5,
     topic: 'what comes out of you',
-    governs:
-      'children, creative work, play, romance, speculation, and what you happen to be lucky at',
+    governs: 'children, creative work, play, romance, speculation, and whatever luck favours',
     asks: 'What do I make, and does any of it come back to me?',
     calledIt: { hellenistic: 'Good Fortune', jyotisha: 'putra bhāva — offspring' },
   },
@@ -84,7 +91,7 @@ export const PLACES: readonly Place[] = [
     place: 6,
     topic: 'the grind, and what wears you down',
     governs:
-      'daily work, routine, the people who work for you, animals, obligations you did not choose, the frictions you manage rather than resolve',
+      'daily work, routine, employees, animals, unchosen obligations, and the frictions that get managed rather than resolved',
     asks: 'What is costing me more than it returns, and can I change the terms?',
     calledIt: { hellenistic: 'Bad Fortune', jyotisha: 'ripu bhāva — the adversary' },
     differ:
@@ -102,7 +109,7 @@ export const PLACES: readonly Place[] = [
     place: 8,
     topic: 'what you hold jointly and cannot settle alone',
     governs:
-      'other people’s money, debt, inheritance, taxes, intimacy, and anything that changes you without asking',
+      'other people’s money, debt, inheritance, taxes, intimacy, and anything that changes a person without asking',
     asks: 'What am I depending on someone else for, and what does that cost?',
     calledIt: { hellenistic: 'the Idle Place', jyotisha: 'āyur bhāva — the span' },
     differ:
@@ -112,7 +119,7 @@ export const PLACES: readonly Place[] = [
     place: 9,
     topic: 'the long view',
     governs:
-      'travel that changes you, teachers, law and doctrine, publishing, and whatever you take on faith',
+      'travel that changes a person, teachers, law and doctrine, publishing, and whatever is taken on faith',
     asks: 'What do I believe, and who taught me to?',
     calledIt: { hellenistic: 'the God', jyotisha: 'dharma bhāva — the way' },
   },
@@ -120,7 +127,7 @@ export const PLACES: readonly Place[] = [
     place: 10,
     topic: 'what you are known for',
     governs:
-      'work in public, reputation, rank, the parent who set the standard, and the thing people name when they name you',
+      'work in public, reputation, rank, the parent who set the standard, and the thing people name first',
     asks: 'What am I for, as far as everybody else is concerned?',
     calledIt: { hellenistic: 'the Midheaven', jyotisha: 'karma bhāva — action' },
   },
@@ -128,7 +135,7 @@ export const PLACES: readonly Place[] = [
     place: 11,
     topic: 'the room you get let into',
     governs:
-      'friends and allies, networks, the payoff from what you built, hopes held long enough to count as plans',
+      'friends and allies, networks, the payoff from what was built, hopes held long enough to count as plans',
     asks: 'Who opens doors for me, and what arrives because of them?',
     calledIt: { hellenistic: 'Good Spirit', jyotisha: 'lābha bhāva — gain' },
   },
@@ -136,7 +143,7 @@ export const PLACES: readonly Place[] = [
     place: 12,
     topic: 'what happens away from witnesses',
     governs:
-      'solitude, sleep and dreams, what you spend without seeing it, institutions, and the parts of yourself you keep offstage',
+      'solitude, sleep and dreams, what gets spent unseen, institutions, and the parts kept offstage',
     asks: 'What is going on that I am not looking at?',
     calledIt: { hellenistic: 'Bad Spirit', jyotisha: 'vyaya bhāva — expenditure' },
   },

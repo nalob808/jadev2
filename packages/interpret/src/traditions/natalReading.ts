@@ -218,8 +218,11 @@ export function deepNatalReading(input: DeepNatalInput): DeepNatalReading | null
   if (!natal) return null;
   const place = placeOf(input.place);
 
+  /* The lights take an article; "Sun is the part of you" is how software talks. */
+  const name = input.graha === 'Sun' || input.graha === 'Moon' ? `The ${input.graha}` : input.graha;
+
   const body: string[] = [
-    `${input.graha} is the part of you that ${natal.carries}. Here it ${natal.invests} ${place.topic} — ${place.governs}.`,
+    `${name} is the part of you that ${natal.carries}. Here it ${natal.invests} ${place.topic} — ${place.governs}.`,
   ];
 
   /*

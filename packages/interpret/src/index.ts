@@ -40,3 +40,5 @@ export * from './traditions/places.js';
 export * from './traditions/grahas.js';
 export * from './traditions/transitReading.js';
 export * from './traditions/natalReading.js';
+export * from './traditions/synastryReading.js';
+export * from './traditions/synthesis.js';

@@ -23,6 +23,7 @@ import {
   SYNASTRY_PREAMBLE,
   buildScopeIndex,
   glossaryContextFor,
+  deepSynastry,
   synastryReadingFor,
 } from '@jade/interpret';
 import {
@@ -39,6 +40,7 @@ import { getClock } from '@/lib/clock';
 import { getDatabase } from '@/lib/db';
 import { getOrComputeChart } from '@/lib/chart';
 import { removeRelationship } from '@/app/actions';
+import { Workings } from '@/components/Workings';
 import { Reading } from '@/components/Reading';
 import { Kicker, Panel, Shell } from '@/components/Shell';
 import { GlossaryProvider } from '@/components/Glossary';
@@ -190,6 +192,17 @@ export default async function RelationshipPage({ params }: { params: Promise<{ i
     mangala,
   });
 
+  /*
+   * The overlay, read at length and in both directions.
+   *
+   * Separate from `synastryReadingFor` rather than folded into it: that one
+   * reads the whole technique — tārā bala, the lagna axis, the kūṭas, the doṣa
+   * — and this one does a single thing deeply. Merging them would bury the
+   * passages inside a list of sections, and the passages are what somebody
+   * actually sits and reads.
+   */
+  const depth = deepSynastry(chartA.chart, chartB.chart, nameA, nameB);
+
   const born = (record: typeof recordA): string =>
     record.birthEvent ? record.birthEvent.localDatetime.replace('T', ' ').slice(0, 16) : '';
 
@@ -271,6 +284,72 @@ export default async function RelationshipPage({ params }: { params: Promise<{ i
             </h2>
           </div>
           <Reading sections={reading} subjectId={recordA.subject.id} />
+        </section>
+
+        {/* ------------------------------------------------- the overlay, deep */}
+        <section className="mt-10">
+          <div className="mb-4 border-b border-[var(--rule)] pb-2">
+            <Kicker>Each one on the other</Kicker>
+            <h2 className="font-display text-2xl font-semibold">
+              What {nameA} brings to {nameB}, and the other way round
+            </h2>
+          </div>
+
+          {/*
+            Said once, before any of it. Four of the five traditions Jade reads
+            did not compare two charts at all, and a reader who has met
+            "synastry" elsewhere deserves to know that before they weigh what
+            follows.
+          */}
+          <p className="mb-5 max-w-[70ch] border-l-2 border-[var(--clay)] py-1 pl-3 text-[14px] leading-relaxed text-[var(--ink-muted)]">
+            {depth.note}
+          </p>
+
+          <div className="grid gap-8 lg:grid-cols-2">
+            {[
+              { title: `${nameA} on ${nameB}`, passages: depth.aIntoB },
+              { title: `${nameB} on ${nameA}`, passages: depth.bIntoA },
+            ].map((side) => (
+              <div key={side.title}>
+                <h3 className="mb-3 font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--accent)]">
+                  {side.title}
+                </h3>
+                <div className="flex flex-col gap-3">
+                  {side.passages.map((passage) => (
+                    <article
+                      key={`${passage.graha}-${passage.place}`}
+                      className="border border-[var(--rule)] bg-[var(--surface)] px-4 py-3.5"
+                    >
+                      <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--ink-faint)]">
+                        {passage.graha}
+                      </p>
+                      <h4 className="mt-0.5 font-display text-[1.35rem] leading-tight">
+                        {passage.heading}
+                      </h4>
+                      <p className="mt-1 text-[13px] italic leading-relaxed text-[var(--ink-muted)]">
+                        {passage.asks}
+                      </p>
+                      <div className="mt-2.5 flex flex-col gap-2">
+                        {passage.body.map((paragraph, index) => (
+                          <p key={index} className="text-[14.5px] leading-[1.55]">
+                            {paragraph}
+                          </p>
+                        ))}
+                      </div>
+                      <Workings workings={passage.workings} />
+                    </article>
+                  ))}
+                  {side.passages.length === 0 ? (
+                    <p className="text-[14px] text-[var(--ink-muted)]">
+                      Nothing of theirs falls in the places an overlay is loudest in — the angles,
+                      the trines, the second and the sixth. That is a real result rather than a gap:
+                      these two charts touch each other lightly.
+                    </p>
+                  ) : null}
+                </div>
+              </div>
+            ))}
+          </div>
         </section>
 
         <div className="mt-10 grid gap-8 lg:grid-cols-2">

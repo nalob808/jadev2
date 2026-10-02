@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest';
+import golden from '../../astro/test/fixtures/swisseph-golden.json' with { type: 'json' };
+import { AstronomyEngineProvider, computeChart, type ComputedChart } from '@jade/astro';
 import { GRAHA_STANCE } from '../src/traditions/grahas.js';
 import { PLACES } from '../src/traditions/places.js';
 import { SOURCES, TRADITIONS, sourceById } from '../src/traditions/sources.js';
@@ -8,6 +10,7 @@ import {
   type DeepTransitReading,
 } from '../src/traditions/transitReading.js';
 import { NATAL, deepNatalReading, type DeepNatalReading } from '../src/traditions/natalReading.js';
+import { BRINGS, deepSynastry } from '../src/traditions/synastryReading.js';
 import { FORBIDDEN_TOPICS, mentionsForbiddenTopic, permitted } from '../src/reading.js';
 
 /**
@@ -415,5 +418,154 @@ describe('the forbidden-topic filter', () => {
     expect(permitted({ text: 'This is about an audience.', factors })).toBe(true);
     /* Ungrounded text is dropped whatever it says — CLAUDE.md #5. */
     expect(permitted({ text: 'This is about an audience.', factors: [] })).toBe(false);
+  });
+});
+
+/* ------------------------------------------------------------- two charts */
+
+describe('the synastry reading', () => {
+  const provider = new AstronomyEngineProvider();
+  const chartOf = (label: string): ComputedChart => {
+    const fixture = golden.cases.find((one) => one.label === label)!;
+    return computeChart(provider, { jdUt: fixture.jdUt, location: fixture.location });
+  };
+
+  const alice = chartOf('v0-reference-chart');
+  const bob = chartOf('modern-mumbai');
+  const reading = deepSynastry(alice, bob, 'Alice', 'Bob');
+
+  it('reads both directions, and they are different readings', () => {
+    expect(reading.aIntoB.length).toBeGreaterThan(0);
+    expect(reading.bIntoA.length).toBeGreaterThan(0);
+
+    /*
+     * The half that compatibility software throws away. A's Saturn in B's
+     * seventh and B's Saturn in A's seventh are two facts about two people, and
+     * if these two lists were ever equal the direction had been lost.
+     */
+    const forward = reading.aIntoB.map((one) => one.heading);
+    const back = reading.bIntoA.map((one) => one.heading);
+    expect(forward).not.toEqual(back);
+    for (const heading of forward) expect(back).not.toContain(heading);
+  });
+
+  it('always names who is doing it and to whom', () => {
+    for (const passage of [...reading.aIntoB, ...reading.bIntoA]) {
+      expect(passage.heading).toContain(passage.from);
+      expect(passage.heading).toContain(passage.into);
+      expect(passage.from).not.toBe(passage.into);
+      expect(passage.body[0]).toContain(passage.from);
+    }
+  });
+
+  /*
+   * The same rule as everywhere else in this folder: the configuration is in
+   * the heading, and nothing after the first sentence of the body restates it.
+   */
+  it('does not restate the placement after the heading', () => {
+    for (const passage of [...reading.aIntoB, ...reading.bIntoA]) {
+      for (const paragraph of passage.body.slice(1)) {
+        expect(paragraph.toLowerCase(), passage.heading).not.toContain('house');
+        expect(paragraph.toLowerCase(), passage.heading).not.toContain('bhāva');
+      }
+    }
+  });
+
+  it('never predicts death, illness or a legal outcome', () => {
+    const everything = [reading.note, ...reading.aIntoB, ...reading.bIntoA].flatMap((one) =>
+      typeof one === 'string' ? [one] : [one.heading, one.asks, ...one.body],
+    );
+    for (const text of everything) {
+      expect(mentionsForbiddenTopic(text), text.slice(0, 60)).toBe(false);
+    }
+  });
+
+  /*
+   * The honest part. Four of the five traditions did not lay two charts over
+   * each other at all, and the reading says so rather than inventing a column
+   * of doctrine for each of them.
+   */
+  it('says plainly that most of the traditions did not do this', () => {
+    expect(reading.note).toContain('seventh');
+    expect(reading.note.length).toBeGreaterThan(200);
+  });
+
+  it('every graha that lands in a loud place is read, and no others', () => {
+    for (const passage of [...reading.aIntoB, ...reading.bIntoA]) {
+      expect([1, 2, 4, 5, 6, 7, 9, 10]).toContain(passage.place);
+      expect(BRINGS[passage.graha]).toBeTruthy();
+      expect(passage.workings.length).toBe(2);
+    }
+  });
+});
+
+describe('the synastry passages name the people', () => {
+  const provider = new AstronomyEngineProvider();
+  const fixture = (label: string) => golden.cases.find((one) => one.label === label)!;
+  const chart = (label: string) =>
+    computeChart(provider, { jdUt: fixture(label).jdUt, location: fixture(label).location });
+
+  const reading = deepSynastry(chart('v0-reference-chart'), chart('modern-mumbai'), 'Alice', 'Bob');
+
+  /*
+   * The placeholders have to be gone, and the failure if they are not is a
+   * paragraph with `{host}` printed in it on a page a client may be looking at.
+   */
+  it('leaves no placeholder behind', () => {
+    for (const passage of [...reading.aIntoB, ...reading.bIntoA]) {
+      for (const paragraph of passage.body) {
+        expect(paragraph, passage.heading).not.toContain('{');
+        expect(paragraph, passage.heading).not.toContain('}');
+      }
+    }
+  });
+
+  /*
+   * And it must be the right way round. Substituting guest for host would read
+   * perfectly and say the opposite thing, which is the kind of bug no test of
+   * the shape alone would ever catch.
+   */
+  it('puts the right name on each side', () => {
+    const saturn = reading.aIntoB.find((one) => one.graha === 'Saturn');
+    if (saturn) {
+      expect(saturn.body.join(' ')).toContain('Alice');
+      expect(saturn.heading).toMatch(/^Alice’s Saturn in Bob’s/);
+    }
+    for (const passage of reading.bIntoA) {
+      expect(passage.heading).toMatch(/^Bob’s/);
+      expect(passage.heading).toContain('Alice’s');
+    }
+  });
+
+  /* Nobody is addressed as "you" on a page about two other people. */
+  it('does not speak to a reader who is not in the chart', () => {
+    for (const passage of [...reading.aIntoB, ...reading.bIntoA]) {
+      for (const paragraph of passage.body) {
+        expect(paragraph, passage.heading).not.toMatch(/\byou\b/i);
+        expect(paragraph, passage.heading).not.toMatch(/\byour\b/i);
+      }
+    }
+  });
+});
+
+describe('the twelve places', () => {
+  /*
+   * `topic` addresses a reader and `governs` does not, and the split has to
+   * hold: the synastry reading quotes `governs` about two named third parties,
+   * where "the people who work for you" names nobody. Found by a test on the
+   * synastry passages, pinned here at the source.
+   */
+  it('keeps the second person in the topic and out of the list', () => {
+    for (const place of PLACES) {
+      expect(place.governs, `place ${place.place}`).not.toMatch(/\byou\b|\byour\b|\byourself\b/i);
+    }
+  });
+
+  it('still says what each place is, at length', () => {
+    for (const place of PLACES) {
+      expect(place.topic.length, `place ${place.place}`).toBeGreaterThan(8);
+      expect(place.governs.length, `place ${place.place}`).toBeGreaterThan(30);
+      expect(place.asks, `place ${place.place}`).toMatch(/\?$/);
+    }
   });
 });

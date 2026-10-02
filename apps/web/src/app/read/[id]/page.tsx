@@ -11,6 +11,7 @@ import {
 } from '@jade/astro';
 import {
   deepNatal,
+  synthesise,
   deepTransits,
   plainChartReading,
   plainPeriods,
@@ -30,6 +31,7 @@ import {
   ViewNav,
   type SnapshotFact,
 } from '@/components/ReadingChrome';
+import { ChartSpine } from '@/components/ChartSpine';
 import { DeepPassage } from '@/components/DeepPassage';
 import { Workings } from '@/components/Workings';
 
@@ -138,6 +140,7 @@ export default async function ReadingPage({
    * sky — see `natalReading.ts`.
    */
   const natalDepth = deepNatal(chart);
+  const spine = synthesise(chart);
   const transits = deepTransits(chart, sky);
   const sadeSati = plainSadeSati(
     chart,
@@ -313,10 +316,17 @@ export default async function ReadingPage({
       {/* ------------------------------------------------------------- depth */}
       {active === 'depth' ? (
         <section className="mt-5 flex flex-col gap-4">
-          <p className="border-l-2 border-[var(--accent)] py-1 pl-3 text-[14px] leading-relaxed text-[var(--ink-muted)]">
-            Every graha in your chart, read by five traditions that had to work without each other.
-            They agree about what the twelve places are for and disagree about what a planet in one
-            of them is like to live with — which is where the reading is.
+          {/*
+            The compile, first. Nine graha cards are nine true statements and no
+            reading; what a practitioner does before any of them is notice what
+            the chart says twice.
+          */}
+          <ChartSpine synthesis={spine} name={record.subject.displayName} />
+
+          <p className="border-l-2 border-[var(--rule-strong)] py-1 pl-3 text-[14px] leading-relaxed text-[var(--ink-muted)]">
+            Below: every graha one at a time, read by five traditions that had to work without each
+            other. They agree about what the twelve places are for and disagree about what a planet
+            in one of them is like to live with — which is where the reading is.
           </p>
           {natalDepth.map((passage) => (
             <DeepPassage
