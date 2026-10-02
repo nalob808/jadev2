@@ -31,6 +31,7 @@ import { getClock, stamp } from '@/lib/clock';
 import { getDatabase } from '@/lib/db';
 import { getOrComputeChart, toChartSettings } from '@/lib/chart';
 import { Kicker, Panel, Shell } from '@/components/Shell';
+import { TodayFocus } from '@/components/TodayFocus';
 import { Reading } from '@/components/Reading';
 import { AutoTerms, GlossaryProvider, Scope, T } from '@/components/Glossary';
 import { WeekBands, type WeekDay } from '@/components/WeekBands';
@@ -616,6 +617,18 @@ export default async function HomePage() {
                 here forecasts — a transit is a location, and what it says is where a graha is
                 standing relative to this chart today.
               </p>
+            </div>
+            {/*
+              The answer first, then its working. The strip names which part of
+              the life the three clocks are pointed at and links into the full
+              area reading; the sections below are the positions it rests on.
+            */}
+            <div className="mb-5">
+              <TodayFocus
+                focus={daily.focus}
+                live={daily.live}
+                areasHref={`/read/${personal.id}?view=areas`}
+              />
             </div>
             <Reading sections={daily.sections} subjectId={personal.id} />
           </section>

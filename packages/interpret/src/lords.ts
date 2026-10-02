@@ -76,6 +76,19 @@ function ordinal(n: number): string {
 }
 
 /** Spelled out, for prose. */
+/**
+ * "1st", "2nd", "9th".
+ *
+ * Written out because the obvious `${n}th` is wrong four times in twelve, and
+ * it had shipped that way in three labels before anyone read one aloud.
+ */
+export function ordinalNumber(n: number): string {
+  const tens = n % 100;
+  if (tens >= 11 && tens <= 13) return `${n}th`;
+  const ones = n % 10;
+  return `${n}${ones === 1 ? 'st' : ones === 2 ? 'nd' : ones === 3 ? 'rd' : 'th'}`;
+}
+
 export function ordinalWord(n: number): string {
   return ordinal(n);
 }

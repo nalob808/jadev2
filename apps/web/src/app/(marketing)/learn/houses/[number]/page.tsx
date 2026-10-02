@@ -6,6 +6,7 @@ import {
   HOUSE_CLASS_LABELS,
   HOUSE_GROUP_LABELS,
   houseSignification,
+  ordinalNumber,
 } from '@jade/interpret';
 import { CallToAction } from '@/components/marketing/Site';
 import { JsonLd, SITE_URL, breadcrumbSchema } from '@/components/marketing/JsonLd';
@@ -24,7 +25,7 @@ export function generateMetadata({ params }: { params: { number: string } }): Me
     description: `${house.summary} What the ${house.sanskrit} governs, its kāraka, and how it is classified — with the classical source named.`,
     alternates: { canonical: `${SITE_URL}${path}` },
     openGraph: {
-      title: `The ${house.number}th house — ${house.title}`,
+      title: `The ${ordinalNumber(house.number)} house — ${house.title}`,
       description: house.summary,
       url: `${SITE_URL}${path}`,
       type: 'article',

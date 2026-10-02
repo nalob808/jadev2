@@ -11,6 +11,7 @@ import {
 } from '@jade/astro';
 import {
   deepNatal,
+  readAllAreas,
   synthesise,
   deepTransits,
   plainChartReading,
@@ -31,6 +32,7 @@ import {
   ViewNav,
   type SnapshotFact,
 } from '@/components/ReadingChrome';
+import { AreaCard } from '@/components/AreaCard';
 import { ChartSpine } from '@/components/ChartSpine';
 import { DeepPassage } from '@/components/DeepPassage';
 import { Workings } from '@/components/Workings';
@@ -141,6 +143,17 @@ export default async function ReadingPage({
    */
   const natalDepth = deepNatal(chart);
   const spine = synthesise(chart);
+  /*
+   * Every area of life, with the running period marked.
+   *
+   * The daśā chain is passed so an area can say it is the one the current
+   * stretch keeps asking about — which is the difference between a reading of
+   * a person and a reading of their year.
+   */
+  const areas = readAllAreas(chart, {
+    live: { major: chain[0]!.lord, minor: chain[1]?.lord },
+    sky,
+  });
   const transits = deepTransits(chart, sky);
   const sadeSati = plainSadeSati(
     chart,
@@ -148,7 +161,7 @@ export default async function ReadingPage({
   );
   const planets = plainPlanets(chart);
 
-  const active = ['overall', 'depth', 'houses', 'planets', 'timing'].includes(view ?? '')
+  const active = ['overall', 'depth', 'areas', 'houses', 'planets', 'timing'].includes(view ?? '')
     ? view!
     : 'overall';
   const hrefFor = (key: string): string => `/read/${id}?view=${key}`;
@@ -222,6 +235,7 @@ export default async function ReadingPage({
           views={[
             { key: 'overall', label: 'Overall' },
             { key: 'depth', label: 'In depth', count: natalDepth.length },
+            { key: 'areas', label: 'Your life', count: areas.length },
             { key: 'timing', label: 'Right now', count: transits.length + periods.length },
             { key: 'houses', label: 'Houses', count: reading.houses.length },
             { key: 'planets', label: 'Planets', count: planets.length },
@@ -334,6 +348,23 @@ export default async function ReadingPage({
               reading={passage}
               hrefForTradition={hrefForTradition}
             />
+          ))}
+        </section>
+      ) : null}
+
+      {/* ------------------------------------------------------------- areas */}
+      {active === 'areas' ? (
+        <section className="mt-5 flex flex-col gap-4">
+          <p className="border-l-2 border-[var(--rule-strong)] py-1 pl-3 text-[14px] leading-relaxed text-[var(--ink-muted)]">
+            Twelve areas, in the order people actually ask about them rather than in house order,
+            with whatever the running period touches first. Each one is read from five things at
+            once: the sign on the house, where its ruler went, who stands in it, who looks at it,
+            and how the chart’s own scoring treats transits through it. There is no total and no
+            ranking — one part of a life cannot be scored against another, and anything claiming to
+            is selling something.
+          </p>
+          {areas.map((area) => (
+            <AreaCard key={area.place} area={area} />
           ))}
         </section>
       ) : null}

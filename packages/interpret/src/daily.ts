@@ -12,6 +12,8 @@ import { houseSignification } from './significations/houses.js';
 import { grahaSignification } from './significations/grahas.js';
 import type { GroundedStatement, ReadingSection } from './reading.js';
 import { permitted } from './reading.js';
+import { ordinalNumber } from './lords.js';
+import { dayFocus, liveArea, type DayFocus } from './traditions/focus.js';
 
 /**
  * What today is, for one person.
@@ -126,6 +128,16 @@ export function transitHouse(chart: ComputedChart, longitude: number): number | 
 export interface DailyReading {
   readonly quality: DayQuality;
   readonly sections: readonly ReadingSection[];
+  /**
+   * Which part of the life the three clocks are pointed at.
+   *
+   * Separate from `sections` because the UI needs it structured: the daily
+   * card links straight through to the area reading, and a paragraph of prose
+   * cannot be turned back into a house number.
+   */
+  readonly focus: DayFocus;
+  /** The one area worth sending a reader to today, when there is one. */
+  readonly live: number | null;
 }
 
 export interface DailyOptions {
@@ -158,6 +170,19 @@ export function dailyReadingFor(
   const quality = dayQuality(natalMoon.longitude, transitMoon.longitude);
   const sections: ReadingSection[] = [];
 
+  // ------------------------------------------------ what today is actually about
+  /* First, because it is the question. Everything after it is the evidence. */
+  const focus = dayFocus(chart, sky, options.dasha);
+  if (focus.statements.length > 0) {
+    sections.push({
+      id: 'daily-focus',
+      kicker: 'What this is about',
+      title: 'The three clocks, and what each one is pointed at',
+      lede: 'Three clocks, running at different speeds. They often disagree, and when they do the slower one is describing a longer thing rather than contradicting the faster one.',
+      statements: focus.statements.filter(permitted),
+    });
+  }
+
   // ------------------------------------------------------- the Moon and yours
   const moonHouse = transitHouse(chart, transitMoon.longitude);
   const moonHouseLib = moonHouse ? houseSignification(moonHouse) : null;
@@ -165,7 +190,7 @@ export function dailyReadingFor(
 
   const moonStatements: GroundedStatement[] = [
     {
-      text: `The Moon is at ${degrees(transitMoon.degreesInSign)} ${transitMoon.sign}, in ${transitMoon.nakshatra}. Counted from ${quality.tara.fromNakshatra}, where your Moon sits natally, that is the ${quality.tara.index}${quality.tara.index === 1 ? 'st' : quality.tara.index === 2 ? 'nd' : quality.tara.index === 3 ? 'rd' : 'th'} tārā — ${quality.tara.name}, the tārā of ${quality.tara.meaning}. ${taraNote}`,
+      text: `The Moon is at ${degrees(transitMoon.degreesInSign)} ${transitMoon.sign}, in ${transitMoon.nakshatra}. Counted from ${quality.tara.fromNakshatra}, where your Moon sits natally, that is the ${ordinalNumber(quality.tara.index)} tārā — ${quality.tara.name}, the tārā of ${quality.tara.meaning}. ${taraNote}`,
       factors: [
         {
           kind: 'Transit Moon',
@@ -206,7 +231,7 @@ export function dailyReadingFor(
         { kind: 'House', detail: moonHouseLib.title },
       ],
       source: moonHouseLib.source,
-      anchor: { kind: 'house', key: String(moonHouse), label: `${moonHouse}th house` },
+      anchor: { kind: 'house', key: String(moonHouse), label: `${ordinalNumber(moonHouse)} house` },
     });
   }
 
@@ -270,7 +295,7 @@ export function dailyReadingFor(
 
   if (panchanga) {
     dayStatements.push({
-      text: `It is ${panchanga.tithi.name}, the ${panchanga.tithi.inPaksha}${panchanga.tithi.inPaksha === 1 ? 'st' : panchanga.tithi.inPaksha === 2 ? 'nd' : panchanga.tithi.inPaksha === 3 ? 'rd' : 'th'} tithi of the ${panchanga.tithi.paksha === 'shukla' ? 'waxing' : 'waning'} fortnight, ${Math.round(panchanga.tithi.elapsed * 100)}% elapsed. A tithi is the Moon gaining twelve degrees on the Sun, so it is a measure of the lunar month rather than of the solar day, and it does not line up with midnight.`,
+      text: `It is ${panchanga.tithi.name}, the ${ordinalNumber(panchanga.tithi.inPaksha)} tithi of the ${panchanga.tithi.paksha === 'shukla' ? 'waxing' : 'waning'} fortnight, ${Math.round(panchanga.tithi.elapsed * 100)}% elapsed. A tithi is the Moon gaining twelve degrees on the Sun, so it is a measure of the lunar month rather than of the solar day, and it does not line up with midnight.`,
       factors: [
         { kind: 'Tithi', detail: `${panchanga.tithi.name} (${panchanga.tithi.index} of 30)` },
         {
@@ -360,5 +385,5 @@ export function dailyReadingFor(
     });
   }
 
-  return { quality, sections };
+  return { quality, sections, focus, live: liveArea(focus) };
 }

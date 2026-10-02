@@ -1,10 +1,20 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import { deepNatal } from '@jade/interpret';
+import { deepNatal, readAllAreas, synthesise } from '@jade/interpret';
+import {
+  AstronomyEngineProvider,
+  dashaChainAt,
+  jdFromUnixMs,
+  skyNow,
+  vimshottari,
+} from '@jade/astro';
 import { getSettingsProfile, getSubject, openShareLink, recordShareLinkView } from '@jade/db';
 import { getDatabase } from '@/lib/db';
 import { getOrComputeChart } from '@/lib/chart';
 import { hashShareToken, looksLikeShareToken } from '@/lib/shareToken';
+import { getClock } from '@/lib/clock';
+import { AreaCard } from '@/components/AreaCard';
+import { ChartSpine } from '@/components/ChartSpine';
 import { DeepPassage } from '@/components/DeepPassage';
 
 export const dynamic = 'force-dynamic';
@@ -69,6 +79,40 @@ export default async function SharedReadingPage({
 
   const { chart } = await getOrComputeChart(opened.workspaceId, record.birthEvent, profile);
   const passages = deepNatal(chart);
+  const spine = synthesise(chart);
+
+  /*
+   * The same three layers the practitioner sees: what the chart is about, then
+   * every area of the life, then each graha in depth. A shared reading that is
+   * only the nine graha passages hands a client the detail and withholds the
+   * reading, which is the wrong half to send.
+   */
+  const clock = await getClock(opened.workspaceId);
+  const birthMs =
+    record.birthEvent.utcDatetime instanceof Date
+      ? record.birthEvent.utcDatetime.getTime()
+      : new Date(record.birthEvent.utcDatetime).getTime();
+  const chain = dashaChainAt(
+    vimshottari(chart.points.Moon!.longitude, jdFromUnixMs(birthMs), {
+      levels: 3,
+      yearLength: 'julian',
+    }),
+    clock.nowJd,
+  );
+  const sky = skyNow(
+    new AstronomyEngineProvider({ nodeType: profile.nodeType }),
+    clock.nowJd,
+    {
+      ayanamsa: profile.ayanamsa,
+      customAyanamsaAtJ2000: profile.customAyanamsaAtJ2000 ?? undefined,
+    },
+    ['Jupiter', 'Saturn', 'Rahu', 'Ketu'],
+    profile.nodeType,
+  );
+  const areas = readAllAreas(chart, {
+    live: { major: chain[0]!.lord, minor: chain[1]?.lord },
+    sky,
+  });
 
   /* Best effort. A counter that fails must never cost the visitor the page. */
   void recordShareLinkView(database, hash).catch(() => undefined);
@@ -97,6 +141,18 @@ export default async function SharedReadingPage({
       </header>
 
       <div className="mt-6 flex flex-col gap-4">
+        <ChartSpine synthesis={spine} name={record.subject.displayName} />
+
+        <h2 className="mt-4 border-b border-[var(--rule)] pb-1.5 font-display text-[1.7rem]">
+          Every area of the life
+        </h2>
+        {areas.map((area) => (
+          <AreaCard key={area.place} area={area} />
+        ))}
+
+        <h2 className="mt-4 border-b border-[var(--rule)] pb-1.5 font-display text-[1.7rem]">
+          Every graha, read five ways
+        </h2>
         {passages.map((passage) => (
           <DeepPassage key={passage.graha} reading={passage} />
         ))}

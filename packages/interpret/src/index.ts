@@ -42,3 +42,5 @@ export * from './traditions/transitReading.js';
 export * from './traditions/natalReading.js';
 export * from './traditions/synastryReading.js';
 export * from './traditions/synthesis.js';
+export * from './traditions/lifeAreas.js';
+export * from './traditions/focus.js';

@@ -31,6 +31,14 @@ export interface Place {
   /** The heading. Plain, second person, no Sanskrit and no ordinal jargon. */
   readonly topic: string;
   /**
+   * The same place named so it survives being dropped into a sentence.
+   *
+   * `topic` is a heading and reads as one — "you, and the body you carry
+   * around" cannot follow the word "in". Readings constantly have to say where
+   * a ruler went, so each place needs a form that can be quoted mid-clause.
+   */
+  readonly shortName: string;
+  /**
    * What actually falls under it — concrete nouns, not abstractions.
    *
    * No "you" in here, deliberately. `topic` is written in the second person and
@@ -52,6 +60,7 @@ export const PLACES: readonly Place[] = [
   {
     place: 1,
     topic: 'you, and the body you carry around',
+    shortName: 'the body and the self',
     governs: 'temperament, constitution, the first impression, how things get started',
     asks: 'Why do people read me the way they do before I have said anything?',
     calledIt: { hellenistic: 'the Helm', jyotisha: 'tanu bhāva — the body' },
@@ -59,6 +68,7 @@ export const PLACES: readonly Place[] = [
   {
     place: 2,
     topic: 'what you hold in your own hands',
+    shortName: 'earned money',
     governs: 'money earned directly, possessions, food, the speaking voice',
     asks: 'Am I secure, and does it come from me or from somewhere else?',
     calledIt: { hellenistic: 'the Gate of Hades', jyotisha: 'dhana bhāva — wealth' },
@@ -68,6 +78,7 @@ export const PLACES: readonly Place[] = [
   {
     place: 3,
     topic: 'the near distance',
+    shortName: 'the near distance',
     governs: 'siblings, neighbours, short journeys, letters and messages, the hands and the nerve',
     asks: 'Who is close enough to matter daily, and how do I get my message out?',
     calledIt: { hellenistic: 'the Goddess', jyotisha: 'sahaja bhāva — the born-alongside' },
@@ -75,6 +86,7 @@ export const PLACES: readonly Place[] = [
   {
     place: 4,
     topic: 'the ground under you',
+    shortName: 'home and ground',
     governs:
       'home, land, the parent who made the house what it was, inheritance, where a life settles',
     asks: 'Where do I actually belong?',
@@ -83,6 +95,7 @@ export const PLACES: readonly Place[] = [
   {
     place: 5,
     topic: 'what comes out of you',
+    shortName: 'children and creative work',
     governs: 'children, creative work, play, romance, speculation, and whatever luck favours',
     asks: 'What do I make, and does any of it come back to me?',
     calledIt: { hellenistic: 'Good Fortune', jyotisha: 'putra bhāva — offspring' },
@@ -90,6 +103,7 @@ export const PLACES: readonly Place[] = [
   {
     place: 6,
     topic: 'the grind, and what wears you down',
+    shortName: 'daily work and obligation',
     governs:
       'daily work, routine, employees, animals, unchosen obligations, and the frictions that get managed rather than resolved',
     asks: 'What is costing me more than it returns, and can I change the terms?',
@@ -100,6 +114,7 @@ export const PLACES: readonly Place[] = [
   {
     place: 7,
     topic: 'whoever is across the table',
+    shortName: 'partnership',
     governs:
       'marriage and partnership, business partners, contracts, and open opponents — the ones who declare themselves',
     asks: 'What happens to me in the presence of another person?',
@@ -108,6 +123,7 @@ export const PLACES: readonly Place[] = [
   {
     place: 8,
     topic: 'what you hold jointly and cannot settle alone',
+    shortName: 'shared and unsettled things',
     governs:
       'other people’s money, debt, inheritance, taxes, intimacy, and anything that changes a person without asking',
     asks: 'What am I depending on someone else for, and what does that cost?',
@@ -118,6 +134,7 @@ export const PLACES: readonly Place[] = [
   {
     place: 9,
     topic: 'the long view',
+    shortName: 'the long view',
     governs:
       'travel that changes a person, teachers, law and doctrine, publishing, and whatever is taken on faith',
     asks: 'What do I believe, and who taught me to?',
@@ -126,6 +143,7 @@ export const PLACES: readonly Place[] = [
   {
     place: 10,
     topic: 'what you are known for',
+    shortName: 'public standing',
     governs:
       'work in public, reputation, rank, the parent who set the standard, and the thing people name first',
     asks: 'What am I for, as far as everybody else is concerned?',
@@ -134,6 +152,7 @@ export const PLACES: readonly Place[] = [
   {
     place: 11,
     topic: 'the room you get let into',
+    shortName: 'gains and the wider circle',
     governs:
       'friends and allies, networks, the payoff from what was built, hopes held long enough to count as plans',
     asks: 'Who opens doors for me, and what arrives because of them?',
@@ -142,6 +161,7 @@ export const PLACES: readonly Place[] = [
   {
     place: 12,
     topic: 'what happens away from witnesses',
+    shortName: 'what is out of sight',
     governs:
       'solitude, sleep and dreams, what gets spent unseen, institutions, and the parts kept offstage',
     asks: 'What is going on that I am not looking at?',
