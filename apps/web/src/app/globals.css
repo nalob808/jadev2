@@ -946,3 +946,173 @@ h3 {
 .termcard__close:hover {
   color: var(--ink);
 }
+
+/* ---------------------------------------------------------------- mobile app
+ *
+ * The phone is not a narrow desktop.
+ *
+ * Everything below exists because a layout that merely *fits* a 390px screen
+ * still reads as a website on one: navigation that wraps onto three lines,
+ * rows of 10px links nobody can hit, and a page that scrolls under the home
+ * indicator. These are the primitives the shell uses to behave like an app
+ * instead — and every one of them is inert above the `sm` breakpoint, so the
+ * desktop layout this app was designed around is untouched.
+ */
+
+/*
+ * A row that scrolls sideways instead of wrapping.
+ *
+ * Tab strips are the one place where wrapping is worse than scrolling: a
+ * wrapped strip changes height as you move through the app, which shoves the
+ * content down by a line and makes the whole page feel unstable. The scrollbar
+ * is hidden because a visible one inside a 30px strip is noise, and the mask
+ * fades the right edge so a cut-off label reads as "more" rather than as a
+ * rendering bug.
+ */
+.jade-strip {
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+}
+
+.jade-strip::-webkit-scrollbar {
+  display: none;
+}
+
+@media (max-width: 639px) {
+  .jade-strip {
+    -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 1.5rem), transparent 100%);
+    mask-image: linear-gradient(to right, #000 calc(100% - 1.5rem), transparent 100%);
+  }
+}
+
+/*
+ * No scroll-snap here, deliberately.
+ *
+ * It was tried. Snapping aligns a child's edge to the scrollport start, which
+ * sits inside the strip's own 20px padding, so the browser silently scrolled
+ * every strip by 20px on load and clipped the first tab against the screen
+ * edge. Snapping buys a tab strip nothing — these are links, not pages — and
+ * it costs the one thing a navigation row must have, which is a predictable
+ * resting position.
+ */
+
+/* The home indicator and the notch. Fixed chrome pads itself or sits under them. */
+.jade-safe-bottom {
+  padding-bottom: calc(0.4rem + env(safe-area-inset-bottom, 0px));
+}
+
+.jade-safe-top {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+/*
+ * The bottom tab bar's backdrop.
+ *
+ * Translucent with a blur so content scrolling underneath stays legible as a
+ * hint of motion rather than as a hard edge — and an opaque fallback first,
+ * because a bar that is merely transparent where the blur is unsupported is
+ * unreadable rather than merely less pretty.
+ */
+.jade-tabbar {
+  background: var(--paper);
+  border-top: 1px solid var(--rule-strong);
+}
+
+@supports ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+  .jade-tabbar {
+    background: color-mix(in srgb, var(--paper) 86%, transparent);
+    -webkit-backdrop-filter: blur(14px) saturate(1.3);
+    backdrop-filter: blur(14px) saturate(1.3);
+  }
+}
+
+/*
+ * A section that is a disclosure on a phone and a plain panel on a desktop.
+ *
+ * Done with a checkbox and `peer-checked` rather than `<details>` because the
+ * open state has to depend on the viewport: a `<details>` is open or closed as
+ * a DOM property, which no media query can reach, so the desktop layout would
+ * have had to be collapsed too or the mobile one left expanded. With a
+ * checkbox the `sm:` variant simply forces the body visible and hides the
+ * toggle, and no JavaScript runs on either.
+ */
+.jade-fold-mark {
+  transition: transform 160ms ease;
+}
+
+.jade-fold:checked ~ label .jade-fold-mark {
+  transform: rotate(180deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .jade-fold-mark {
+    transition: none;
+  }
+}
+
+/*
+ * A link to a folded section opens it.
+ *
+ * `#area-7` from the daily reading has to land on an open section, not on a
+ * closed row that scrolled into view and showed nothing. `:target` is the one
+ * piece of state CSS gets from the URL, so the fold can honour a deep link
+ * with no JavaScript, exactly like the checkbox honours a tap.
+ */
+.jade-fold-wrap:target > .jade-fold-body {
+  display: block;
+}
+
+/*
+ * Touch targets.
+ *
+ * The app's navigation is set in 10–11px mono, which is right for the type and
+ * far below the 44px minimum a thumb needs. Rather than enlarge the type, the
+ * hit area is extended past the glyphs with a pseudo-element, so the design
+ * keeps its scale and the target stops being a coin flip.
+ */
+@media (pointer: coarse) {
+  .jade-tap {
+    position: relative;
+  }
+
+  .jade-tap::after {
+    content: '';
+    position: absolute;
+    inset: -0.7rem -0.45rem;
+  }
+
+  /*
+   * iOS zooms the whole page when a field smaller than 16px takes focus, and
+   * then does not zoom back out — so one tap on a birth-time field leaves the
+   * reader on a horizontally scrolled page with no obvious way back. Jade's
+   * forms are set in 13–14px on purpose, so this raises only the ones that
+   * would trigger it and leaves anything already larger alone.
+   */
+  input,
+  select,
+  textarea {
+    font-size: max(16px, 1em);
+  }
+}
+
+/*
+ * Print is never folded.
+ *
+ * A folded section is a phone affordance, and a report printed from a phone
+ * would otherwise come out as a list of headings. The toggles are already
+ * hidden with the rest of the controls; this makes sure what they were hiding
+ * is on the page.
+ */
+@media print {
+  .jade-fold-body {
+    display: block !important;
+  }
+
+  label[for^='fold-'] {
+    display: none !important;
+  }
+}

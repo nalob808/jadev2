@@ -31,6 +31,7 @@ import { getClock, stamp } from '@/lib/clock';
 import { getDatabase } from '@/lib/db';
 import { getOrComputeChart, toChartSettings } from '@/lib/chart';
 import { Kicker, Panel, Shell } from '@/components/Shell';
+import { Fold } from '@/components/Fold';
 import { TodayFocus } from '@/components/TodayFocus';
 import { Reading } from '@/components/Reading';
 import { AutoTerms, GlossaryProvider, Scope, T } from '@/components/Glossary';
@@ -118,11 +119,26 @@ function Stat({ n, label, href }: { n: string | number; label: string; href?: st
  */
 function ZoneNotice(): React.ReactElement {
   return (
-    <div className="mb-6 border-l-2 border-[var(--clay)] bg-[var(--surface)] px-4 py-3">
+    <div className="mb-5 border-l-2 border-[var(--clay)] bg-[var(--surface)] px-4 py-3 sm:mb-6">
       <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--clay)]">
         Times shown in UTC
       </p>
-      <p className="mt-1 max-w-[68ch] text-[13px] leading-relaxed text-[var(--ink-muted)]">
+      {/*
+        Two lengths of the same warning.
+
+        The long one is right on a desktop, where it costs nothing. On a phone
+        it ran to seven lines and 440px — a third of the screen spent on a
+        settings prompt, every single visit, above the content it is warning
+        about. The short one says the same thing and leaves the page visible.
+      */}
+      <p className="mt-1 text-[13px] leading-relaxed text-[var(--ink-muted)] sm:hidden">
+        Dates here are read in UTC, which is off by hours where you are.{' '}
+        <Link href="/settings" className="text-[var(--accent)] underline underline-offset-2">
+          Set your zone
+        </Link>
+        .
+      </p>
+      <p className="mt-1 hidden max-w-[68ch] text-[13px] leading-relaxed text-[var(--ink-muted)] sm:block">
         Nobody has told Jade where this practice keeps its clock, so every date on this page —
         including which day counts as today — is being read in UTC. If you are anywhere else, that
         is off by hours and sometimes by a whole day.{' '}
@@ -256,9 +272,9 @@ export default async function HomePage() {
       <GlossaryProvider lines={glossaryLines} scopes={glossaryScopes}>
         {clock.assumed ? <ZoneNotice /> : null}
 
-        <div className="jade-rise mb-6">
+        <div className="jade-rise mb-6 max-sm:mb-5">
           <Kicker>{stamp(clock, nowMs)}</Kicker>
-          <h1 className="font-display text-[2.6rem] font-semibold leading-[1.06]">
+          <h1 className="font-display text-[1.9rem] font-semibold leading-[1.1] sm:text-[2.6rem] sm:leading-[1.06]">
             <T id="tithi" plainTrigger>
               {panchanga.tithi.name}
             </T>{' '}
@@ -281,8 +297,26 @@ export default async function HomePage() {
           </p>
         </div>
 
+        {/*
+          The answer, before anything that argues for it.
+
+          On a phone this is the single most useful object on the page — which
+          part of the life the three clocks are pointed at — so it sits above
+          the fold rather than inside the one holding the daily reading. The
+          sections below are its working.
+        */}
+        {daily && personal ? (
+          <div className="mb-8">
+            <TodayFocus
+              focus={daily.focus}
+              live={daily.live}
+              areasHref={`/read/${personal.id}?view=areas`}
+            />
+          </div>
+        ) : null}
+
         {/* ------------------------------------------------------------ practice */}
-        <div className="mb-8 grid gap-px border border-[var(--rule)] bg-[var(--rule)] sm:grid-cols-4">
+        <div className="mb-8 grid grid-cols-2 gap-px border border-[var(--rule)] bg-[var(--rule)] sm:grid-cols-4">
           <Stat n={people.length} label="People" href="/people" />
           <Stat n={notes.length >= 4 ? '4+' : notes.length} label="Recent notes" href="/notes" />
           <Stat n={hits.length} label="Upcoming alerts" />
@@ -295,343 +329,353 @@ export default async function HomePage() {
 
         {/* ----------------------------------------------------------- the week */}
         {week.length ? (
-          <section className="mb-10">
-            <div className="mb-3 border-b border-[var(--rule)] pb-2">
-              <Kicker>Your week</Kicker>
-              <h2 className="font-display text-2xl font-semibold">
-                Seven days, counted from your Moon
-              </h2>
-              <p className="mt-1 max-w-[70ch] text-[13px] text-[var(--ink-faint)]">
-                <AutoTerms>
-                  {
-                    'Sampled at midnight where you are. Each day carries tārā bala — the nine-fold count from your birth nakṣatra — and candra bala, the Moon’s sign counted from your natal Moon. Both counts are shown, because the colour is only ever a summary of them.'
-                  }
-                </AutoTerms>
-              </p>
-            </div>
-            <WeekBands days={week} />
-          </section>
+          <Fold id="week" title="Your week" hint="Seven days, counted from your Moon" open>
+            <section className="mb-10">
+              <div className="mb-3 hidden border-b border-[var(--rule)] pb-2 sm:block">
+                <Kicker>Your week</Kicker>
+                <h2 className="font-display text-2xl font-semibold">
+                  Seven days, counted from your Moon
+                </h2>
+                <p className="mt-1 max-w-[70ch] text-[13px] text-[var(--ink-faint)]">
+                  <AutoTerms>
+                    {
+                      'Sampled at midnight where you are. Each day carries tārā bala — the nine-fold count from your birth nakṣatra — and candra bala, the Moon’s sign counted from your natal Moon. Both counts are shown, because the colour is only ever a summary of them.'
+                    }
+                  </AutoTerms>
+                </p>
+              </div>
+              <WeekBands days={week} />
+            </section>
+          </Fold>
         ) : null}
 
         <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
           {/* ---------------------------------------------------------- yours */}
-          <section>
-            <div className="mb-3 border-b border-[var(--rule)] pb-2">
-              <Kicker>Yours</Kicker>
-              <h2 className="font-display text-2xl font-semibold">
-                {personal ? personal.name : 'Nobody marked as you yet'}
-              </h2>
-            </div>
+          <Fold id="yours" title="Yours" hint="Your running period, your transits, your alerts">
+            <section>
+              <div className="mb-3 hidden border-b border-[var(--rule)] pb-2 sm:block">
+                <Kicker>Yours</Kicker>
+                <h2 className="font-display text-2xl font-semibold">
+                  {personal ? personal.name : 'Nobody marked as you yet'}
+                </h2>
+              </div>
 
-            {personal ? (
-              <div className="flex flex-col gap-3">
-                <Panel marked>
-                  <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--accent)]">
-                    Running <T id="dasha">daśā</T>
-                  </p>
-                  <p className="mt-1 font-display text-2xl">
-                    {personal.chain.split(' → ').map((lord, index) => (
-                      <span key={`${lord}-${index}`}>
-                        {index > 0 ? ' → ' : ''}
-                        <T id={`graha-${lord.toLowerCase()}`} plainTrigger>
-                          {lord}
-                        </T>
-                      </span>
-                    ))}
-                  </p>
-                  {/* Scoped to the running lord: a word hovered in this
+              {personal ? (
+                <div className="flex flex-col gap-3">
+                  <Panel marked>
+                    <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--accent)]">
+                      Running <T id="dasha">daśā</T>
+                    </p>
+                    <p className="mt-1 font-display text-2xl">
+                      {personal.chain.split(' → ').map((lord, index) => (
+                        <span key={`${lord}-${index}`}>
+                          {index > 0 ? ' → ' : ''}
+                          <T id={`graha-${lord.toLowerCase()}`} plainTrigger>
+                            {lord}
+                          </T>
+                        </span>
+                      ))}
+                    </p>
+                    {/* Scoped to the running lord: a word hovered in this
                       paragraph answers about the graha the paragraph is
                       about, not about the chart in general. */}
-                  <Scope of={personal.lord}>
-                    <p className="mt-2 text-[14px] leading-relaxed text-[var(--ink-muted)]">
-                      <AutoTerms>
-                        {`${grahaSignification(personal.lord)?.summary ?? ''}${
-                          personal.lordHouse
-                            ? ` In this chart ${personal.lord} sits in the ${ORDINALS[personal.lordHouse - 1]} house — ${houseSignification(personal.lordHouse)?.keywords.slice(0, 3).join(', ')}.`
-                            : ''
-                        }`}
-                      </AutoTerms>
-                    </p>
-                  </Scope>
-                  {/*
+                    <Scope of={personal.lord}>
+                      <p className="mt-2 text-[14px] leading-relaxed text-[var(--ink-muted)]">
+                        <AutoTerms>
+                          {`${grahaSignification(personal.lord)?.summary ?? ''}${
+                            personal.lordHouse
+                              ? ` In this chart ${personal.lord} sits in the ${ORDINALS[personal.lordHouse - 1]} house — ${houseSignification(personal.lordHouse)?.keywords.slice(0, 3).join(', ')}.`
+                              : ''
+                          }`}
+                        </AutoTerms>
+                      </p>
+                    </Scope>
+                    {/*
                     Three ways in rather than one.
 
                     "Open the chart" was the only link out of this panel, so the
                     instrument and the plain reading were a page-hop away from
                     the one chart somebody opens every day.
                   */}
-                  <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 font-mono text-[10px] uppercase tracking-wider">
-                    <Link
-                      href={`/people/${personal.id}`}
-                      className="text-[var(--accent)] transition-opacity hover:opacity-70"
-                    >
-                      the chart →
-                    </Link>
-                    <Link
-                      href={`/people/${personal.id}/instrument`}
-                      className="text-[var(--accent)] transition-opacity hover:opacity-70"
-                    >
-                      instrument →
-                    </Link>
-                    <Link
-                      href={`/read/${personal.id}`}
-                      className="text-[var(--accent)] transition-opacity hover:opacity-70"
-                    >
-                      in plain english →
-                    </Link>
-                  </div>
-                </Panel>
+                    <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 font-mono text-[10px] uppercase tracking-wider">
+                      <Link
+                        href={`/people/${personal.id}`}
+                        className="text-[var(--accent)] transition-opacity hover:opacity-70"
+                      >
+                        the chart →
+                      </Link>
+                      <Link
+                        href={`/people/${personal.id}/instrument`}
+                        className="text-[var(--accent)] transition-opacity hover:opacity-70"
+                      >
+                        instrument →
+                      </Link>
+                      <Link
+                        href={`/read/${personal.id}`}
+                        className="text-[var(--accent)] transition-opacity hover:opacity-70"
+                      >
+                        in plain english →
+                      </Link>
+                    </div>
+                  </Panel>
 
-                <Panel>
-                  <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--ink-faint)]">
-                    Watches
-                  </p>
-                  {hits.length === 0 ? (
-                    <p className="mt-2 text-[14px] text-[var(--ink-muted)]">
-                      <AutoTerms>
-                        {
-                          'No alerts queued. A watch fires when a transiting graha reaches a natal point, changes sign, or turns.'
-                        }
-                      </AutoTerms>
-                    </p>
-                  ) : (
-                    <ul className="mt-2 flex flex-col gap-2">
-                      {hits.slice(0, 5).map((hit) => (
-                        <li key={hit.id} className="border-l-2 border-[var(--clay)] pl-3">
-                          <p className="text-[14px] text-[var(--ink)]">{hit.title}</p>
-                          <p className="font-mono text-[10px] text-[var(--ink-faint)]">
-                            {hit.subject.displayName} ·{' '}
-                            {clock.format(new Date(hit.occursAt).getTime(), {
-                              day: 'numeric',
-                              month: 'short',
-                              year: 'numeric',
-                            })}
-                          </p>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </Panel>
-
-                {notes.length > 0 ? (
                   <Panel>
                     <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--ink-faint)]">
-                      Last written
+                      Watches
                     </p>
-                    <ul className="mt-2 flex flex-col gap-2">
-                      {notes.slice(0, 3).map((note) => (
-                        <li key={note.id} className="border-l-2 border-[var(--rule)] pl-3">
-                          <p className="line-clamp-2 text-[14px] leading-snug text-[var(--ink-muted)]">
-                            {note.body}
-                          </p>
-                          {note.anchorLabel ? (
-                            <p className="font-mono text-[10px] text-[var(--accent)]">
-                              {note.anchorLabel}
+                    {hits.length === 0 ? (
+                      <p className="mt-2 text-[14px] text-[var(--ink-muted)]">
+                        <AutoTerms>
+                          {
+                            'No alerts queued. A watch fires when a transiting graha reaches a natal point, changes sign, or turns.'
+                          }
+                        </AutoTerms>
+                      </p>
+                    ) : (
+                      <ul className="mt-2 flex flex-col gap-2">
+                        {hits.slice(0, 5).map((hit) => (
+                          <li key={hit.id} className="border-l-2 border-[var(--clay)] pl-3">
+                            <p className="text-[14px] text-[var(--ink)]">{hit.title}</p>
+                            <p className="font-mono text-[10px] text-[var(--ink-faint)]">
+                              {hit.subject.displayName} ·{' '}
+                              {clock.format(new Date(hit.occursAt).getTime(), {
+                                day: 'numeric',
+                                month: 'short',
+                                year: 'numeric',
+                              })}
                             </p>
-                          ) : null}
-                        </li>
-                      ))}
-                    </ul>
-                    <Link
-                      href="/notes"
-                      className="mt-3 inline-block font-mono text-[10px] uppercase tracking-wider text-[var(--ink-faint)] hover:text-[var(--ink)]"
-                    >
-                      All notes →
-                    </Link>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
                   </Panel>
-                ) : null}
-              </div>
-            ) : (
-              <Panel>
-                <p className="text-[var(--ink-muted)]">
-                  Add yourself as a person and set the relationship to <em>Me</em>, and this side
-                  fills with your running daśā, your week counted from your own Moon, and a daily
-                  reading grounded in your chart.
-                </p>
-                <Link
-                  href="/people/new"
-                  className="mt-4 inline-block border border-[var(--accent)] bg-[var(--accent)] px-4 py-2 font-display text-lg tracking-wide text-white transition-colors hover:bg-transparent hover:text-[var(--accent)]"
-                >
-                  Add a person
-                </Link>
-              </Panel>
-            )}
-          </section>
+
+                  {notes.length > 0 ? (
+                    <Panel>
+                      <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--ink-faint)]">
+                        Last written
+                      </p>
+                      <ul className="mt-2 flex flex-col gap-2">
+                        {notes.slice(0, 3).map((note) => (
+                          <li key={note.id} className="border-l-2 border-[var(--rule)] pl-3">
+                            <p className="line-clamp-2 text-[14px] leading-snug text-[var(--ink-muted)]">
+                              {note.body}
+                            </p>
+                            {note.anchorLabel ? (
+                              <p className="font-mono text-[10px] text-[var(--accent)]">
+                                {note.anchorLabel}
+                              </p>
+                            ) : null}
+                          </li>
+                        ))}
+                      </ul>
+                      <Link
+                        href="/notes"
+                        className="mt-3 inline-block font-mono text-[10px] uppercase tracking-wider text-[var(--ink-faint)] hover:text-[var(--ink)]"
+                      >
+                        All notes →
+                      </Link>
+                    </Panel>
+                  ) : null}
+                </div>
+              ) : (
+                <Panel>
+                  <p className="text-[var(--ink-muted)]">
+                    Add yourself as a person and set the relationship to <em>Me</em>, and this side
+                    fills with your running daśā, your week counted from your own Moon, and a daily
+                    reading grounded in your chart.
+                  </p>
+                  <Link
+                    href="/people/new"
+                    className="mt-4 inline-block border border-[var(--accent)] bg-[var(--accent)] px-4 py-2 font-display text-lg tracking-wide text-white transition-colors hover:bg-transparent hover:text-[var(--accent)]"
+                  >
+                    Add a person
+                  </Link>
+                </Panel>
+              )}
+            </section>
+          </Fold>
 
           {/* --------------------------------------------- born on this day */}
           {bornToday.length > 0 ? (
-            <section className="mb-10">
-              <div className="mb-3 flex flex-wrap items-baseline justify-between gap-x-4 border-b border-[var(--rule)] pb-2">
-                <div>
-                  <Kicker>From the library</Kicker>
-                  <h2 className="font-display text-2xl font-semibold">
-                    Born on this day
-                    {/* Counts on everything: a heading that does not say what
+            <Fold
+              id="born"
+              title="Born on this day"
+              hint="Figures from the library who share today"
+            >
+              <section className="mb-10">
+                <div className="mb-3 flex flex-wrap items-baseline justify-between gap-x-4 border-b border-[var(--rule)] pb-2 max-sm:hidden">
+                  <div>
+                    <Kicker>From the library</Kicker>
+                    <h2 className="font-display text-2xl font-semibold">
+                      Born on this day
+                      {/* Counts on everything: a heading that does not say what
                         is under it gets opened repeatedly or never. */}
-                    <span className="ml-2 font-mono text-[11px] font-normal text-[var(--ink-faint)]">
-                      {bornToday.length}
-                    </span>
-                  </h2>
+                      <span className="ml-2 font-mono text-[11px] font-normal text-[var(--ink-faint)]">
+                        {bornToday.length}
+                      </span>
+                    </h2>
+                  </div>
+                  <Link
+                    href="/charts"
+                    className="font-mono text-[11px] uppercase tracking-wider text-[var(--accent)] underline underline-offset-4"
+                  >
+                    the whole library →
+                  </Link>
                 </div>
-                <Link
-                  href="/charts"
-                  className="font-mono text-[11px] uppercase tracking-wider text-[var(--accent)] underline underline-offset-4"
-                >
-                  the whole library →
-                </Link>
-              </div>
 
-              <ul className="flex flex-col gap-2">
-                {bornToday.map((figure) => (
-                  <li key={figure.slug}>
-                    <Link
-                      href={`/charts/${figure.slug}`}
-                      className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5 border border-[var(--rule)] bg-[var(--surface)] p-3 hover:border-[var(--accent)]"
-                    >
-                      <span className="font-display text-lg leading-none">
-                        {figure.displayName}
-                      </span>
-                      <span className="font-mono text-[10.5px] text-[var(--ink-faint)]">
-                        {figure.placeName}
-                      </span>
-                      {/* The Rodden grade travels with the name everywhere in
+                <ul className="flex flex-col gap-2">
+                  {bornToday.map((figure) => (
+                    <li key={figure.slug}>
+                      <Link
+                        href={`/charts/${figure.slug}`}
+                        className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5 border border-[var(--rule)] bg-[var(--surface)] p-3 hover:border-[var(--accent)]"
+                      >
+                        <span className="font-display text-lg leading-none">
+                          {figure.displayName}
+                        </span>
+                        <span className="font-mono text-[10.5px] text-[var(--ink-faint)]">
+                          {figure.placeName}
+                        </span>
+                        {/* The Rodden grade travels with the name everywhere in
                           Jade. A chart whose birth time is a guess must never
                           be presented as though it were not. */}
-                      <span className="ml-auto font-mono text-[10px] uppercase tracking-[0.12em] text-[var(--ink-faint)]">
-                        {figure.birthTime ? `Rodden ${figure.rodden}` : 'no birth time'}
-                      </span>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </section>
+                        <span className="ml-auto font-mono text-[10px] uppercase tracking-[0.12em] text-[var(--ink-faint)]">
+                          {figure.birthTime ? `Rodden ${figure.rodden}` : 'no birth time'}
+                        </span>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            </Fold>
           ) : null}
 
           {/* ------------------------------------------------------- the sky */}
-          <section>
-            <div className="mb-3 border-b border-[var(--rule)] pb-2">
-              <Kicker>The sky</Kicker>
-              <h2 className="font-display text-2xl font-semibold">Where everything is</h2>
-              <p className="mt-1 text-[13px] text-[var(--ink-faint)]">
-                True of everyone. Nothing here is about you — these are <T id="gochara">transits</T>
-                , not your chart.
-              </p>
-              <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 font-mono text-[10px] uppercase tracking-wider">
-                <Link href="/timing/sky" className="text-[var(--accent)] hover:opacity-70">
-                  who this lands on →
-                </Link>
-                <Link href="/timing/search" className="text-[var(--accent)] hover:opacity-70">
-                  find a window →
-                </Link>
-              </div>
-            </div>
-
-            <div className="overflow-x-auto border border-[var(--rule)] bg-[var(--surface)]">
-              <table aria-label="Current positions" className="w-full text-sm">
-                <tbody>
-                  {sky.map((point) => (
-                    <tr key={point.id} className="border-b border-[var(--rule)] last:border-b-0">
-                      <td className="w-8 py-1.5 pl-3 text-[var(--accent)]">
-                        {GLYPHS[point.id]}
-                        {'︎'}
-                      </td>
-                      <td className="py-1.5 pr-3 text-[var(--ink)]">
-                        <T id={`graha-${point.id.toLowerCase()}`} plainTrigger>
-                          {point.id}
-                        </T>
-                      </td>
-                      <td className="py-1.5 pr-3 font-mono text-[11px] tabular-nums text-[var(--ink-muted)]">
-                        {degrees(point.degreesInSign)}{' '}
-                        <T id={`sign-${point.sign.toLowerCase()}`} plainTrigger>
-                          {point.sign}
-                        </T>
-                      </td>
-                      <td className="py-1.5 pr-3 font-mono text-[10px] text-[var(--ink-faint)]">
-                        <T
-                          id={`nakshatra-${point.nakshatra.toLowerCase().replace(/\s+/g, '-')}`}
-                          plainTrigger
-                        >
-                          {point.nakshatra}
-                        </T>
-                      </td>
-                      <td className="py-1.5 pr-3 text-right font-mono text-[10px] text-[var(--clay)]">
-                        {point.retrograde ? <T id="retrograde">R</T> : ''}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            {outlook.ingresses.length || outlook.stations.length ? (
-              <Panel className="mt-3">
-                <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--ink-faint)]">
-                  Exact events this week
+          <Fold
+            id="sky"
+            title="Where everything is"
+            hint="The sky right now — true of everyone, not about you"
+          >
+            <section>
+              <div className="mb-3 border-b border-[var(--rule)] pb-2 max-sm:hidden">
+                <Kicker>The sky</Kicker>
+                <h2 className="font-display text-2xl font-semibold">Where everything is</h2>
+                <p className="mt-1 text-[13px] text-[var(--ink-faint)]">
+                  True of everyone. Nothing here is about you — these are{' '}
+                  <T id="gochara">transits</T>, not your chart.
                 </p>
-                <ul className="mt-2 flex flex-col gap-1.5">
-                  {[
-                    ...outlook.ingresses.map((i) => ({
-                      jd: i.jdUt,
-                      // `retrograde` here means it backed into the sign it just
-                      // left, which reads very differently from a clean entry.
-                      text: `${i.body} ${i.retrograde ? 're-enters' : 'enters'} ${i.sign}`,
-                    })),
-                    ...outlook.stations.map((s) => ({
-                      jd: s.jdUt,
-                      text: `${s.body} turns ${s.direction}`,
-                    })),
-                  ]
-                    .sort((a, b) => a.jd - b.jd)
-                    .map((event) => (
-                      <li
-                        key={`${event.text}-${event.jd}`}
-                        className="flex items-baseline justify-between gap-3 border-l-2 border-[var(--accent)] pl-3"
-                      >
-                        <span className="text-[14px] text-[var(--ink)]">{event.text}</span>
-                        <span className="shrink-0 font-mono text-[10px] text-[var(--ink-faint)]">
-                          {clock.format(unixMsFromJd(event.jd), {
-                            day: 'numeric',
-                            month: 'short',
-                            hour: 'numeric',
-                            minute: '2-digit',
-                          })}
-                        </span>
-                      </li>
+                <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 font-mono text-[10px] uppercase tracking-wider">
+                  <Link href="/timing/sky" className="text-[var(--accent)] hover:opacity-70">
+                    who this lands on →
+                  </Link>
+                  <Link href="/timing/search" className="text-[var(--accent)] hover:opacity-70">
+                    find a window →
+                  </Link>
+                </div>
+              </div>
+
+              <div className="overflow-x-auto border border-[var(--rule)] bg-[var(--surface)]">
+                <table aria-label="Current positions" className="w-full text-sm">
+                  <tbody>
+                    {sky.map((point) => (
+                      <tr key={point.id} className="border-b border-[var(--rule)] last:border-b-0">
+                        <td className="w-8 py-1.5 pl-3 text-[var(--accent)]">
+                          {GLYPHS[point.id]}
+                          {'︎'}
+                        </td>
+                        <td className="py-1.5 pr-3 text-[var(--ink)]">
+                          <T id={`graha-${point.id.toLowerCase()}`} plainTrigger>
+                            {point.id}
+                          </T>
+                        </td>
+                        <td className="py-1.5 pr-3 font-mono text-[11px] tabular-nums text-[var(--ink-muted)]">
+                          {degrees(point.degreesInSign)}{' '}
+                          <T id={`sign-${point.sign.toLowerCase()}`} plainTrigger>
+                            {point.sign}
+                          </T>
+                        </td>
+                        <td className="py-1.5 pr-3 font-mono text-[10px] text-[var(--ink-faint)]">
+                          <T
+                            id={`nakshatra-${point.nakshatra.toLowerCase().replace(/\s+/g, '-')}`}
+                            plainTrigger
+                          >
+                            {point.nakshatra}
+                          </T>
+                        </td>
+                        <td className="py-1.5 pr-3 text-right font-mono text-[10px] text-[var(--clay)]">
+                          {point.retrograde ? <T id="retrograde">R</T> : ''}
+                        </td>
+                      </tr>
                     ))}
-                </ul>
-              </Panel>
-            ) : null}
-          </section>
+                  </tbody>
+                </table>
+              </div>
+
+              {outlook.ingresses.length || outlook.stations.length ? (
+                <Panel className="mt-3">
+                  <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--ink-faint)]">
+                    Exact events this week
+                  </p>
+                  <ul className="mt-2 flex flex-col gap-1.5">
+                    {[
+                      ...outlook.ingresses.map((i) => ({
+                        jd: i.jdUt,
+                        // `retrograde` here means it backed into the sign it just
+                        // left, which reads very differently from a clean entry.
+                        text: `${i.body} ${i.retrograde ? 're-enters' : 'enters'} ${i.sign}`,
+                      })),
+                      ...outlook.stations.map((s) => ({
+                        jd: s.jdUt,
+                        text: `${s.body} turns ${s.direction}`,
+                      })),
+                    ]
+                      .sort((a, b) => a.jd - b.jd)
+                      .map((event) => (
+                        <li
+                          key={`${event.text}-${event.jd}`}
+                          className="flex items-baseline justify-between gap-3 border-l-2 border-[var(--accent)] pl-3"
+                        >
+                          <span className="text-[14px] text-[var(--ink)]">{event.text}</span>
+                          <span className="shrink-0 font-mono text-[10px] text-[var(--ink-faint)]">
+                            {clock.format(unixMsFromJd(event.jd), {
+                              day: 'numeric',
+                              month: 'short',
+                              hour: 'numeric',
+                              minute: '2-digit',
+                            })}
+                          </span>
+                        </li>
+                      ))}
+                  </ul>
+                </Panel>
+              ) : null}
+            </section>
+          </Fold>
         </div>
 
         {/* --------------------------------------------------- the daily reading */}
         {daily && personal ? (
-          <section className="mt-10">
-            <div className="mb-4 border-b border-[var(--rule)] pb-2">
-              <Kicker>Today, read against your chart</Kicker>
-              <h2 className="font-display text-2xl font-semibold">
-                What the sky is doing to {personal.name}&rsquo;s houses
-              </h2>
-              <p className="mt-1 max-w-[70ch] text-[13px] text-[var(--ink-faint)]">
-                Every sentence below is composed from positions, and every one shows them. Nothing
-                here forecasts — a transit is a location, and what it says is where a graha is
-                standing relative to this chart today.
-              </p>
-            </div>
-            {/*
-              The answer first, then its working. The strip names which part of
-              the life the three clocks are pointed at and links into the full
-              area reading; the sections below are the positions it rests on.
-            */}
-            <div className="mb-5">
-              <TodayFocus
-                focus={daily.focus}
-                live={daily.live}
-                areasHref={`/read/${personal.id}?view=areas`}
-              />
-            </div>
-            <Reading sections={daily.sections} subjectId={personal.id} />
-          </section>
+          <Fold
+            id="daily"
+            title="Today, against your chart"
+            hint="The three clocks, your transits, and the day in the calendar"
+          >
+            <section className="mt-10">
+              <div className="mb-4 border-b border-[var(--rule)] pb-2 max-sm:hidden">
+                <Kicker>Today, read against your chart</Kicker>
+                <h2 className="font-display text-2xl font-semibold">
+                  What the sky is doing to {personal.name}&rsquo;s houses
+                </h2>
+                <p className="mt-1 max-w-[70ch] text-[13px] text-[var(--ink-faint)]">
+                  Every sentence below is composed from positions, and every one shows them. Nothing
+                  here forecasts — a transit is a location, and what it says is where a graha is
+                  standing relative to this chart today.
+                </p>
+              </div>
+              <Reading sections={daily.sections} subjectId={personal.id} />
+            </section>
+          </Fold>
         ) : null}
       </GlossaryProvider>
     </Shell>

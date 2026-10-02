@@ -14,6 +14,7 @@ import { getOrComputeChart } from '@/lib/chart';
 import { hashShareToken, looksLikeShareToken } from '@/lib/shareToken';
 import { getClock } from '@/lib/clock';
 import { AreaCard } from '@/components/AreaCard';
+import { Fold } from '@/components/Fold';
 import { ChartSpine } from '@/components/ChartSpine';
 import { DeepPassage } from '@/components/DeepPassage';
 
@@ -147,7 +148,15 @@ export default async function SharedReadingPage({
           Every area of the life
         </h2>
         {areas.map((area) => (
-          <AreaCard key={area.place} area={area} />
+          <Fold
+            key={area.place}
+            id={`area-${area.place}`}
+            title={area.title}
+            hint={area.asks}
+            open={area.liveNow !== null}
+          >
+            <AreaCard area={area} />
+          </Fold>
         ))}
 
         <h2 className="mt-4 border-b border-[var(--rule)] pb-1.5 font-display text-[1.7rem]">

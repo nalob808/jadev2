@@ -9,6 +9,7 @@ import { getOrComputeChart } from '@/lib/chart';
 import { Shell } from '@/components/Shell';
 import { GlossaryProvider } from '@/components/Glossary';
 import { HouseCard, HouseChips } from '@/components/HouseCards';
+import { Fold } from '@/components/Fold';
 
 export const dynamic = 'force-dynamic';
 
@@ -116,15 +117,31 @@ export default async function HousesPage({
           </p>
         </div>
 
-        <div className="mt-5 flex flex-col gap-5">
-          {shown.map((reading) => (
-            <HouseCard
+        {/*
+          Folded on a phone, open from `sm`.
+
+          All twelve expanded measured 16,500px — twenty screens, which in
+          practice means houses eight through twelve were never seen on a
+          phone. Closed, each one is a row naming the house and what it is
+          for, and the chips above still jump straight to any of them. When a
+          single house is picked there is nothing to fold, so it opens.
+        */}
+        <div className="mt-5 flex flex-col sm:gap-5">
+          {shown.map((reading, index) => (
+            <Fold
               key={reading.house}
-              reading={reading}
-              compareHref={
-                others.length > 0 ? `/houses?house=${reading.house}&with=${id}` : undefined
-              }
-            />
+              id={`house-${reading.house}`}
+              title={`House ${reading.house} — ${reading.signification.title}`}
+              hint={reading.signification.summary}
+              open={shown.length === 1 || index === 0}
+            >
+              <HouseCard
+                reading={reading}
+                compareHref={
+                  others.length > 0 ? `/houses?house=${reading.house}&with=${id}` : undefined
+                }
+              />
+            </Fold>
           ))}
         </div>
 

@@ -10,7 +10,18 @@ import { tokens } from '@jade/ui/tokens';
  * design system has exactly one source of truth.
  */
 export default {
-  content: ['./src/**/*.{ts,tsx}'],
+  /*
+   * The UI package is scanned too.
+   *
+   * `@jade/ui` renders inside this app (it is in `transpilePackages`), and its
+   * components are written in the same Tailwind utilities — but only classes
+   * Tailwind has *seen* get generated. Until this line, a utility used in the
+   * wheel and nowhere under `src` simply did not exist in the stylesheet, and
+   * the component rendered unstyled in a way that looked like a layout bug
+   * rather than a missing class. Everything worked only because every class
+   * the package used happened to be used here as well.
+   */
+  content: ['./src/**/*.{ts,tsx}', '../../packages/ui/src/**/*.{ts,tsx}'],
   theme: {
     extend: {
       colors: {

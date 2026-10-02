@@ -50,7 +50,7 @@ export function SnapshotStrip({
   readonly facts: readonly SnapshotFact[];
 }): React.ReactElement {
   return (
-    <div className="grid gap-px border border-[var(--rule)] bg-[var(--rule)] sm:grid-cols-2 lg:grid-cols-4">
+    <div className="grid grid-cols-2 gap-px border border-[var(--rule)] bg-[var(--rule)] lg:grid-cols-4">
       {facts.map((fact) => (
         <div key={fact.label} className="bg-[var(--surface)] px-3 py-2.5">
           <p className="font-mono text-[9.5px] uppercase tracking-[0.14em] text-[var(--ink-faint)]">
@@ -97,7 +97,7 @@ export function ViewNav({
   return (
     <nav
       aria-label="Reading sections"
-      className="flex gap-px overflow-x-auto border border-[var(--rule)] bg-[var(--rule)]"
+      className="jade-strip flex gap-px border border-[var(--rule)] bg-[var(--rule)]"
     >
       {views.map((view) => {
         const current = view.key === active;
@@ -106,7 +106,7 @@ export function ViewNav({
             key={view.key}
             href={hrefFor(view.key)}
             aria-current={current ? 'page' : undefined}
-            className={`flex-1 whitespace-nowrap px-4 py-2.5 text-center transition-colors ${
+            className={`shrink-0 whitespace-nowrap px-4 py-3 text-center transition-colors sm:flex-1 sm:py-2.5 ${
               current
                 ? 'bg-[var(--accent)] text-[var(--paper)]'
                 : 'bg-[var(--surface)] text-[var(--ink-muted)] hover:text-[var(--accent)]'

@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { devSignOut } from '@/app/actions';
-import { LensTabs, PrimaryLinks, SectionRow } from './AppNav';
+import { LensTabs, MobileTabBar, PrimaryLinks, SectionRow, SectionTitle } from './AppNav';
 import { AutoTerms } from './Glossary';
 import { ThemeToggle } from './ThemeToggle';
 
@@ -16,10 +16,47 @@ import { ThemeToggle } from './ThemeToggle';
  * `lib/nav.ts`. This component only lays them out: five words and the account
  * corner on the first line, the current section's parts on the second.
  */
-export function Nav({ email }: { email?: string | undefined }): React.ReactElement {
+export function Nav({
+  email,
+  subject = false,
+}: {
+  email?: string | undefined;
+  /** True when a `SubjectBar` follows, which changes what the header shows on a phone. */
+  subject?: boolean;
+}): React.ReactElement {
   return (
-    <header className="mb-7">
-      <div className="flex flex-wrap items-baseline gap-x-4 gap-y-2 pb-1">
+    <header className="mb-5 sm:mb-7">
+      {/*
+        The phone's top bar.
+
+        Sticky, one line, and deliberately almost empty: the wordmark so you
+        know what you are in, where you are in one small word, and the two
+        controls that have no other home. Everything else moved to the bottom
+        bar or into the page. It stays put when the page scrolls because a
+        header that scrolls away takes the only fixed landmark with it.
+      */}
+      <div className="jade-safe-top sticky top-0 z-30 -mx-5 mb-3 flex items-center gap-3 border-b border-[var(--rule)] bg-[var(--paper)]/92 px-5 py-2.5 backdrop-blur-md sm:hidden">
+        <Link
+          href="/home"
+          className="font-display text-xl font-semibold tracking-[0.22em] text-[var(--ink)]"
+        >
+          JADE
+        </Link>
+        <SectionTitle />
+        <div className="ml-auto flex items-center gap-3">
+          <ThemeToggle variant="masthead" />
+          <Link
+            href="/settings"
+            aria-label="Settings"
+            className="jade-tap font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--ink-faint)]"
+          >
+            Settings
+          </Link>
+        </div>
+      </div>
+
+      {/* The desktop masthead, unchanged. */}
+      <div className="hidden flex-wrap items-baseline gap-x-4 gap-y-2 pb-1 sm:flex">
         <Link
           href="/home"
           className="font-display text-2xl font-semibold tracking-[0.22em] text-[var(--ink)]"
@@ -65,10 +102,18 @@ export function Nav({ email }: { email?: string | undefined }): React.ReactEleme
         </div>
       </div>
 
-      <SectionRow />
+      {/*
+        On a phone a subject page already carries the lens tabs, and a section
+        row above them is two rows of small type saying overlapping things. The
+        bottom bar says which section you are in; the lenses say what you are
+        looking at. That is enough.
+      */}
+      <div className={subject ? 'hidden sm:block' : undefined}>
+        <SectionRow />
+      </div>
 
       {/* The one ambient thing in the app — see .jade-ecliptic in globals.css. */}
-      <div className="jade-ecliptic mt-3" aria-hidden="true" />
+      <div className="jade-ecliptic mt-3 hidden sm:block" aria-hidden="true" />
     </header>
   );
 }
@@ -102,11 +147,16 @@ export function SubjectBar({
   actions?: React.ReactNode;
 }): React.ReactElement {
   return (
-    <div className="jade-rise mb-6 border-b border-[var(--rule)] pb-3">
+    <div className="jade-rise mb-5 border-b border-[var(--rule)] pb-3 sm:mb-6">
       <div className="flex flex-wrap items-end justify-between gap-x-5 gap-y-2">
-        <div>
+        <div className="min-w-0">
           {kicker ? <Kicker>{kicker}</Kicker> : null}
-          <h1 className="font-display text-[2.1rem] font-semibold leading-[1.1] tracking-[-0.01em]">
+          {/*
+            The name wraps rather than overflows. A long one at 2.1rem is wider
+            than a phone, and `truncate` would hide half of somebody's name to
+            protect a layout — which is the wrong thing to protect.
+          */}
+          <h1 className="font-display text-[1.7rem] font-semibold leading-[1.1] tracking-[-0.01em] sm:text-[2.1rem]">
             {name}
           </h1>
           {line ? (
@@ -142,7 +192,13 @@ export type ShellWidth = 'reading' | 'wide';
  * of these classes appears.
  */
 export function shellContainer(width: ShellWidth = 'reading'): string {
-  return `mx-auto px-5 pb-24 pt-7 sm:px-8 ${width === 'wide' ? 'max-w-[100rem]' : 'max-w-5xl'}`;
+  /*
+   * `pb-32` on a phone is not padding for its own sake: the bottom tab bar is
+   * fixed, so without it the last card of every page sits underneath the tabs
+   * and cannot be read or tapped. Above `sm` the bar is gone and the old
+   * breathing room is back.
+   */
+  return `mx-auto px-5 pb-32 sm:px-8 sm:pb-24 sm:pt-7 ${width === 'wide' ? 'max-w-[100rem]' : 'max-w-5xl'}`;
 }
 
 export function Shell({
@@ -171,11 +227,19 @@ export function Shell({
     | undefined;
 }) {
   return (
-    <div className={shellContainer(width)}>
-      <Nav email={email} />
-      {subject ? <SubjectBar {...subject} /> : null}
-      {children}
-    </div>
+    <>
+      <div className={shellContainer(width)}>
+        <Nav email={email} subject={Boolean(subject)} />
+        {subject ? <SubjectBar {...subject} /> : null}
+        {children}
+      </div>
+      {/*
+        Outside the container on purpose. It is fixed to the viewport, so a
+        padded, max-width parent would do nothing but confuse whoever reads
+        this next.
+      */}
+      <MobileTabBar />
+    </>
   );
 }
 
@@ -257,10 +321,10 @@ export function PageHead({
   actions?: React.ReactNode;
 }): React.ReactElement {
   return (
-    <div className="jade-rise mb-6 flex flex-wrap items-end justify-between gap-4">
+    <div className="jade-rise mb-5 flex flex-wrap items-end justify-between gap-4 sm:mb-6">
       <div>
         <Kicker>{kicker}</Kicker>
-        <h1 className="font-display text-[2.6rem] font-semibold leading-[1.06] tracking-[-0.01em]">
+        <h1 className="font-display text-[2rem] font-semibold leading-[1.08] tracking-[-0.01em] sm:text-[2.6rem] sm:leading-[1.06]">
           {title}
         </h1>
         {lede ? <p className="mt-2 max-w-[58ch] text-[var(--ink-muted)]">{lede}</p> : null}

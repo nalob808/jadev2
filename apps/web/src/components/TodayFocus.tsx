@@ -56,23 +56,31 @@ export function TodayFocus({
       </p>
 
       {focus.agreement ? (
-        <h3 className="mt-1 font-display text-[1.9rem] leading-[1.12]">
+        <h3 className="mt-1 font-display text-[1.55rem] leading-[1.15] sm:text-[1.9rem] sm:leading-[1.12]">
           {focus.agreement.scales.length === 3 ? 'All three' : 'Two'} timescales land on{' '}
           {focus.agreement.topic}.
         </h3>
       ) : (
-        <h3 className="mt-1 font-display text-[1.9rem] leading-[1.12]">
+        <h3 className="mt-1 font-display text-[1.55rem] leading-[1.15] sm:text-[1.9rem] sm:leading-[1.12]">
           Today sits on {focus.focuses.find((one) => one.scale === 'today')?.topic}.
         </h3>
       )}
 
-      <dl className="mt-3 flex flex-col gap-1.5">
+      <dl className="mt-3 flex flex-col gap-2.5 sm:gap-1.5">
         {rows.map(({ scale, matching }) => (
-          <div key={scale} className="flex flex-wrap items-baseline gap-x-2">
-            <dt className="min-w-[6.5rem] font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--ink-faint)]">
+          <div key={scale} className="sm:flex sm:flex-wrap sm:items-baseline sm:gap-x-2">
+            {/*
+              Stacked on a phone, side by side from `sm`.
+
+              Inline, the period row ran to three links with a graha name after
+              each, and the label, the links and the attributions all wrapped
+              into each other until none of them could be read. A clock label
+              on its own line costs one line and makes the row scannable.
+            */}
+            <dt className="font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--ink-faint)] sm:min-w-[6.5rem]">
               {SCALE_LABEL[scale]}
             </dt>
-            <dd className="text-[14.5px] leading-snug">
+            <dd className="text-[14.5px] leading-relaxed sm:leading-snug">
               {matching.map((one, index) => (
                 <span key={`${one.by}-${one.place}`}>
                   {index > 0 ? <span className="text-[var(--ink-faint)]"> · </span> : null}

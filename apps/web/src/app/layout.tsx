@@ -1,5 +1,5 @@
 import { Suspense } from 'react';
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { NavProgress } from '@/components/NavProgress';
 import './globals.css';
 
@@ -37,6 +37,32 @@ export const metadata: Metadata = {
   openGraph: { siteName: 'Jade', locale: 'en', type: 'website' },
   twitter: { card: 'summary_large_image' },
   robots: { index: true, follow: true },
+};
+
+/**
+ * How the page meets the device.
+ *
+ * `viewportFit: 'cover'` is what lets the layout reach into the rounded
+ * corners and the home-indicator strip on a phone, which is the difference
+ * between a page in a browser and an app. It is only safe because every fixed
+ * element pads itself with `env(safe-area-inset-*)` — without that the bottom
+ * tab bar would sit underneath the indicator.
+ *
+ * `maximumScale` is deliberately absent. Blocking zoom is the single most
+ * common accessibility failure in mobile web apps, and the tap targets here
+ * are sized so nobody needs to pinch in the first place.
+ *
+ * The theme colour is given per scheme so the browser chrome matches the page
+ * rather than framing a dark app in a white bar.
+ */
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  viewportFit: 'cover',
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#efefe9' },
+    { media: '(prefers-color-scheme: dark)', color: '#0b0d1a' },
+  ],
 };
 
 /**

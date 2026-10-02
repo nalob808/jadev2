@@ -53,7 +53,7 @@ export function SettingsTabs({
             aria-controls={`${base}-panel-${index}`}
             tabIndex={index === active ? 0 : -1}
             onClick={() => setActive(index)}
-            className={`border px-3 py-1.5 font-mono text-[10px] uppercase tracking-wider transition-colors ${
+            className={`border px-3 py-2.5 font-mono text-[10px] uppercase tracking-wider transition-colors sm:py-1.5 ${
               index === active
                 ? 'border-[var(--accent)] bg-[var(--accent)] text-white'
                 : 'border-[var(--rule)] text-[var(--ink-muted)] hover:border-[var(--accent-soft)] hover:text-[var(--ink)]'

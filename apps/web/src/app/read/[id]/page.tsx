@@ -33,6 +33,7 @@ import {
   type SnapshotFact,
 } from '@/components/ReadingChrome';
 import { AreaCard } from '@/components/AreaCard';
+import { Fold } from '@/components/Fold';
 import { ChartSpine } from '@/components/ChartSpine';
 import { DeepPassage } from '@/components/DeepPassage';
 import { Workings } from '@/components/Workings';
@@ -207,14 +208,14 @@ export default async function ReadingPage({
   ];
 
   return (
-    <main className="mx-auto max-w-[62rem] px-4 py-8">
+    <main className="mx-auto max-w-[62rem] px-4 pb-16 pt-5 sm:py-8">
       {/* ------------------------------------------------------------ header */}
       <header className="flex flex-wrap items-end justify-between gap-x-4 gap-y-2">
-        <div>
+        <div className="min-w-0">
           <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--ink-faint)]">
             Jade · reading
           </p>
-          <h1 className="mt-0.5 font-display text-4xl leading-none">
+          <h1 className="mt-0.5 font-display text-[1.9rem] leading-tight sm:text-4xl sm:leading-none">
             {record.subject.displayName}
           </h1>
         </div>
@@ -230,7 +231,17 @@ export default async function ReadingPage({
         <SnapshotStrip facts={snapshot} />
       </div>
 
-      <div className="mt-3">
+      {/*
+        The view switcher follows you down the page on a phone.
+
+        A reading runs to thousands of pixels and the switcher is how you move
+        between its parts; left at the top it is reachable only by scrolling
+        back to the beginning, which is how a reader ends up believing the
+        page they are on is the whole of it. `-mx-4 px-4` so the sticky strip
+        spans the full width rather than leaving two gutters of page showing
+        through it.
+      */}
+      <div className="sticky top-0 z-20 -mx-4 mt-3 bg-[var(--paper)]/92 px-4 py-2 backdrop-blur-md sm:static sm:mx-0 sm:bg-transparent sm:px-0 sm:py-0 sm:backdrop-blur-none">
         <ViewNav
           views={[
             { key: 'overall', label: 'Overall' },
@@ -354,7 +365,7 @@ export default async function ReadingPage({
 
       {/* ------------------------------------------------------------- areas */}
       {active === 'areas' ? (
-        <section className="mt-5 flex flex-col gap-4">
+        <section className="mt-5 flex flex-col sm:gap-4">
           <p className="border-l-2 border-[var(--rule-strong)] py-1 pl-3 text-[14px] leading-relaxed text-[var(--ink-muted)]">
             Twelve areas, in the order people actually ask about them rather than in house order,
             with whatever the running period touches first. Each one is read from five things at
@@ -364,7 +375,15 @@ export default async function ReadingPage({
             is selling something.
           </p>
           {areas.map((area) => (
-            <AreaCard key={area.place} area={area} />
+            <Fold
+              key={area.place}
+              id={`area-${area.place}`}
+              title={area.title}
+              hint={area.asks}
+              open={area.liveNow !== null}
+            >
+              <AreaCard area={area} />
+            </Fold>
           ))}
         </section>
       ) : null}

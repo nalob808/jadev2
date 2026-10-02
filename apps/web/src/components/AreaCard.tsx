@@ -23,9 +23,10 @@ export function AreaCard({ area }: { readonly area: AreaReading }): React.ReactE
 
   return (
     <article
-      id={`area-${area.place}`}
-      className={`scroll-mt-20 border bg-[var(--surface)] px-5 py-4 ${
-        live ? 'border-2 border-[var(--accent)]' : 'border-[var(--rule)]'
+      className={`bg-[var(--surface)] px-4 py-4 max-sm:border-l-2 sm:border sm:px-5 ${
+        live
+          ? 'border-[var(--accent)] sm:border-2'
+          : 'border-[var(--rule)] max-sm:border-l-[var(--rule-strong)]'
       }`}
     >
       <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
@@ -39,10 +40,16 @@ export function AreaCard({ area }: { readonly area: AreaReading }): React.ReactE
         ) : null}
       </div>
 
-      <h3 className="mt-0.5 font-display text-[1.6rem] leading-[1.15]">{area.title}</h3>
-      <p className="mt-1 max-w-[62ch] text-[14px] italic leading-snug text-[var(--ink-muted)]">
-        {area.asks}
-      </p>
+      {/*
+        Hidden on a phone, where the fold's own row has just said both. On a
+        desktop there is no fold and this is the card's heading.
+      */}
+      <div className="hidden sm:block">
+        <h3 className="mt-0.5 font-display text-[1.6rem] leading-[1.15]">{area.title}</h3>
+        <p className="mt-1 max-w-[62ch] text-[14px] italic leading-snug text-[var(--ink-muted)]">
+          {area.asks}
+        </p>
+      </div>
 
       {area.liveNow ? (
         <p className="mt-3 border-l-2 border-[var(--accent)] py-1 pl-3 text-[15px] leading-[1.55]">

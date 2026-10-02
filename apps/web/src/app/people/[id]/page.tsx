@@ -30,6 +30,7 @@ import { getOrComputeChart } from '@/lib/chart';
 import { bhavaOverlayFor } from '@/lib/houseSystems';
 import { removePerson } from '@/app/actions';
 import { Kicker, Panel, Shell } from '@/components/Shell';
+import { Fold } from '@/components/Fold';
 import {
   buildScopeIndex,
   glossaryContextFor,
@@ -459,230 +460,266 @@ export default async function PersonPage({
         </div>
 
         {showAllVargas ? (
+          <Fold
+            id="vargas"
+            title="All sixteen divisions"
+            hint="Ṣoḍaśavarga, each on its own ascendant"
+          >
+            <Panel className="mt-5">
+              <Kicker>Ṣoḍaśavarga — all sixteen, each on its own ascendant</Kicker>
+              <div className="mt-4">
+                <VargaGrid
+                  chart={chart}
+                  style={style === 'south' ? 'south' : 'north'}
+                  cellSize={128}
+                />
+              </div>
+            </Panel>
+          </Fold>
+        ) : null}
+
+        <Fold
+          id="panchanga"
+          title="The day you were born"
+          hint="Tithi, nakṣatra, yoga, karaṇa and the vāra"
+        >
           <Panel className="mt-5">
-            <Kicker>Ṣoḍaśavarga — all sixteen, each on its own ascendant</Kicker>
-            <div className="mt-4">
-              <VargaGrid
-                chart={chart}
-                style={style === 'south' ? 'south' : 'north'}
-                cellSize={128}
+            <Kicker>Pañcāṅga at birth</Kicker>
+            <div className="mt-3">
+              <PanchangaCard
+                panchanga={chart.panchanga}
+                sunrise={chart.sunrise}
+                sunset={chart.sunset}
+                formatJd={(jd) => formatLocalClock(jd, birthEvent.utcOffsetMinutes)}
               />
             </div>
           </Panel>
-        ) : null}
+        </Fold>
 
-        <Panel className="mt-5">
-          <Kicker>Pañcāṅga at birth</Kicker>
-          <div className="mt-3">
-            <PanchangaCard
-              panchanga={chart.panchanga}
-              sunrise={chart.sunrise}
-              sunset={chart.sunset}
-              formatJd={(jd) => formatLocalClock(jd, birthEvent.utcOffsetMinutes)}
-            />
-          </div>
-        </Panel>
+        <Fold
+          id="dasha"
+          title="Your periods"
+          hint="Vimśottarī, three levels deep, with today marked"
+        >
+          <Panel className="mt-5">
+            <div className="mb-1 flex flex-wrap items-baseline justify-between gap-2">
+              <Kicker>Daśā</Kicker>
+              <span className="font-mono text-[10px] text-[var(--ink-muted)]">
+                running now:{' '}
+                {runningChain.map((period, index) => (
+                  <span key={`${period.lord}-${index}`}>
+                    {index > 0 ? ' › ' : ''}
+                    <T id={`graha-${period.lord.toLowerCase()}`} plainTrigger>
+                      {period.lord}
+                    </T>
+                  </span>
+                ))}
+              </span>
+            </div>
+            <DashaColumn dashas={dashas} atJdUt={nowJd} levels={3} />
+          </Panel>
+        </Fold>
 
-        <Panel className="mt-5">
-          <div className="mb-1 flex flex-wrap items-baseline justify-between gap-2">
-            <Kicker>Daśā</Kicker>
-            <span className="font-mono text-[10px] text-[var(--ink-muted)]">
-              running now:{' '}
-              {runningChain.map((period, index) => (
-                <span key={`${period.lord}-${index}`}>
-                  {index > 0 ? ' › ' : ''}
-                  <T id={`graha-${period.lord.toLowerCase()}`} plainTrigger>
-                    {period.lord}
-                  </T>
-                </span>
-              ))}
-            </span>
-          </div>
-          <DashaColumn dashas={dashas} atJdUt={nowJd} levels={3} />
-        </Panel>
-
-        <section className="mt-8">
-          <div className="mb-3">
-            <Kicker>The wheel</Kicker>
-            <h2 className="font-display text-3xl font-semibold leading-tight">
-              Every degree, and what aspects what
-            </h2>
-            <p className="mt-1 max-w-[64ch] text-[14px] leading-relaxed text-[var(--ink-muted)]">
-              {/*
+        <Fold id="wheel" title="The wheel" hint="Every degree, and what aspects what">
+          <section className="mt-8">
+            <div className="mb-3 hidden sm:block">
+              <Kicker>The wheel</Kicker>
+              <h2 className="font-display text-3xl font-semibold leading-tight">
+                Every degree, and what aspects what
+              </h2>
+              <p className="mt-1 max-w-[64ch] text-[14px] leading-relaxed text-[var(--ink-muted)]">
+                {/*
                 Told with this chart's own Mars, not a worked example.
                 Hard-coded, the sentence read as a statement about the chart on
                 screen — "Mars is in Scorpio" on a chart whose Mars is in
                 Cancer looks like the software is confused about the data,
                 which is a bad thing for an accuracy product to look like.
               */}
-              Drawn from longitudes rather than sign buckets — the square charts say{' '}
-              {chart.points.Mars ? (
-                <>
-                  Mars is in {chart.points.Mars.sign}, this says{' '}
-                  {formatSignPosition(chart.points.Mars.longitude, SIGNS)}
-                </>
-              ) : (
-                <>a graha is in a sign, this says where in the sign</>
-              )}
-              . Toggle the layers; click a graha to isolate its <T id="drishti">dṛṣṭi</T>.
-            </p>
-          </div>
-          {/*
+                Drawn from longitudes rather than sign buckets — the square charts say{' '}
+                {chart.points.Mars ? (
+                  <>
+                    Mars is in {chart.points.Mars.sign}, this says{' '}
+                    {formatSignPosition(chart.points.Mars.longitude, SIGNS)}
+                  </>
+                ) : (
+                  <>a graha is in a sign, this says where in the sign</>
+                )}
+                . Toggle the layers; click a graha to isolate its <T id="drishti">dṛṣṭi</T>.
+              </p>
+            </div>
+            {/*
             The same instrument `/wheel` mounts, not a picture of one: the layer
             toggles, click-to-isolate, the dṛṣṭi filter and the focus panel are
             the same component, not a second implementation. The selection goes
             in the URL like it does there, so a reload or a shared link lands on
             the same graha.
           */}
-          <WheelWorkspace
-            points={wheelPoints}
-            aspects={wheelAspects}
-            overlayPoints={[]}
-            overlayName={null}
-            ascendant={chart.points.Ascendant!.longitude}
-            ascendantSign={chart.houses.ascendantSign}
-            sarva={chart.ashtakavarga.sarva}
-            houseCusps={chart.houses.cusps}
-            bhavaCusps={bhava?.cusps}
-            bhavaLabel={bhava?.label}
-            transitFrame={{
-              ayanamsa: profile.ayanamsa,
-              customAyanamsaAtJ2000: profile.customAyanamsaAtJ2000 ?? undefined,
-              nodeType: profile.nodeType,
-            }}
-            scrubberNatal={{
-              moonLongitude: chart.points.Moon!.longitude,
-              birthJd,
-              yearLength: YEAR_LENGTH,
-            }}
-            todayJd={nowJd}
-            facts={facts}
-            lens={`${profile.ayanamsa} ayanāṁśa · ${chart.houses.system.replace('_', ' ')} houses · ${profile.nodeType} nodes`}
-            timeCaveat={
-              uncertaintyMinutes > 0
-                ? `Birth time given as ±${uncertaintyMinutes} minutes, which moves the lagna by roughly ${(uncertaintyMinutes / 4).toFixed(0)}°.`
-                : null
-            }
-          />
-        </section>
+            <WheelWorkspace
+              points={wheelPoints}
+              aspects={wheelAspects}
+              overlayPoints={[]}
+              overlayName={null}
+              ascendant={chart.points.Ascendant!.longitude}
+              ascendantSign={chart.houses.ascendantSign}
+              sarva={chart.ashtakavarga.sarva}
+              houseCusps={chart.houses.cusps}
+              bhavaCusps={bhava?.cusps}
+              bhavaLabel={bhava?.label}
+              transitFrame={{
+                ayanamsa: profile.ayanamsa,
+                customAyanamsaAtJ2000: profile.customAyanamsaAtJ2000 ?? undefined,
+                nodeType: profile.nodeType,
+              }}
+              scrubberNatal={{
+                moonLongitude: chart.points.Moon!.longitude,
+                birthJd,
+                yearLength: YEAR_LENGTH,
+              }}
+              todayJd={nowJd}
+              facts={facts}
+              lens={`${profile.ayanamsa} ayanāṁśa · ${chart.houses.system.replace('_', ' ')} houses · ${profile.nodeType} nodes`}
+              timeCaveat={
+                uncertaintyMinutes > 0
+                  ? `Birth time given as ±${uncertaintyMinutes} minutes, which moves the lagna by roughly ${(uncertaintyMinutes / 4).toFixed(0)}°.`
+                  : null
+              }
+            />
+          </section>
+        </Fold>
 
-        <section className="mt-8">
-          <div className="mb-4">
-            <Kicker>House lords</Kicker>
-            <h2 className="font-display text-3xl font-semibold leading-tight">
-              Where each house sends its lord
-            </h2>
-            <p className="mt-1 max-w-[64ch] text-[14px] leading-relaxed text-[var(--ink-muted)]">
-              <AutoTerms>
-                {
-                  'Two houses are linked when one house’s lord sits in the other — that is how a chart connects money to creativity, or work to partnership. The rows are the arithmetic; the pattern underneath them is what a practitioner reads.'
-                }
-              </AutoTerms>
-            </p>
-          </div>
-          <Panel>
-            <LordTable survey={lords} statements={lordPatterns} />
-          </Panel>
-          {/*
+        <Fold
+          id="lords"
+          title="Where each house sends its lord"
+          hint="How the chart links one part of a life to another"
+        >
+          <section className="mt-8">
+            <div className="mb-4 hidden sm:block">
+              <Kicker>House lords</Kicker>
+              <h2 className="font-display text-3xl font-semibold leading-tight">
+                Where each house sends its lord
+              </h2>
+              <p className="mt-1 max-w-[64ch] text-[14px] leading-relaxed text-[var(--ink-muted)]">
+                <AutoTerms>
+                  {
+                    'Two houses are linked when one house’s lord sits in the other — that is how a chart connects money to creativity, or work to partnership. The rows are the arithmetic; the pattern underneath them is what a practitioner reads.'
+                  }
+                </AutoTerms>
+              </p>
+            </div>
+            <Panel>
+              <LordTable survey={lords} statements={lordPatterns} />
+            </Panel>
+            {/*
             The way through to the house-by-house reading.
             This table answers where the lords went; the next page answers what
             each house holds, what aspects it and what that comes to. Placed here
             rather than in the nav alone, because this is where somebody reading
             the lords starts wanting the rest.
           */}
-          {/*
+            {/*
             The way out to the plain-English reading.
             Sits beside the technical one rather than replacing it: the same
             chart, said for somebody who does not have the vocabulary yet.
           */}
-          <Link
-            href={`/read/${subject.id}`}
-            className="mt-3 flex flex-wrap items-baseline gap-x-3 border border-[var(--accent-soft)] bg-[var(--accent-wash)] p-3 hover:border-[var(--accent)]"
-          >
-            <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--accent)]">
-              Explain this chart in plain English
-            </span>
-            <span className="text-[12.5px] leading-relaxed text-[var(--ink-muted)]">
-              No jargon, house by house — with the placements behind every paragraph if you want
-              them.
-            </span>
-          </Link>
-          <Link
-            href={`/people/${subject.id}/houses`}
-            className="mt-3 flex flex-wrap items-baseline gap-x-3 border border-[var(--rule)] p-3 hover:border-[var(--accent)]"
-          >
-            <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--accent)]">
-              Read the twelve houses
-            </span>
-            <span className="text-[12.5px] leading-relaxed text-[var(--ink-muted)]">
-              Each one with its sign, its lord, what sits in it, what aspects it, and what those
-              come to — with the placements printed beside every line.
-            </span>
-          </Link>
-        </section>
+            <Link
+              href={`/read/${subject.id}`}
+              className="mt-3 flex flex-wrap items-baseline gap-x-3 border border-[var(--accent-soft)] bg-[var(--accent-wash)] p-3 hover:border-[var(--accent)]"
+            >
+              <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--accent)]">
+                Explain this chart in plain English
+              </span>
+              <span className="text-[12.5px] leading-relaxed text-[var(--ink-muted)]">
+                No jargon, house by house — with the placements behind every paragraph if you want
+                them.
+              </span>
+            </Link>
+            <Link
+              href={`/people/${subject.id}/houses`}
+              className="mt-3 flex flex-wrap items-baseline gap-x-3 border border-[var(--rule)] p-3 hover:border-[var(--accent)]"
+            >
+              <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--accent)]">
+                Read the twelve houses
+              </span>
+              <span className="text-[12.5px] leading-relaxed text-[var(--ink-muted)]">
+                Each one with its sign, its lord, what sits in it, what aspects it, and what those
+                come to — with the placements printed beside every line.
+              </span>
+            </Link>
+          </section>
+        </Fold>
 
-        <section className="mt-8">
-          <div className="mb-4 flex flex-wrap items-baseline justify-between gap-4">
-            <div>
-              <Kicker>Reading</Kicker>
+        <Fold
+          id="reading"
+          title="What this chart says"
+          hint="In plain English, with the placements behind every line"
+        >
+          <section className="mt-8">
+            <div className="mb-4 hidden flex-wrap items-baseline justify-between gap-4 sm:flex">
+              <div>
+                <Kicker>Reading</Kicker>
+                <h2 className="font-display text-3xl font-semibold leading-tight">
+                  What this chart says, and why
+                </h2>
+              </div>
+              <Link
+                href="/learn"
+                className="font-mono text-[10px] uppercase tracking-wider text-[var(--ink-faint)] transition-colors hover:text-[var(--ink)]"
+              >
+                Reference →
+              </Link>
+            </div>
+            <p className="mb-5 hidden max-w-[64ch] text-[14px] leading-relaxed text-[var(--ink-muted)] sm:block">
+              Every statement below carries the placements it was composed from. Nothing is asserted
+              that cannot be traced back to a factor in this chart.
+            </p>
+            <Reading sections={reading} subjectId={subject.id} />
+          </section>
+        </Fold>
+
+        <Fold id="houses" title="The twelve houses" hint="What sits in each area of life">
+          <section className="mt-8">
+            <div className="mb-3 hidden sm:block">
+              <Kicker>The twelve houses</Kicker>
               <h2 className="font-display text-3xl font-semibold leading-tight">
-                What this chart says, and why
+                What sits in each area of life
               </h2>
             </div>
-            <Link
-              href="/learn"
-              className="font-mono text-[10px] uppercase tracking-wider text-[var(--ink-faint)] transition-colors hover:text-[var(--ink)]"
-            >
-              Reference →
-            </Link>
-          </div>
-          <p className="mb-5 max-w-[64ch] text-[14px] leading-relaxed text-[var(--ink-muted)]">
-            Every statement below carries the placements it was composed from. Nothing is asserted
-            that cannot be traced back to a factor in this chart.
-          </p>
-          <Reading sections={reading} subjectId={subject.id} />
-        </section>
+            <HouseTable rows={houseRows} />
+          </section>
+        </Fold>
 
-        <section className="mt-8">
-          <div className="mb-3">
-            <Kicker>The twelve houses</Kicker>
-            <h2 className="font-display text-3xl font-semibold leading-tight">
-              What sits in each area of life
-            </h2>
-          </div>
-          <HouseTable rows={houseRows} />
-        </section>
+        <Fold id="notes" title="Notes" hint="What you have written about this chart">
+          <section id="notes" className="mt-8">
+            <div className="mb-3 flex items-baseline justify-between gap-4">
+              <Kicker>Notes</Kicker>
+              <Link
+                href={`/notes?q=&anchorKind=`}
+                className="font-mono text-[10px] uppercase tracking-wider text-[var(--ink-faint)] transition-colors hover:text-[var(--ink)]"
+              >
+                All notes →
+              </Link>
+            </div>
 
-        <section id="notes" className="mt-8">
-          <div className="mb-3 flex items-baseline justify-between gap-4">
-            <Kicker>Notes</Kicker>
-            <Link
-              href={`/notes?q=&anchorKind=`}
-              className="font-mono text-[10px] uppercase tracking-wider text-[var(--ink-faint)] transition-colors hover:text-[var(--ink)]"
-            >
-              All notes →
-            </Link>
-          </div>
-
-          <div className="flex flex-col gap-3">
-            {/* Keyed on the newest note — see the note on /notes. */}
-            <NoteComposer
-              key={notes[0]?.id ?? 'empty'}
-              subjectId={subject.id}
-              anchors={anchors}
-              returnTo={base}
-              error={query.noteError || undefined}
-            />
-            {notes.map((note, index) => (
-              <NoteCard
-                key={`${note.id}:${new Date(note.updatedAt).getTime()}`}
-                note={note}
-                index={index}
+            <div className="flex flex-col gap-3">
+              {/* Keyed on the newest note — see the note on /notes. */}
+              <NoteComposer
+                key={notes[0]?.id ?? 'empty'}
+                subjectId={subject.id}
+                anchors={anchors}
                 returnTo={base}
+                error={query.noteError || undefined}
               />
-            ))}
-          </div>
-        </section>
+              {notes.map((note, index) => (
+                <NoteCard
+                  key={`${note.id}:${new Date(note.updatedAt).getTime()}`}
+                  note={note}
+                  index={index}
+                  returnTo={base}
+                />
+              ))}
+            </div>
+          </section>
+        </Fold>
       </GlossaryProvider>
     </Shell>
   );

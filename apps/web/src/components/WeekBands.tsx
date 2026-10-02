@@ -76,7 +76,16 @@ function Swatch({ band }: { band: DayBand }): React.ReactElement {
 export function WeekBands({ days }: { days: readonly WeekDay[] }): React.ReactElement {
   return (
     <div>
-      <div className="grid gap-px border border-[var(--rule)] bg-[var(--rule)] sm:grid-cols-4 lg:grid-cols-7">
+      {/*
+        Seven cards side by side, scrolled, on a phone.
+
+        Stacked they ran to 2,100px — seven screens for a week — and the shape
+        of the week, which is the whole point of showing seven days at once,
+        was impossible to see because no two days were ever on screen
+        together. A horizontal strip keeps three days visible and the
+        comparison intact, and from `sm` the grid is exactly what it was.
+      */}
+      <div className="jade-strip grid auto-cols-[12.5rem] grid-flow-col gap-px border border-[var(--rule)] bg-[var(--rule)] sm:grid-flow-row sm:auto-cols-auto sm:grid-cols-4 lg:grid-cols-7">
         {days.map((day, index) => {
           const token = BAND_TOKEN[day.quality.band];
           return (

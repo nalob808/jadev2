@@ -40,9 +40,9 @@ describe('the page container', () => {
    * is, because it is a copy that will not move when the shell moves.
    */
   const CONTAINERS = [
-    'mx-auto px-5 pb-24 pt-7 sm:px-8 max-w-5xl',
-    'mx-auto px-5 pb-24 pt-7 sm:px-8 max-w-[100rem]',
-    'mx-auto max-w-5xl px-5 pb-24 pt-7 sm:px-8',
+    'mx-auto px-5 pb-32 sm:px-8 sm:pb-24 sm:pt-7 max-w-5xl',
+    'mx-auto px-5 pb-32 sm:px-8 sm:pb-24 sm:pt-7 max-w-[100rem]',
+    'mx-auto max-w-5xl px-5 pb-32 sm:px-8 sm:pb-24 sm:pt-7',
   ];
 
   it('is written down in exactly one place', () => {
@@ -57,7 +57,7 @@ describe('the page container', () => {
   /* And the one place still produces what the rest of the app is laid out for. */
   it('still produces the container the pages were built against', () => {
     const shell = readFileSync(join(SRC, 'components', 'Shell.tsx'), 'utf8');
-    expect(shell).toContain('pb-24 pt-7');
+    expect(shell).toContain('pb-32');
     expect(shell).toContain('max-w-[100rem]');
     expect(shell).toContain('max-w-5xl');
   });

@@ -362,7 +362,19 @@ export function Wheel({
   return (
     <div className="flex flex-col gap-3">
       {/* ------------------------------------------------------------ controls */}
-      <div role="group" aria-label="Chart layers" className="flex flex-wrap gap-1.5">
+      {/*
+        One scrolling row on a phone, wrapped rows from `sm`.
+
+        Eight toggles wrapped to three lines at 390px and pushed the wheel —
+        the only reason the page exists — most of the way off the first
+        screen. Scrolled, they cost one line, and the chart is the first thing
+        you see, which is the correct order of importance for this surface.
+      */}
+      <div
+        role="group"
+        aria-label="Chart layers"
+        className="jade-strip -mx-5 flex flex-nowrap gap-1.5 px-5 sm:mx-0 sm:flex-wrap sm:px-0"
+      >
         {(Object.keys(TOGGLE_LABELS) as Toggle[])
           // A toggle for a layer with no data is a dead control.
           .filter((key) => key !== 'transits' || transits.length > 0)
@@ -375,7 +387,7 @@ export function Wheel({
               type="button"
               aria-pressed={on[key]}
               onClick={() => toggle(key)}
-              className={`border px-2.5 py-1 font-mono text-[10px] uppercase tracking-wider transition-colors ${
+              className={`shrink-0 whitespace-nowrap border px-2.5 py-2 font-mono text-[10px] uppercase tracking-wider transition-colors sm:py-1 ${
                 on[key]
                   ? 'border-[var(--accent)] bg-[var(--accent)] text-white'
                   : 'border-[var(--rule)] text-[var(--ink-muted)] hover:border-[var(--accent-soft)] hover:text-[var(--ink)]'
@@ -388,7 +400,7 @@ export function Wheel({
           <button
             type="button"
             onClick={() => setSelected(null)}
-            className="border border-[var(--clay)] px-2.5 py-1 font-mono text-[10px] uppercase tracking-wider text-[var(--clay)]"
+            className="shrink-0 whitespace-nowrap border border-[var(--clay)] px-2.5 py-2 font-mono text-[10px] uppercase tracking-wider text-[var(--clay)] sm:py-1"
           >
             Clear {selected}
           </button>

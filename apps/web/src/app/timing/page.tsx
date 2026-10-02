@@ -17,6 +17,7 @@ import { getDatabase } from '@/lib/db';
 import { getClock } from '@/lib/clock';
 import { getOrComputeChart } from '@/lib/chart';
 import { Kicker, Panel, Shell } from '@/components/Shell';
+import { Fold } from '@/components/Fold';
 import { GlossaryProvider, AutoTerms, T } from '@/components/Glossary';
 import { glossaryContextFor } from '@jade/interpret';
 
@@ -326,96 +327,115 @@ export default async function TimingPage({
         ) : null}
 
         {/* ------------------------------------------------------ the periods */}
-        {groups.map((group) => {
+        {groups.map((group, index) => {
           const total = group.segments.reduce((sum, segment) => sum + segment.eventCount, 0);
+          /* Named so it does not shadow `running`, the segment above. */
+          const holdsNow = group.segments.some((segment) => running?.fromJd === segment.fromJd);
           return (
-            <section key={`${group.lord}-${group.segments[0]!.fromJd}`} className="mt-7">
-              <div className="flex flex-wrap items-baseline justify-between gap-x-4 border-b-2 border-[var(--ink)] pb-1">
-                <h2 className="font-display text-2xl leading-none">
-                  <T id={`graha-${group.lord.toLowerCase()}`} plainTrigger>
-                    {group.lord}
-                  </T>{' '}
-                  <span className="text-[var(--ink-faint)]">
-                    <T id="mahadasha" plainTrigger>
-                      mahādaśā
-                    </T>
-                  </span>
-                </h2>
-                {/* Counts on everything: a heading that does not say what is
+            /*
+              One mahādaśā per fold on a phone.
+
+              A daśā is nineteen years of segments, and the page listed every
+              one of them for every period — 9,400px of it. Folded, the page
+              is a list of the periods of a life, which is what somebody
+              arriving at it is looking for; the running one opens, because
+              that is the only one that is about now.
+            */
+            <Fold
+              key={`${group.lord}-${group.segments[0]!.fromJd}`}
+              id={`dasha-${group.lord}-${group.segments[0]!.fromJd}`}
+              title={`${group.lord} mahādaśā`}
+              hint={`${group.segments.length} periods · ${total} event${total === 1 ? '' : 's'}${holdsNow ? ' · running now' : ''}`}
+              open={holdsNow || index === 0}
+            >
+              <section className="mt-7">
+                <div className="hidden flex-wrap items-baseline justify-between gap-x-4 border-b-2 border-[var(--ink)] pb-1 sm:flex">
+                  <h2 className="font-display text-2xl leading-none">
+                    <T id={`graha-${group.lord.toLowerCase()}`} plainTrigger>
+                      {group.lord}
+                    </T>{' '}
+                    <span className="text-[var(--ink-faint)]">
+                      <T id="mahadasha" plainTrigger>
+                        mahādaśā
+                      </T>
+                    </span>
+                  </h2>
+                  {/* Counts on everything: a heading that does not say what is
                     under it gets opened repeatedly or never. */}
-                <p className="font-mono text-[10.5px] uppercase tracking-[0.12em] text-[var(--ink-faint)]">
-                  {group.segments.length} periods · {total} event{total === 1 ? '' : 's'}
-                </p>
-              </div>
+                  <p className="font-mono text-[10.5px] uppercase tracking-[0.12em] text-[var(--ink-faint)]">
+                    {group.segments.length} periods · {total} event{total === 1 ? '' : 's'}
+                  </p>
+                </div>
 
-              <ul className="mt-2 flex flex-col">
-                {group.segments.map((segment) => {
-                  const isNow = running?.fromJd === segment.fromJd;
-                  return (
-                    <li
-                      key={segment.fromJd}
-                      className={`border-t border-[var(--rule)] py-2.5 ${
-                        isNow ? 'border-l-2 border-l-[var(--jade)] pl-2.5' : ''
-                      }`}
-                    >
-                      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5">
-                        <span className="font-display text-lg leading-none">
-                          {segment.lords.slice(1).join(' › ') || segment.lords[0]}
-                        </span>
-                        <span className="font-mono text-[10.5px] text-[var(--ink-faint)]">
-                          {day(segment.fromJd)} — {day(segment.toJd)}
-                          {segment.clipped ? ' (clipped to the window)' : ''}
-                        </span>
-                        {isNow ? (
-                          <span className="font-mono text-[9.5px] uppercase tracking-[0.12em] text-[var(--jade)]">
-                            now
+                <ul className="mt-2 flex flex-col">
+                  {group.segments.map((segment) => {
+                    const isNow = running?.fromJd === segment.fromJd;
+                    return (
+                      <li
+                        key={segment.fromJd}
+                        className={`border-t border-[var(--rule)] py-2.5 ${
+                          isNow ? 'border-l-2 border-l-[var(--jade)] pl-2.5' : ''
+                        }`}
+                      >
+                        <div className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5">
+                          <span className="font-display text-lg leading-none">
+                            {segment.lords.slice(1).join(' › ') || segment.lords[0]}
                           </span>
-                        ) : null}
-                        <span className="ml-auto font-mono text-[10.5px] text-[var(--ink-faint)]">
-                          {segment.eventCount === 0 ? 'quiet' : `${segment.eventCount}`}
-                        </span>
-                      </div>
+                          <span className="font-mono text-[10.5px] text-[var(--ink-faint)]">
+                            {day(segment.fromJd)} — {day(segment.toJd)}
+                            {segment.clipped ? ' (clipped to the window)' : ''}
+                          </span>
+                          {isNow ? (
+                            <span className="font-mono text-[9.5px] uppercase tracking-[0.12em] text-[var(--jade)]">
+                              now
+                            </span>
+                          ) : null}
+                          <span className="ml-auto font-mono text-[10.5px] text-[var(--ink-faint)]">
+                            {segment.eventCount === 0 ? 'quiet' : `${segment.eventCount}`}
+                          </span>
+                        </div>
 
-                      {segment.events.length > 0 ? (
-                        <ul className="mt-1.5 flex flex-col gap-1.5">
-                          {segment.events.map((event) => {
-                            const byLord = segment.lords.includes(
-                              event.transiting as (typeof segment.lords)[number],
-                            );
-                            return (
-                              <li
-                                key={`${event.kind}-${event.transiting}-${event.jdUt}`}
-                                className={`border-l-2 pl-2.5 ${
-                                  byLord ? 'border-[var(--clay)]' : 'border-[var(--accent-soft)]'
-                                }`}
-                              >
-                                <p className="text-[13.5px] leading-snug">
-                                  <AutoTerms>{event.headline}</AutoTerms>
-                                  <span className="ml-2 font-mono text-[10.5px] text-[var(--ink-faint)]">
-                                    {day(event.jdUt)}
-                                  </span>
-                                  {byLord ? (
-                                    <span className="ml-2 font-mono text-[9.5px] uppercase tracking-[0.1em] text-[var(--clay)]">
-                                      lord of this period
+                        {segment.events.length > 0 ? (
+                          <ul className="mt-1.5 flex flex-col gap-1.5">
+                            {segment.events.map((event) => {
+                              const byLord = segment.lords.includes(
+                                event.transiting as (typeof segment.lords)[number],
+                              );
+                              return (
+                                <li
+                                  key={`${event.kind}-${event.transiting}-${event.jdUt}`}
+                                  className={`border-l-2 pl-2.5 ${
+                                    byLord ? 'border-[var(--clay)]' : 'border-[var(--accent-soft)]'
+                                  }`}
+                                >
+                                  <p className="text-[13.5px] leading-snug">
+                                    <AutoTerms>{event.headline}</AutoTerms>
+                                    <span className="ml-2 font-mono text-[10.5px] text-[var(--ink-faint)]">
+                                      {day(event.jdUt)}
                                     </span>
-                                  ) : null}
-                                </p>
-                                {/* Constitution #5: the factors travel with the
+                                    {byLord ? (
+                                      <span className="ml-2 font-mono text-[9.5px] uppercase tracking-[0.1em] text-[var(--clay)]">
+                                        lord of this period
+                                      </span>
+                                    ) : null}
+                                  </p>
+                                  {/* Constitution #5: the factors travel with the
                                     claim, beside it rather than behind a
                                     disclosure nobody opens. */}
-                                <p className="font-mono text-[10px] leading-relaxed text-[var(--ink-faint)]">
-                                  {event.factors.join(' · ')}
-                                </p>
-                              </li>
-                            );
-                          })}
-                        </ul>
-                      ) : null}
-                    </li>
-                  );
-                })}
-              </ul>
-            </section>
+                                  <p className="font-mono text-[10px] leading-relaxed text-[var(--ink-faint)]">
+                                    {event.factors.join(' · ')}
+                                  </p>
+                                </li>
+                              );
+                            })}
+                          </ul>
+                        ) : null}
+                      </li>
+                    );
+                  })}
+                </ul>
+              </section>
+            </Fold>
           );
         })}
 

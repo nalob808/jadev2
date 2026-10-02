@@ -1,3 +1,4 @@
+import { MobileTabBar } from './AppNav';
 import { Nav, shellContainer, type ShellWidth } from './Shell';
 
 /**
@@ -38,13 +39,17 @@ export function LoadingShell({
   width?: ShellWidth;
 }): React.ReactElement {
   return (
-    <div className={shellContainer(width)}>
-      <Nav />
-      <div role="status" aria-live="polite">
-        <span className="sr-only">Loading…</span>
-        {children}
+    <>
+      <div className={shellContainer(width)}>
+        <Nav />
+        <div role="status" aria-live="polite">
+          <span className="sr-only">Loading…</span>
+          {children}
+        </div>
       </div>
-    </div>
+      {/* The tabs stay put while a route arrives — see Shell. */}
+      <MobileTabBar />
+    </>
   );
 }
 
