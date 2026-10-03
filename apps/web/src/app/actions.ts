@@ -6,7 +6,11 @@ import {
   createRelationship,
   createSubjectWithBirthEvent,
   deleteRelationship,
+  createWatch,
+  deleteWatch,
+  deleteWorkspace,
   exportSubject,
+  setWatchEnabled,
   createShareLink,
   hardDeleteSubject,
   revokeShareLink,
@@ -55,6 +59,7 @@ import { getDatabase } from '@/lib/db';
 import { env } from '@/lib/env';
 import { requireSession, signInDev, signOut } from '@/lib/auth';
 import { hashShareToken, newShareToken } from '@/lib/shareToken';
+import { parseWatchForm } from '@/lib/watchForm';
 import { getPlan, requireCapability, requireRoomFor } from '@/lib/entitlements';
 import { isKnownPlan } from '@/lib/plans';
 
@@ -644,6 +649,106 @@ export async function devSignOut(): Promise<void> {
 }
 
 /**
+ * Create a watch.
+ *
+ * ## Why the rule is parsed before it is stored
+ *
+ * `rule` is a `jsonb` column, so the database will accept any shape. The
+ * evaluator's exhaustiveness guard protects it from Jade adding a kind it does
+ * not handle; it does nothing about a row that was wrong when it was written.
+ * `parseWatchForm` is the other half, and it is the only way a rule reaches
+ * this table.
+ *
+ * ## Why the errors come back on the URL
+ *
+ * The form is a server-rendered `<form action={...}>` with no client
+ * JavaScript, which is what lets it work before hydration and on a flaky
+ * connection. A redirect with `?error=` is how such a form reports back.
+ */
+export async function addWatch(formData: FormData): Promise<void> {
+  const session = await requireSession();
+  await requireCapability(session.workspaceId, 'watches');
+
+  const subjectId = String(formData.get('subjectId') ?? '');
+  if (!subjectId) redirect('/watches?error=' + encodeURIComponent('Pick whose chart to watch.'));
+
+  const parsed = parseWatchForm(formData);
+  if (!parsed.ok) redirect('/watches?error=' + encodeURIComponent(parsed.reason));
+
+  await createWatch(getDatabase(), {
+    workspaceId: session.workspaceId,
+    subjectId,
+    rule: parsed.rule,
+    horizonDays: parsed.horizonDays,
+    label: String(formData.get('label') ?? '').trim() || null,
+    createdBy: session.userId,
+  });
+
+  revalidatePath('/watches');
+  redirect('/watches?added=1');
+}
+
+/** Pause or resume a watch, without losing the rule. */
+export async function toggleWatch(formData: FormData): Promise<void> {
+  const session = await requireSession();
+  await requireCapability(session.workspaceId, 'watches');
+
+  await setWatchEnabled(getDatabase(), {
+    workspaceId: session.workspaceId,
+    id: String(formData.get('id') ?? ''),
+    enabled: String(formData.get('enabled') ?? '') === 'true',
+  });
+
+  revalidatePath('/watches');
+}
+
+/** Remove a watch. Its recorded hits go with it, by cascade. */
+export async function removeWatch(formData: FormData): Promise<void> {
+  const session = await requireSession();
+  await requireCapability(session.workspaceId, 'watches');
+
+  await deleteWatch(getDatabase(), {
+    workspaceId: session.workspaceId,
+    id: String(formData.get('id') ?? ''),
+  });
+
+  revalidatePath('/watches');
+  revalidatePath('/home');
+}
+
+/**
+ * Close a practice and delete everything in it. Irreversible.
+ *
+ * ## Why the confirmation is checked here and not only in the browser
+ *
+ * A `required` attribute and a pattern on the input are a convenience; a form
+ * posted by anything other than that page would skip both. The word is checked
+ * server-side for the same reason every entitlement is: the client is where
+ * the help lives, not where the rule lives.
+ *
+ * ## Why it signs out rather than redirecting into the app
+ *
+ * The session's workspace no longer exists. Every page after this would hit a
+ * workspace lookup that returns nothing, and the honest result of that is a
+ * sign-in screen — so it goes there deliberately rather than by failing its
+ * way there.
+ */
+export async function closePractice(formData: FormData): Promise<void> {
+  const session = await requireSession();
+
+  const confirmation = String(formData.get('confirm') ?? '')
+    .trim()
+    .toUpperCase();
+  if (confirmation !== 'DELETE') {
+    redirect('/settings/close?error=confirm');
+  }
+
+  await deleteWorkspace(getDatabase(), session.workspaceId);
+  await signOut();
+  redirect('/?closed=1');
+}
+
+/**
  * Record that somebody wanted a tier they were not on.
  *
  * Writes one row and redirects back to the wall with `noted=1`. No card, no
@@ -925,6 +1030,7 @@ export async function toggleFollowUp(formData: FormData): Promise<void> {
  */
 export async function createShare(formData: FormData): Promise<void> {
   const session = await requireSession();
+  await requireCapability(session.workspaceId, 'shareLinks');
   const subjectId = String(formData.get('subjectId'));
   const days = String(formData.get('expiresInDays') ?? '30');
   const showsBirthData = formData.get('showsBirthData') === 'on';
@@ -964,6 +1070,7 @@ export async function createShare(formData: FormData): Promise<void> {
 
 export async function revokeShare(formData: FormData): Promise<void> {
   const session = await requireSession();
+  await requireCapability(session.workspaceId, 'shareLinks');
   const subjectId = String(formData.get('subjectId'));
   const id = String(formData.get('id'));
 

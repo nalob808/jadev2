@@ -32,9 +32,9 @@ import {
   getSettingsProfile,
   getSubject,
   listWatches,
+  listWorkspaceIdsForService,
   recordWatchHits,
   requireDatabaseUrl,
-  workspaces,
 } from '@jade/db';
 
 const dryRun = process.argv.includes('--dry');
@@ -63,25 +63,33 @@ async function main(): Promise<void> {
     return made;
   };
 
-  // Every workspace, because a nightly job serves all of them. The per-query
-  // workspace binding still applies inside each iteration.
-  const allWorkspaces = await db.select({ id: workspaces.id }).from(workspaces);
+  /*
+   * Every workspace, because a nightly job serves all of them.
+   *
+   * This used to be a bare select against `workspaces`, which worked only
+   * because that table was the one workspace-bearing table with no row-level
+   * policy. Migration 0015 closed that, and the cross-tenant reach moved into
+   * `listWorkspaceIdsForService`, where it is one named function that sets
+   * `app.bypass_rls` for one transaction and returns ids and nothing else.
+   * The per-workspace binding still applies to every query below.
+   */
+  const workspaceIds = await listWorkspaceIdsForService(db);
 
   const nowJd = jdFromUnixMs(Date.now());
   let evaluated = 0;
   let found = 0;
   let recorded = 0;
 
-  for (const workspace of allWorkspaces) {
-    const watchList = await listWatches(db, { workspaceId: workspace.id });
+  for (const workspaceId of workspaceIds) {
+    const watchList = await listWatches(db, { workspaceId });
 
     for (const watch of watchList) {
       if (!watch.enabled) continue;
       evaluated += 1;
 
-      const record = await getSubject(db, workspace.id, watch.subjectId);
+      const record = await getSubject(db, workspaceId, watch.subjectId);
       if (!record?.birthEvent) continue;
-      const profile = await getSettingsProfile(db, workspace.id, null);
+      const profile = await getSettingsProfile(db, workspaceId, null);
       if (!profile) continue;
 
       const birthJd = jdFromUnixMs(new Date(record.birthEvent.utcDatetime).getTime());
@@ -135,7 +143,7 @@ async function main(): Promise<void> {
       }
 
       const inserted = await recordWatchHits(db, {
-        workspaceId: workspace.id,
+        workspaceId: workspaceId,
         watchId: watch.id,
         hits: hits.map((h) => ({
           key: h.key,

@@ -135,22 +135,40 @@ export interface Panchanga {
   readonly elongation: number;
 }
 
+/**
+ * How wide one of each limb is, in degrees of its own quantity.
+ *
+ * Written down because two modules need them and a second copy of "360 / 27"
+ * is a second place for a transcription slip. `panchangaWindows` bisects on
+ * these spans to date the boundaries; the functions below floor by them to
+ * name which one you are in. One number, two readers.
+ */
+export const TITHI_SPAN_DEGREES = 12;
+export const KARANA_SPAN_DEGREES = 6;
+export const NAKSHATRA_SPAN_DEGREES = 360 / 27;
+
 /** Tithi: the Moon gaining 12° on the Sun. */
 export function tithiOf(sunLongitude: number, moonLongitude: number): Tithi {
   const elongation = norm360(moonLongitude - sunLongitude);
-  const zeroBased = Math.floor(elongation / 12);
+  const zeroBased = Math.floor(elongation / TITHI_SPAN_DEGREES);
   const index = zeroBased + 1;
   const paksha: Paksha = index <= 15 ? 'shukla' : 'krishna';
   const inPaksha = index <= 15 ? index : index - 15;
   const name =
     inPaksha === 15 ? (paksha === 'shukla' ? 'Purnima' : 'Amavasya') : TITHI_NAMES[inPaksha - 1]!;
-  return { index, inPaksha, name, paksha, elapsed: (elongation % 12) / 12 };
+  return {
+    index,
+    inPaksha,
+    name,
+    paksha,
+    elapsed: (elongation % TITHI_SPAN_DEGREES) / TITHI_SPAN_DEGREES,
+  };
 }
 
 /** Nitya yoga: Sun plus Moon, cut into the same 27 divisions as the nakṣatras. */
 export function nityaYogaOf(sunLongitude: number, moonLongitude: number): NityaYoga {
   const total = norm360(sunLongitude + moonLongitude);
-  const span = 360 / 27;
+  const span = NAKSHATRA_SPAN_DEGREES;
   const zeroBased = Math.floor(total / span);
   return {
     index: zeroBased + 1,

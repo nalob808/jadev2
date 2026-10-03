@@ -119,7 +119,7 @@ export function SiteFooter(): React.ReactElement {
             Method
           </p>
           <p className="text-sm text-[var(--ink-muted)]">
-            Lahiri by default, every ayanāṁśa selectable, and the chart always records which one
+            Lahiri by default, six ayanāṁśas selectable, and the chart always records which one
             produced it.
           </p>
           <p className="mb-2 mt-6 font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--ink-faint)]">

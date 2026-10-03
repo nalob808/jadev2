@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { getHomeZone, getSettingsProfile, getWorkspaceBilling } from '@jade/db';
 import { availableZones } from '@jade/atlas';
@@ -487,6 +488,47 @@ export default async function SettingsPage({
           Every person can be exported as JSON or deleted permanently from their own page. Birth
           data is never sent to a third-party model.
         </p>
+
+        {/*
+          The whole practice, not one person at a time.
+
+          A per-person export answers "give me my client's data". This answers
+          "give me mine", which is the request that arrives with a deadline and
+          the one somebody makes while deciding whether they can leave. It is
+          never gated by tier — there is no capability key that could switch it
+          off, so the guarantee does not depend on anybody remembering it.
+        */}
+        <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-[var(--rule)] pt-4">
+          <a
+            href="/api/workspace/export"
+            className="border border-[var(--accent)] px-3 py-2 font-mono text-[10px] uppercase tracking-wider text-[var(--accent)] transition-colors hover:bg-[var(--accent)] hover:text-white"
+          >
+            Export everything
+          </a>
+          <p className="max-w-[48ch] text-[12.5px] leading-relaxed text-[var(--ink-faint)]">
+            One JSON file: every person, their birth data, the life events, the notes, the sessions
+            and the relationships, plus the settings profiles — because birth data read in a
+            different ayanāṁśa is a different chart.
+          </p>
+        </div>
+
+        {/*
+          Leaving.
+
+          A practitioner could remove a client and could not remove themselves,
+          which made the export above the only half of the promise that was
+          kept. Deliberately a link to a page rather than a button here: a
+          one-click irreversible delete beside a theme toggle is a trap, and
+          the confirmation has to name what goes.
+        */}
+        <div className="mt-4 border-t border-[var(--rule)] pt-4">
+          <Link
+            href="/settings/close"
+            className="font-mono text-[10px] uppercase tracking-wider text-[var(--clay)] underline underline-offset-4"
+          >
+            Close this practice and delete everything →
+          </Link>
+        </div>
       </Panel>
     </Shell>
   );

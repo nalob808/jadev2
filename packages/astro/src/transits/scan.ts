@@ -1,4 +1,5 @@
 import { norm360, wrap180 } from '../angles.js';
+import { bisectRoot as bisect } from './roots.js';
 import type { EphemerisProvider } from '../ephemeris/provider.js';
 import { ayanamsa, type AyanamsaMode } from '../sidereal/ayanamsa.js';
 import { jdTtFromJdUt } from '../time.js';
@@ -88,35 +89,16 @@ export const DEFAULT_STEP_DAYS: Partial<Record<PointId, number>> = {
 const stepFor = (body: PointId, options: ScanOptions): number =>
   options.stepDays ?? DEFAULT_STEP_DAYS[body] ?? 1;
 
-/**
- * Bisect a sign-changing function to a root.
+/*
+ * The bisection lives in `roots.ts` now.
  *
- * `f` must have opposite signs at the ends. Returns the crossing time.
+ * It was private here, and its three public callers each took a `PointId`
+ * rather than a function — so the machinery was general and the doors were
+ * not, and six features that needed nothing new (pañcāṅga boundaries,
+ * lunations, the solar return, combustion windows, planetary war, nakṣatra
+ * ingresses) were blocked on a parameter type. One module, one bisection,
+ * and `findSteps` beside it for the quantities that step rather than cross.
  */
-function bisect(
-  f: (jd: number) => number,
-  lowJd: number,
-  highJd: number,
-  toleranceDays: number,
-): number {
-  let low = lowJd;
-  let high = highJd;
-  let fLow = f(low);
-  // A hard guard: 200 halvings takes any realistic window below any realistic
-  // tolerance, and a function that does not converge should stop rather than
-  // spin.
-  for (let i = 0; i < 200 && high - low > toleranceDays; i += 1) {
-    const mid = (low + high) / 2;
-    const fMid = f(mid);
-    if (fMid === 0) return mid;
-    if (fLow < 0 !== fMid < 0) high = mid;
-    else {
-      low = mid;
-      fLow = fMid;
-    }
-  }
-  return (low + high) / 2;
-}
 
 export interface Ingress {
   readonly body: PointId;

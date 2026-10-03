@@ -12,6 +12,8 @@ import {
 import {
   deepNatal,
   readAllAreas,
+  readVargas,
+  readYogas,
   synthesise,
   deepTransits,
   plainChartReading,
@@ -33,6 +35,8 @@ import {
   type SnapshotFact,
 } from '@/components/ReadingChrome';
 import { AreaCard } from '@/components/AreaCard';
+import { VargaPassage } from '@/components/VargaPassage';
+import { YogaPassage } from '@/components/YogaPassage';
 import { Fold } from '@/components/Fold';
 import { ChartSpine } from '@/components/ChartSpine';
 import { DeepPassage } from '@/components/DeepPassage';
@@ -151,6 +155,15 @@ export default async function ReadingPage({
    * stretch keeps asking about — which is the difference between a reading of
    * a person and a reading of their year.
    */
+  /*
+   * Sixteen divisionals and 23 yogas were computed and said nothing. Six
+   * divisions are read — the ones whose scope the texts agree about — and the
+   * yogas are grouped into families, because five Mahāpuruṣa yogas are one
+   * statement about a chart rather than five.
+   */
+  const vargas = readVargas(chart);
+  const yogas = readYogas(chart);
+
   const areas = readAllAreas(chart, {
     live: { major: chain[0]!.lord, minor: chain[1]?.lord },
     sky,
@@ -162,7 +175,9 @@ export default async function ReadingPage({
   );
   const planets = plainPlanets(chart);
 
-  const active = ['overall', 'depth', 'areas', 'houses', 'planets', 'timing'].includes(view ?? '')
+  const active = ['overall', 'depth', 'areas', 'divisions', 'houses', 'planets', 'timing'].includes(
+    view ?? '',
+  )
     ? view!
     : 'overall';
   const hrefFor = (key: string): string => `/read/${id}?view=${key}`;
@@ -247,6 +262,7 @@ export default async function ReadingPage({
             { key: 'overall', label: 'Overall' },
             { key: 'depth', label: 'In depth', count: natalDepth.length },
             { key: 'areas', label: 'Your life', count: areas.length },
+            { key: 'divisions', label: 'Underneath', count: vargas.length + yogas.families.length },
             { key: 'timing', label: 'Right now', count: transits.length + periods.length },
             { key: 'houses', label: 'Houses', count: reading.houses.length },
             { key: 'planets', label: 'Planets', count: planets.length },
@@ -383,6 +399,50 @@ export default async function ReadingPage({
               open={area.liveNow !== null}
             >
               <AreaCard area={area} />
+            </Fold>
+          ))}
+        </section>
+      ) : null}
+
+      {/* --------------------------------------------------------- divisions */}
+      {active === 'divisions' ? (
+        <section className="mt-5 flex flex-col sm:gap-4">
+          <p className="border-l-2 border-[var(--rule-strong)] py-1 pl-3 text-[14px] leading-relaxed text-[var(--ink-muted)]">
+            A divisional chart cuts every sign into equal parts and re-seats the whole chart on the
+            part your grahas fell in. The classical use is comparison: a graha that stands well in
+            the birth chart and badly in a division is the chart saying a thing looks better than it
+            works. Six are read here — the ones the texts agree the scope of. The other ten are
+            drawn on the technical sheet and deliberately not read.
+          </p>
+
+          {vargas.map((reading) => (
+            <Fold
+              key={reading.vargaId}
+              id={`varga-${reading.vargaId}`}
+              title={`${reading.vargaId} — ${reading.topic}`}
+              hint={reading.asks}
+              open={reading.vargaId === 'D9'}
+            >
+              <VargaPassage reading={reading} />
+            </Fold>
+          ))}
+
+          {/* ------------------------------------------------------- yogas */}
+          <h2 className="mt-6 border-b border-[var(--rule)] pb-1.5 font-display text-[1.7rem]">
+            Named combinations
+          </h2>
+          {yogas.opening ? (
+            <p className="max-w-[72ch] text-[15.5px] leading-[1.6]">{yogas.opening}</p>
+          ) : null}
+          {yogas.families.map((family) => (
+            <Fold
+              key={family.family}
+              id={`yoga-${family.family}`}
+              title={family.title}
+              hint={family.hits.map((hit) => hit.name).join(', ')}
+              open={family === yogas.families[0]}
+            >
+              <YogaPassage family={family} />
             </Fold>
           ))}
         </section>

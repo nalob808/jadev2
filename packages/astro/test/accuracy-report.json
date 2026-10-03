@@ -4,6 +4,13 @@
   "precisionClass": "interactive",
   "unit": "arcsec",
   "charts": 18,
+  "chartsInDeltaTEra": 15,
+  "chartsExtrapolated": 3,
+  "deltaT": {
+    "observedEraFromJd": 2415020,
+    "observedEraToJd": 2469807.5,
+    "relaxation": 20
+  },
   "worstCase": [
     {
       "quantity": "Moon",
@@ -94,6 +101,190 @@
       "quantity": "~dPsi",
       "error": 0.0048960222809573545,
       "chart": "total-solar-eclipse-day"
+    }
+  ],
+  "worstCaseInDeltaTEra": [
+    {
+      "quantity": "TrueNode",
+      "error": 27.65649387358735,
+      "chart": "arctic-tromso"
+    },
+    {
+      "quantity": "Neptune",
+      "error": 17.44646870276938,
+      "chart": "exact-midnight-ut"
+    },
+    {
+      "quantity": "Saturn",
+      "error": 13.449562474215782,
+      "chart": "v0-reference-chart"
+    },
+    {
+      "quantity": "Uranus",
+      "error": 10.966555732534289,
+      "chart": "leap-day"
+    },
+    {
+      "quantity": "Mercury",
+      "error": 9.533247938725253,
+      "chart": "southern-hemisphere"
+    },
+    {
+      "quantity": "Jupiter",
+      "error": 5.900142599693936,
+      "chart": "modern-honolulu"
+    },
+    {
+      "quantity": "Venus",
+      "error": 4.809931243494248,
+      "chart": "today-honolulu"
+    },
+    {
+      "quantity": "Moon",
+      "error": 3.585365248443395,
+      "chart": "today-honolulu"
+    },
+    {
+      "quantity": "Pluto",
+      "error": 2.6808648257997447,
+      "chart": "modern-mumbai"
+    },
+    {
+      "quantity": "Mars",
+      "error": 2.5763484257595337,
+      "chart": "leap-day"
+    },
+    {
+      "quantity": "Sun",
+      "error": 1.1235946337819769,
+      "chart": "mercury-retrograde"
+    },
+    {
+      "quantity": "Ascendant",
+      "error": 0.25037193397565716,
+      "chart": "arctic-tromso"
+    },
+    {
+      "quantity": "Rahu",
+      "error": 0.19340513492807077,
+      "chart": "high-latitude-reykjavik"
+    },
+    {
+      "quantity": "Ketu",
+      "error": 0.19340513472343446,
+      "chart": "high-latitude-reykjavik"
+    },
+    {
+      "quantity": "Midheaven",
+      "error": 0.12706892582627916,
+      "chart": "equatorial"
+    },
+    {
+      "quantity": "~obliquity",
+      "error": 0.047757786205693264,
+      "chart": "mercury-retrograde"
+    },
+    {
+      "quantity": "~ayanamsa",
+      "error": 0.005014398713854007,
+      "chart": "total-solar-eclipse-day"
+    },
+    {
+      "quantity": "~dPsi",
+      "error": 0.0048960222809573545,
+      "chart": "total-solar-eclipse-day"
+    }
+  ],
+  "worstCaseExtrapolated": [
+    {
+      "quantity": "Moon",
+      "error": 69.07438861480841,
+      "chart": "future-2099"
+    },
+    {
+      "quantity": "Neptune",
+      "error": 17.16329736013904,
+      "chart": "nineteenth-century-us"
+    },
+    {
+      "quantity": "Pluto",
+      "error": 11.699351279023773,
+      "chart": "nineteenth-century-us"
+    },
+    {
+      "quantity": "TrueNode",
+      "error": 8.010313113948087,
+      "chart": "pre-1900-london"
+    },
+    {
+      "quantity": "Venus",
+      "error": 5.618045241510572,
+      "chart": "future-2099"
+    },
+    {
+      "quantity": "Mercury",
+      "error": 4.394904587047677,
+      "chart": "future-2099"
+    },
+    {
+      "quantity": "Jupiter",
+      "error": 4.2833975951452885,
+      "chart": "pre-1900-london"
+    },
+    {
+      "quantity": "Sun",
+      "error": 3.8181437380217176,
+      "chart": "future-2099"
+    },
+    {
+      "quantity": "Mars",
+      "error": 3.712641179959064,
+      "chart": "nineteenth-century-us"
+    },
+    {
+      "quantity": "Saturn",
+      "error": 3.4808033274657646,
+      "chart": "future-2099"
+    },
+    {
+      "quantity": "Uranus",
+      "error": 2.1711964478981827,
+      "chart": "pre-1900-london"
+    },
+    {
+      "quantity": "Midheaven",
+      "error": 2.017757461862857,
+      "chart": "future-2099"
+    },
+    {
+      "quantity": "Ascendant",
+      "error": 1.639046213108486,
+      "chart": "future-2099"
+    },
+    {
+      "quantity": "Rahu",
+      "error": 0.4310650901061308,
+      "chart": "nineteenth-century-us"
+    },
+    {
+      "quantity": "Ketu",
+      "error": 0.4310650899014945,
+      "chart": "nineteenth-century-us"
+    },
+    {
+      "quantity": "~obliquity",
+      "error": 0.062215391750441995,
+      "chart": "future-2099"
+    },
+    {
+      "quantity": "~dPsi",
+      "error": 0.004484281954006148,
+      "chart": "nineteenth-century-us"
+    },
+    {
+      "quantity": "~ayanamsa",
+      "error": 0.0044712136329394525,
+      "chart": "nineteenth-century-us"
     }
   ]
 }

@@ -12,6 +12,7 @@ import {
 import {
   aspectsOnSign,
   GRAHA_DRISHTI,
+  INCLUDE_NODE_DRISHTI_BY_DEFAULT,
   signsAspectedBy,
   signsAspectedBySign,
 } from '../src/drishti.js';
@@ -166,9 +167,21 @@ describe('graha dṛṣṭi', () => {
     ).toEqual([1, 3, 5]);
   });
 
-  it('leaves the nodes out unless asked, because BPHS does not give them dṛṣṭi', () => {
-    expect(signsAspectedBy('Rahu', 0)).toEqual([]);
+  /*
+   * The nodes glance by default, and the default is one constant.
+   *
+   * This test used to assert the opposite, from the era when this module
+   * returned nothing for the nodes unless asked while `relations/synastry.ts`
+   * and `interpret`'s house reading both defaulted them on. One Rāhu either
+   * glances or it does not; `INCLUDE_NODE_DRISHTI_BY_DEFAULT` is the single
+   * value, and the assertion reads it rather than restating it, so changing
+   * the default is one edit rather than one edit and a failing test.
+   */
+  it('gives the nodes the same default everywhere, and lets a caller override it', () => {
+    const byDefault = signsAspectedBy('Rahu', 0);
+    expect(byDefault).toHaveLength(INCLUDE_NODE_DRISHTI_BY_DEFAULT ? 3 : 0);
     expect(signsAspectedBy('Rahu', 0, { includeNodes: true })).toHaveLength(3);
+    expect(signsAspectedBy('Rahu', 0, { includeNodes: false })).toEqual([]);
   });
 
   it('finds who aspects a sign', () => {

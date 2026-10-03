@@ -129,6 +129,11 @@ export const SECTIONS: readonly NavSection[] = [
         label: 'Sky now',
         blurb: 'Where every graha is today, and which of your people it lands on.',
       },
+      {
+        href: '/watches',
+        label: 'Watches',
+        blurb: 'Standing rules that record when a sky condition becomes true for someone.',
+      },
     ],
   },
   {
@@ -298,6 +303,10 @@ export const UNLINKED: ReadonlyArray<{ route: string; why: string }> = [
   {
     route: '/s/:token',
     why: 'A share link opened by a client who has no account. Deliberately reachable from nothing inside the app — it is the one page that must offer no way in.',
+  },
+  {
+    route: '/settings/close',
+    why: 'Deleting a practice, reached from the data section of Settings. Deliberately not a menu word: an irreversible action should be found by somebody looking for it, not met by somebody browsing.',
   },
   { route: '/legacy', why: 'The v0 prototype, kept for comparison. Labs only.' },
   { route: '/spike/sphere', why: 'Behind JADE_SPIKES=1 and not accessible yet. Labs only.' },

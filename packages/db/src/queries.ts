@@ -314,7 +314,31 @@ export async function hardDeleteSubject(
   });
 }
 
-/** Everything Jade holds about one person, as portable JSON. No hostage-taking. */
+/**
+ * Everything Jade holds about one person, as portable JSON. No hostage-taking.
+ *
+ * ## "Everything" has to mean everything
+ *
+ * This used to return the subject row and its birth events, which is the data
+ * a practitioner *typed in* and almost none of the data they *made*. The
+ * notes, the dated life events a rectification was fitted to, the session
+ * history, the open follow-ups — the actual work product — were not portable
+ * at all. An export that hands back the inputs and keeps the output is a
+ * subtler kind of hostage-taking than no export at all, because it looks like
+ * a promise kept.
+ *
+ * ## Why it is still never gated
+ *
+ * `plans.ts` has no capability key for export, deliberately: the guarantee is
+ * structural rather than a matter of remembering. A free user leaving with
+ * everything is the whole point of constitution item 4.
+ *
+ * ## The format version
+ *
+ * `jade.subject.v2`. The payload grew in a way an importer must notice, so the
+ * version moved with it rather than a v1 document quietly meaning two
+ * different things.
+ */
 export async function exportSubject(
   database: Database,
   workspaceId: string,
@@ -325,8 +349,167 @@ export async function exportSubject(
       await tx.select().from(subjects).where(eq(subjects.id, subjectId)).limit(1)
     )[0];
     if (!subject) return null;
-    const events = await tx.select().from(birthEvents).where(eq(birthEvents.subjectId, subjectId));
-    return { exportedFormat: 'jade.subject.v1', subject, birthEvents: events };
+
+    const [events, subjectNotes, events2, subjectSessions, pairs] = await Promise.all([
+      tx.select().from(birthEvents).where(eq(birthEvents.subjectId, subjectId)),
+      tx.select().from(notes).where(eq(notes.subjectId, subjectId)),
+      tx.select().from(lifeEvents).where(eq(lifeEvents.subjectId, subjectId)),
+      tx.select().from(sessions).where(eq(sessions.subjectId, subjectId)),
+      /* Both directions. The pair is stored canonically ordered, so a person
+         is sometimes side A and sometimes side B, and an export that only
+         looked at one column would drop half of somebody's relationships. */
+      tx
+        .select()
+        .from(relationships)
+        .where(
+          sql`${relationships.subjectAId} = ${subjectId} OR ${relationships.subjectBId} = ${subjectId}`,
+        ),
+    ]);
+
+    /* Follow-ups hang off sessions rather than off the subject, so they are
+       collected by session id rather than queried directly. */
+    const sessionIds = subjectSessions.map((one) => one.id);
+    const subjectFollowUps =
+      sessionIds.length === 0
+        ? []
+        : await tx
+            .select()
+            .from(followUps)
+            .where(sql`${followUps.sessionId} IN ${sessionIds}`);
+
+    return {
+      exportedFormat: 'jade.subject.v2',
+      exportedAt: new Date().toISOString(),
+      subject,
+      birthEvents: events,
+      lifeEvents: events2,
+      notes: subjectNotes,
+      sessions: subjectSessions,
+      followUps: subjectFollowUps,
+      relationships: pairs,
+      /*
+       * Charts are deliberately absent, and this says so rather than leaving
+       * a reader to wonder. A chart is a pure function of a birth event and a
+       * settings profile — it is a cache, reproducible from what is here, and
+       * including megabytes of derived positions would make the file hard to
+       * read without making it more complete.
+       */
+      omitted: {
+        charts: 'Derived from birthEvents and the settings profile; recompute rather than copy.',
+      },
+    };
+  });
+}
+
+/**
+ * Every workspace id, for a service job with no tenant.
+ *
+ * The one legitimate cross-tenant read in Jade. A nightly watch run serves
+ * every practice, so it has to know they exist — and until migration 0015 it
+ * learned that by selecting from an unguarded table, which is a dependency on
+ * a gap rather than on a decision.
+ *
+ * Now the reach is explicit: `app.bypass_rls` is set for the length of this
+ * one transaction, and nothing else in the codebase sets it. The per-workspace
+ * binding still applies to everything the job does afterwards, so this returns
+ * ids and nothing else — a caller that wants a practice's data still has to
+ * ask for it as that practice.
+ *
+ * Not exported through any web path. `apps/worker` is the only consumer.
+ */
+export async function listWorkspaceIdsForService(database: Database): Promise<string[]> {
+  return database.transaction(async (tx) => {
+    await tx.execute(sql`SELECT set_config('app.bypass_rls', 'on', true)`);
+    const rows = await tx.select({ id: workspaces.id }).from(workspaces);
+    return rows.map((row) => row.id);
+  });
+}
+
+/**
+ * Everything Jade holds about a whole practice.
+ *
+ * The answer to a subject-access request from the practitioner rather than
+ * about one client. Per-subject export answered "give me my client's data";
+ * nothing answered "give me mine", which is the request that actually arrives
+ * with a legal deadline attached.
+ *
+ * Settings profiles are included because a chart cannot be reproduced without
+ * the frame it was cast in — an export of birth data without the ayanāṁśa is
+ * an export of a different chart.
+ */
+export async function exportWorkspace(database: Database, workspaceId: string): Promise<unknown> {
+  return withWorkspace(database, workspaceId, async (tx) => {
+    const [workspace] = await tx
+      .select()
+      .from(workspaces)
+      .where(eq(workspaces.id, workspaceId))
+      .limit(1);
+    if (!workspace) return null;
+
+    const [allSubjects, profiles, allNotes, allSessions, allRelationships, allLifeEvents] =
+      await Promise.all([
+        tx.select().from(subjects).where(eq(subjects.workspaceId, workspaceId)),
+        tx.select().from(settingsProfiles).where(eq(settingsProfiles.workspaceId, workspaceId)),
+        tx.select().from(notes).where(eq(notes.workspaceId, workspaceId)),
+        tx.select().from(sessions).where(eq(sessions.workspaceId, workspaceId)),
+        tx.select().from(relationships).where(eq(relationships.workspaceId, workspaceId)),
+        tx.select().from(lifeEvents).where(eq(lifeEvents.workspaceId, workspaceId)),
+      ]);
+
+    const subjectIds = allSubjects.map((one) => one.id);
+    const allBirthEvents =
+      subjectIds.length === 0
+        ? []
+        : await tx
+            .select()
+            .from(birthEvents)
+            .where(sql`${birthEvents.subjectId} IN ${subjectIds}`);
+
+    return {
+      exportedFormat: 'jade.workspace.v1',
+      exportedAt: new Date().toISOString(),
+      /* The Stripe ids are omitted: they identify a billing relationship with
+         a third party rather than anything about the practice, and a file a
+         practitioner will email around should not carry them. */
+      workspace: {
+        id: workspace.id,
+        name: workspace.name,
+        slug: workspace.slug,
+        plan: workspace.plan,
+        homeZoneId: workspace.homeZoneId,
+        createdAt: workspace.createdAt,
+      },
+      settingsProfiles: profiles,
+      subjects: allSubjects,
+      birthEvents: allBirthEvents,
+      lifeEvents: allLifeEvents,
+      notes: allNotes,
+      sessions: allSessions,
+      relationships: allRelationships,
+    };
+  });
+}
+
+/**
+ * Delete a practice and everything in it. Irreversible.
+ *
+ * There was no way to leave. Per-subject hard delete existed and cascaded
+ * correctly, so a practitioner could remove a client and could not remove
+ * themselves — which makes the export above the only half of the promise that
+ * was kept.
+ *
+ * Deliberately not inside `withWorkspace`: that helper sets `app.workspace_id`
+ * so the row-level policies admit the rows, and the last statement here
+ * deletes the workspace those policies are keyed to. The bypass is explicit
+ * and scoped to this transaction, which is the one operation in Jade that
+ * legitimately crosses the boundary — it is removing the boundary.
+ */
+export async function deleteWorkspace(database: Database, workspaceId: string): Promise<void> {
+  await database.transaction(async (tx) => {
+    await tx.execute(sql`SELECT set_config('app.bypass_rls', 'on', true)`);
+    /* Cascades do the rest: every workspace-scoped table references this row
+       with ON DELETE CASCADE, which is asserted in `tenancy.test.ts`. */
+    await tx.delete(workspaces).where(eq(workspaces.id, workspaceId));
   });
 }
 
@@ -1627,6 +1810,29 @@ export async function createWatch(
       })
       .returning();
     return row!;
+  });
+}
+
+/**
+ * Pause a watch without losing it.
+ *
+ * The same argument as `setLifeEventEnabled`: the useful question is "what
+ * happens if I stop watching this for a while", and that has to be reversible.
+ * A practitioner who has to delete and re-enter a rule to answer it will
+ * simply not ask.
+ */
+export async function setWatchEnabled(
+  db: Database,
+  input: { workspaceId: string; id: string; enabled: boolean },
+): Promise<void> {
+  await withWorkspace(db, input.workspaceId, async (tx) => {
+    await tx
+      .update(watches)
+      /* No `updatedAt`: the watches table has no such column. What it does
+         have is `lastEvaluatedAt`, which belongs to the job rather than to the
+         practitioner, and pausing a rule must not look like the job ran. */
+      .set({ enabled: input.enabled })
+      .where(and(eq(watches.workspaceId, input.workspaceId), eq(watches.id, input.id)));
   });
 }
 

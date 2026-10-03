@@ -108,6 +108,16 @@ try {
     'upgrade_intents',
     'sessions',
     'follow_ups',
+    'share_links',
+    /*
+     * `workspaces` keys on its own primary key rather than on a workspace_id
+     * column, which is exactly why the unlisted-table probe below could never
+     * see it: that probe looks for a `workspace_id` column, and the tenant
+     * table does not have one. It went unguarded through fourteen migrations
+     * for that reason. Listed explicitly so the check is about the schema
+     * rather than about a naming convention.
+     */
+    'workspaces',
   ];
   const tables = await sql<{ relname: string; enabled: boolean; forced: boolean }[]>`
     select relname, relrowsecurity as enabled, relforcerowsecurity as forced

@@ -101,8 +101,17 @@ export const CAPABILITIES: Readonly<Record<CapabilityId, Capability>> = {
     id: 'watches',
     label: 'Transit alerts',
     locked: 'Transit alerts are a Practitioner feature',
-    blurb: 'Standing rules that tell you when a sky condition becomes true for someone.',
-    built: false,
+    /*
+     * The blurb says "record", not "tell you", on purpose.
+     *
+     * The rules are written, evaluated and recorded, and the hits appear on
+     * /watches, Today and Sky now. Nothing is emailed — no provider is wired —
+     * so a blurb promising to tell you would be selling the half that does not
+     * exist. When email ships, this sentence changes with it.
+     */
+    blurb:
+      'Standing rules that record when a sky condition becomes true for someone, with the placements behind each one. Shown in the app; not yet emailed.',
+    built: true,
   },
   sessions: {
     id: 'sessions',
@@ -129,9 +138,10 @@ export const CAPABILITIES: Readonly<Record<CapabilityId, Capability>> = {
   shareLinks: {
     id: 'shareLinks',
     label: 'Client share links',
-    locked: 'Share links are a Professional feature',
-    blurb: 'A link a client can open, without an account and without seeing your other work.',
-    built: false,
+    locked: 'Share links are a Practitioner feature',
+    blurb:
+      'A link a client can open, without an account and without seeing your other work. Expiring, revocable, and it never shows birth data unless you say so.',
+    built: true,
   },
   muhurta: {
     id: 'muhurta',
@@ -231,7 +241,20 @@ export const PLANS: readonly Plan[] = [
       'Vimśottarī daśā to five levels',
       'Aṣṭakavarga and ṣaḍbala',
       'Today’s sky and the week ahead',
-      'Every ayanāṁśa, stated on the chart',
+      /*
+       * Six, not "every" — and the number is checked against the code.
+       *
+       * Lahiri, Raman, Krishnamurti, Yukteśvar, Fagan–Bradley and Sūrya
+       * Siddhānta are fitted against Swiss Ephemeris and verified to 0.0002″.
+       * True Citrā is declared and refuses, because it pins Spica rather than
+       * following a polynomial and the best cubic fit is 20″ out — four times
+       * the ascendant's whole budget.
+       *
+       * Saying the number lets a KP or Raman astrologer tell at a glance that
+       * theirs is one of them. `claims.test.ts` fails if this sentence and
+       * `FITTED_AYANAMSAS` ever disagree again.
+       */
+      'Six ayanāṁśas, each stated on the chart',
       'Export anyone’s data, on every tier, forever',
     ],
   },
@@ -252,8 +275,19 @@ export const PLANS: readonly Plan[] = [
     monthly: 49,
     yearly: 429,
     limits: { people: null, notes: null },
-    adds: ['watches', 'sessions', 'varshaphala'],
-    highlights: ['Everything in Seeker'],
+    /*
+     * Share links moved down from Professional.
+     *
+     * They were the most complete feature in the app, flagged `built: false`,
+     * priced at $99 and given away with no gate at all — three different
+     * answers to one question. Delivering a reading to a client is what makes
+     * somebody a practitioner rather than a student, so this is the tier it
+     * belongs to, beside sessions and watches. Professional now has to earn
+     * its price on branding, muhūrta, the ledger and the API, none of which
+     * are built — which is why `docs/09-stripe.md` says to sell Seeker first.
+     */
+    adds: ['watches', 'sessions', 'shareLinks', 'varshaphala'],
+    highlights: ['Everything in Seeker', 'Sessions, transit alerts and client links'],
   },
   {
     id: 'professional',
@@ -262,7 +296,7 @@ export const PLANS: readonly Plan[] = [
     monthly: 99,
     yearly: 890,
     limits: { people: null, notes: null },
-    adds: ['branding', 'shareLinks', 'muhurta', 'predictionLedger', 'api'],
+    adds: ['branding', 'muhurta', 'predictionLedger', 'api'],
     highlights: ['Everything in Practitioner'],
   },
   {

@@ -16,7 +16,9 @@ import {
   recordWatchHits,
   createSubjectWithBirthEvent,
   deleteRelationship,
+  deleteWorkspace,
   exportSubject,
+  exportWorkspace,
   getSubject,
   hardDeleteSubject,
   listRelationships,
@@ -142,14 +144,84 @@ describeWithDb('subjects', () => {
     expect(bobList.map((r) => r.subject.displayName)).toEqual(['Someone Else']);
   });
 
+  /*
+   * "Everything" is the word in the promise, so the test checks for the parts
+   * that were missing rather than for the parts that were there.
+   *
+   * v1 returned the subject row and its birth events — the data a practitioner
+   * typed in, and almost none of the data they made. An export that hands back
+   * the inputs and keeps the work product is a subtler hostage-taking than no
+   * export, because it looks like a promise kept.
+   */
   it('exports everything about a person as portable JSON', async () => {
     const [first] = await listSubjects(database, alice.workspaceId);
-    const exported = (await exportSubject(database, alice.workspaceId, first!.subject.id)) as {
-      exportedFormat: string;
-      birthEvents: unknown[];
-    };
-    expect(exported.exportedFormat).toBe('jade.subject.v1');
+    const exported = (await exportSubject(
+      database,
+      alice.workspaceId,
+      first!.subject.id,
+    )) as Record<string, unknown>;
+    expect(exported.exportedFormat).toBe('jade.subject.v2');
     expect(exported.birthEvents).toHaveLength(1);
+
+    for (const key of [
+      'subject',
+      'birthEvents',
+      'lifeEvents',
+      'notes',
+      'sessions',
+      'followUps',
+      'relationships',
+    ]) {
+      expect(exported[key], `missing ${key}`).toBeDefined();
+    }
+
+    /* Charts are left out on purpose, and the file says so rather than
+       leaving a reader to wonder whether they were forgotten. */
+    expect((exported.omitted as Record<string, string>).charts).toMatch(/recompute/i);
+  });
+
+  it('exports a whole practice, for the request that arrives with a deadline', async () => {
+    const exported = (await exportWorkspace(database, alice.workspaceId)) as Record<
+      string,
+      unknown
+    >;
+    expect(exported.exportedFormat).toBe('jade.workspace.v1');
+    expect((exported.subjects as unknown[]).length).toBeGreaterThan(0);
+    expect(exported.settingsProfiles).toBeDefined();
+    /* The frame travels with the data: birth data without the ayanāṁśa it was
+       read in is an export of a different chart. */
+    expect((exported.settingsProfiles as unknown[]).length).toBeGreaterThan(0);
+    /* Stripe ids identify a billing relationship with a third party, not the
+       practice, and must not ride along in a file somebody will email. */
+    expect(JSON.stringify(exported)).not.toMatch(/stripeCustomerId|stripe_customer_id/);
+  });
+
+  /*
+   * A practitioner could remove a client and could not remove themselves,
+   * which makes the export above the only half of the promise that was kept.
+   */
+  it('deletes a whole practice, and takes everything with it', async () => {
+    const leaving = await bootstrapUser(database, {
+      email: `leaving-${Date.now()}@example.com`,
+      displayName: 'Leaving',
+    });
+    await createSubjectWithBirthEvent(database, leaving.workspaceId, {
+      subject: { displayName: 'Their Client', createdBy: leaving.userId },
+      birthEvent: birthEventFixture,
+    });
+    expect(await listSubjects(database, leaving.workspaceId)).toHaveLength(1);
+
+    await deleteWorkspace(database, leaving.workspaceId);
+
+    /* The workspace is gone, and so is everything that referenced it. */
+    expect(await listSubjects(database, leaving.workspaceId)).toHaveLength(0);
+    const rows = await database.execute(
+      sql`select count(*)::int as n from workspaces where id = ${leaving.workspaceId}`,
+    );
+    expect((rows as unknown as { n: number }[])[0]!.n).toBe(0);
+
+    /* And nobody else's practice went with it. */
+    expect((await listSubjects(database, alice.workspaceId)).length).toBeGreaterThan(0);
   });
 
   it('soft delete hides a person; hard delete removes them', async () => {

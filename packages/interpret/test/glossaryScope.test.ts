@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import {
   AstronomyEngineProvider,
+  INCLUDE_NODE_DRISHTI_BY_DEFAULT,
   computeChart,
   vimshottari,
   type ComputedChart,
@@ -65,15 +66,33 @@ describe('scoped context', () => {
   });
 
   /**
-   * `signsAspectedBy` throws for anything that is not one of the seven. The
-   * angles and the outers are real chart points and must not take a tooltip
-   * down with them.
+   * `signsAspectedBy` returns nothing for anything that is not one of the
+   * seven plus, by default, the nodes. The angles and the outers are real
+   * chart points and must not take a tooltip down with them.
+   *
+   * The nodes are the interesting case and are asserted against the shared
+   * default rather than against a remembered answer: Rāhu glancing in a
+   * tooltip and not in a synastry reading — which is what happened when four
+   * files each kept their own default — is worse than either choice made
+   * consistently.
    */
   it('survives points that do not aspect', () => {
-    for (const id of ['Ascendant', 'Rahu', 'Ketu']) {
+    for (const id of ['Ascendant', 'Midheaven']) {
       const scope = glossaryScopeForPoint(chart, id);
       expect(scope['rasi'], id).toBeDefined();
       expect(scope['drishti'], id).toBeUndefined();
+    }
+  });
+
+  it('gives the nodes a dṛṣṭi line exactly when the shared default says to', () => {
+    for (const id of ['Rahu', 'Ketu']) {
+      const scope = glossaryScopeForPoint(chart, id);
+      expect(scope['rasi'], id).toBeDefined();
+      if (INCLUDE_NODE_DRISHTI_BY_DEFAULT) {
+        expect(scope['drishti']?.join(' '), id).toMatch(/5th|7th|9th/);
+      } else {
+        expect(scope['drishti'], id).toBeUndefined();
+      }
     }
   });
 

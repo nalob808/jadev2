@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { CallToAction, SectionHead } from '@/components/marketing/Site';
 import { JsonLd, breadcrumbSchema } from '@/components/marketing/JsonLd';
+import { accuracyReport, arcsec, labelFor } from '@/lib/accuracy';
 
 export const metadata: Metadata = {
   title: 'How Jade verifies its mathematics — the accuracy programme',
@@ -88,6 +89,8 @@ const FOUND_IN_REFERENCE = [
 ];
 
 export default function AccuracyPage() {
+  const report = accuracyReport();
+
   return (
     <>
       <JsonLd
@@ -127,6 +130,76 @@ export default function AccuracyPage() {
             </article>
           ))}
         </div>
+      </section>
+
+      {/* ------------------------------------------------- the measured table */}
+      <section className="mx-auto mt-16 max-w-6xl px-5 sm:px-8">
+        <SectionHead
+          kicker="Measured"
+          title="Every number below was measured, not promised"
+          lede={`The budget column is what continuous integration enforces; the measured column is what the shipped ephemeris actually did across ${report.charts} fixture charts, generated against ${report.generatedAgainst}. If a measurement regresses, this page moves with it — nobody retypes anything.`}
+        />
+
+        <div className="jade-panel mt-6 overflow-x-auto p-0">
+          <table className="w-full min-w-[34rem] border-collapse">
+            <thead>
+              <tr className="border-b border-[var(--rule-strong)] text-left font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--ink-faint)]">
+                <th className="px-4 py-2.5 font-normal">Quantity</th>
+                <th className="px-4 py-2.5 text-right font-normal">Budget</th>
+                <th className="px-4 py-2.5 text-right font-normal">Worst measured</th>
+                <th className="px-4 py-2.5 font-normal">On</th>
+              </tr>
+            </thead>
+            <tbody>
+              {report.rows.map((row) => (
+                <tr key={row.quantity} className="border-b border-[var(--rule)] last:border-0">
+                  <td className="px-4 py-2 text-[14px]">{labelFor(row.quantity)}</td>
+                  <td className="px-4 py-2 text-right font-mono text-[13px] tabular-nums text-[var(--ink-muted)]">
+                    {arcsec(row.budget)}
+                  </td>
+                  <td
+                    className={`px-4 py-2 text-right font-mono text-[13px] tabular-nums ${
+                      row.relaxed ? 'text-[var(--clay)]' : 'text-[var(--ink)]'
+                    }`}
+                  >
+                    {arcsec(row.worst)}
+                  </td>
+                  <td className="px-4 py-2 font-mono text-[11px] text-[var(--ink-faint)]">
+                    {row.chart}
+                    {row.relaxed ? (
+                      <span className="ml-1.5 text-[var(--clay)]" title="Outside 1900–2050">
+                        ·&nbsp;ΔT
+                      </span>
+                    ) : null}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {/*
+          The relaxation, stated rather than buried. A measurement that exceeds
+          its budget because the two programs disagree about what time it is
+          has to say so on the same screen as the number, or the number is a
+          lie of omission.
+        */}
+        <p className="mt-4 max-w-[70ch] border-l-2 border-[var(--clay)] py-1 pl-4 text-[14px] leading-relaxed text-[var(--ink-muted)]">
+          The rows marked ΔT come from charts outside 1900–2050, where the budget is multiplied by{' '}
+          {report.relaxation}. Out there Jade&rsquo;s ΔT polynomial and Swiss Ephemeris&rsquo;s
+          diverge by seconds of <em>time</em>, and the Moon moves 33″ a minute — so a 69″
+          disagreement on a 2099 chart is the two programs being asked about instants two seconds
+          apart and both answering correctly. It is a clock difference, not a wrong position, and it
+          is shown in its own colour so a relaxed budget can never be read as a met one.
+        </p>
+
+        <p className="mt-3 max-w-[70ch] text-[14px] leading-relaxed text-[var(--ink-muted)]">
+          This is the <code className="font-mono text-[13px]">{report.precisionClass}</code>{' '}
+          provider — {report.provider}, MIT-licensed, fast enough to scrub a timeline at sixty
+          frames a second. It is the right tool for the interface and the wrong one for a printed
+          date, which is why a chart you store is owed a reference-class provider and why that
+          distinction is a field on every chart rather than a footnote here.
+        </p>
       </section>
 
       <section className="mx-auto mt-16 max-w-6xl px-5 sm:px-8">

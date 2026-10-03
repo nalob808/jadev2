@@ -4,6 +4,7 @@ import { notFound, redirect } from 'next/navigation';
 import { getSubject, listShareLinks } from '@jade/db';
 import { createShare, revokeShare } from '@/app/actions';
 import { getSession } from '@/lib/auth';
+import { requireCapability } from '@/lib/entitlements';
 import { getClock } from '@/lib/clock';
 import { getDatabase } from '@/lib/db';
 import { Kicker, Panel, Shell } from '@/components/Shell';
@@ -48,6 +49,16 @@ export default async function SharePage({
 }): Promise<React.ReactElement> {
   const session = await getSession();
   if (!session) redirect('/sign-in');
+  /*
+   * Gated, finally.
+   *
+   * This page shipped complete — hashed tokens, expiry, revocation, view
+   * counts, a token-scoped RLS policy — while `plans.ts` flagged it unbuilt,
+   * priced it at Professional, and let every free account use it. Three
+   * answers to one question. It is a Practitioner feature now, and this is
+   * where that is enforced rather than described.
+   */
+  await requireCapability(session.workspaceId, 'shareLinks');
 
   const { id } = await params;
   const { issued, revoked, error } = await searchParams;

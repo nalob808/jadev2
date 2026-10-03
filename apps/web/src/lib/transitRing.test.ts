@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
   AstronomyEngineProvider,
+  FITTED_AYANAMSAS,
+  PLANNED_AYANAMSAS,
   computeChart,
   jdFromUnixMs,
   siderealLongitudeAt,
@@ -101,19 +103,36 @@ describe('the transit ring', () => {
   /**
    * The scrubber refuses an ayanāṁśa Jade has not fitted, loudly.
    *
-   * `AyanamsaMode` declares eight modes and only `lahiri` has a fitted
-   * polynomial; the rest throw. That is a real gap, and this test pins the
-   * behaviour rather than papering over it: the failure has to stay a thrown
-   * error, because the alternative — falling back to Lahiri — would draw a ring
-   * in the wrong zodiac under a label saying otherwise, which is the exact
-   * silent default the constitution forbids (#3).
+   * The failure has to stay a thrown error. The alternative — falling back to
+   * Lahiri — would draw a ring in the wrong zodiac under a label saying
+   * otherwise, which is the exact silent default the constitution forbids.
    *
-   * When the remaining fits land, this test should start failing. That is the
-   * signal to delete it.
+   * This used to name Raman, with a note saying it should start failing when
+   * the remaining fits landed. They landed: six modes are fitted now and Raman
+   * is one of them. So the test moved to whatever is still unfitted rather
+   * than being deleted — the behaviour it guards is permanent even though the
+   * example of it is not, and reading the list keeps it from going stale again.
    */
   it('throws rather than substituting a zodiac it cannot compute', () => {
+    const unfitted = PLANNED_AYANAMSAS[0]?.id;
+    /* Nothing left to refuse is the good ending, not a failing test. */
+    if (!unfitted) return;
     expect(() =>
-      transitRing(JD, { ...frame, ayanamsa: 'raman' }, natal.houses.ascendantSign),
+      transitRing(JD, { ...frame, ayanamsa: unfitted }, natal.houses.ascendantSign),
     ).toThrow(/not yet fitted/i);
+  });
+
+  it('draws a ring in each of the fitted zodiacs, and they differ', () => {
+    /* The other half of #3: a mode that is offered has to actually produce a
+       different chart, or "selectable" means nothing. */
+    const drawn = FITTED_AYANAMSAS.filter((mode) => mode !== 'custom').map((mode) =>
+      transitRing(JD, { ...frame, ayanamsa: mode }, natal.houses.ascendantSign),
+    );
+    expect(drawn.length).toBeGreaterThan(1);
+    /* `transitRing` returns the points themselves, not a wrapper. */
+    const sunLongitudes = new Set(
+      drawn.map((points) => points.find((p) => p.id === 'Sun')?.longitude.toFixed(4)),
+    );
+    expect(sunLongitudes.size).toBe(drawn.length);
   });
 });
